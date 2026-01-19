@@ -248,3 +248,16 @@ Started: 2026-01-19
 - Has Effect.withSpan('Comment.getComments') for observability
 - Files changed: lib/core/comment/get-comments.ts
 - **Learnings:** Comment read operations follow task pattern - verify ownership via parent project (task → project); use asc() from drizzle-orm for ascending order in orderBy()
+
+## Task - domain-comment-2
+
+- Created lib/core/comment/create-comment-action.ts server action
+- 'use server' directive at top
+- Accepts CreateCommentInput with taskId and content
+- Verifies ownership via two-step check: fetch task for projectId → fetch parent project → verify userId matches
+- Creates comment with userId from session, isAgentComment=false, no agentName
+- matchEffect handles UnauthenticatedError (redirect), NotFoundError (task or project), UnauthorizedError
+- Returns both comment and projectId in success result to enable revalidatePath
+- Revalidates /rituals/[projectId] path on success
+- Files changed: lib/core/comment/create-comment-action.ts
+- **Learnings:** Comment creation follows same ownership verification pattern as task actions (two fetches); return projectId for revalidation path construction; user comments automatically get userId from session
