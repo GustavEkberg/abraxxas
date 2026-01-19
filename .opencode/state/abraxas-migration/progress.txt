@@ -67,3 +67,11 @@ Started: 2026-01-19
 - Removed all post-related files: lib/core/post/, app/page.tsx, app/post-*.tsx, app/search-params.ts, app/api/example/route.ts
 - Files changed: lib/services/db/schema.ts, deleted 10+ example files
 - **Learnings:** Removing table requires cleanup of both table definition and all relations; example code must be removed to pass type checking
+
+## Task - db-8
+
+- Applied schema changes to database using pnpm db:push
+- Migration was previously generated at lib/services/db/migrations/20260119093029_fancy_fenris/
+- Verified all 4 new tables exist: projects, tasks, comments, opencodeSessions
+- Files changed: database schema only (no code changes)
+- **Learnings:** Project uses db:push not db:migrate; drizzle-kit push applies changes directly; local Postgres doesn't require SSL (unlike Neon)

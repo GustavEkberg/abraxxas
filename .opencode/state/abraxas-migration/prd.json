@@ -112,7 +112,7 @@
         "Run pnpm db:migrate to apply migration",
         "Verify tables exist in database"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "service-1",

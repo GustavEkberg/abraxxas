@@ -1,7 +1,10 @@
 import { config } from 'dotenv'
 import { defineConfig } from 'drizzle-kit'
+import { existsSync } from 'fs'
 
-config({ path: '.env.local' })
+// Load .env.local if it exists, otherwise .env
+const envPath = existsSync('.env.local') ? '.env.local' : '.env'
+config({ path: envPath })
 
 const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) throw new Error('DATABASE_URL env variable not found')
