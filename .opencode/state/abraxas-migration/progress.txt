@@ -220,3 +220,21 @@ Started: 2026-01-19
 - Revalidates /rituals/[projectId] path on success
 - Files changed: lib/core/task/delete-task-action.ts
 - **Learnings:** Task delete follows same ownership verification pattern as update (two fetches); cascade delete via FK means no manual cleanup of child records; return projectId for revalidation path construction
+## Task - domain-task-5
+
+- Created lib/core/task/execute-task-action.ts server action for Sprites.dev execution
+- Created lib/core/sprites/callback-script.ts with webhook callback script generation
+- Created lib/core/sprites/spawn-sprite.ts with spawnSpriteForTask Effect function
+- 'use server' directive at top of action
+- Accepts taskId, verifies ownership via getProject()
+- Checks task not already in_progress (ValidationError if executing)
+- Fetches all comments for task, builds prompt from task title + description + comments
+- Decrypts GitHub token using decryptToken()
+- Spawns sprite via spawnSpriteForTask helper
+- Creates opencodeSessions record with pending status, sprite mode, webhookSecret
+- Updates task to status='ritual', executionState='in_progress', sets branchName
+- Posts agent comment with execution details (sprite name, branch)
+- matchEffect handles UnauthenticatedError (redirect), NotFoundError, UnauthorizedError, ValidationError
+- Revalidates /rituals/[projectId] path on success
+- Files changed: lib/core/task/execute-task-action.ts, lib/core/sprites/callback-script.ts, lib/core/sprites/spawn-sprite.ts
+- **Learnings:** Complex orchestration requires helper functions (callback script, spawn sprite); decryption happens in action before passing to Effect pipeline; sprite execution is fire-and-forget (webhook handles completion); agent comments use isAgentComment=true with agentName field; execution state transitions: idle → in_progress; status transitions: abyss/altar → ritual
