@@ -207,3 +207,16 @@ Started: 2026-01-19
 - Revalidates /rituals/[projectId] path on success
 - Files changed: lib/core/task/update-task-action.ts
 - **Learnings:** Task update requires two fetches (task for projectId, project for ownership); return projectId alongside updated entity when revalidation path needs it; partial updates use !== undefined checks
+
+## Task - domain-task-4
+
+- Created lib/core/task/delete-task-action.ts server action
+- 'use server' directive at top
+- Accepts taskId string parameter
+- Verifies ownership via two-step check: fetch task for projectId → fetch parent project → verify userId matches
+- Performs db.delete() with cascade (automatically deletes comments and sessions via FK constraints)
+- matchEffect handles NotFoundError (task or project), UnauthorizedError, UnauthenticatedError
+- Returns both taskId and projectId in success result to enable revalidatePath
+- Revalidates /rituals/[projectId] path on success
+- Files changed: lib/core/task/delete-task-action.ts
+- **Learnings:** Task delete follows same ownership verification pattern as update (two fetches); cascade delete via FK means no manual cleanup of child records; return projectId for revalidation path construction
