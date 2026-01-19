@@ -302,3 +302,19 @@ Started: 2026-01-19
 - Has Effect.withSpan('webhook.sprite') with operation attribute
 - Files changed: app/api/webhooks/sprite/[taskId]/route.ts
 - **Learnings:** Next.js 15 route params are async (Promise<{ taskId: string }>); use type import for NextRequest to satisfy lint; use Schema.decodeUnknownEither instead of type assertions for JSON parsing; HMAC verification requires timing-safe comparison via crypto.timingSafeEqual; raw body must be preserved for signature verification before parsing
+
+## Task - api-2
+
+- Implemented webhook payload type handlers for all 5 event types: started, progress, completed, error, question
+- Created 5 Schema.Struct definitions for each payload type using Schema.Literal for discriminated union
+- handleStarted: updates session to in_progress, posts agent comment with fire emoji
+- handleProgress: updates session stats (messageCount, inputTokens, outputTokens as strings)
+- handleCompleted: updates session to completed with completedAt/pullRequestUrl, moves task to 'trial' status with executionState 'awaiting_review', posts success comment, destroys sprite with error suppression
+- handleError: updates session to error with errorMessage/completedAt, moves task to 'cursed' status with executionState 'error', posts error comment, destroys sprite with error suppression
+- handleQuestion: posts agent comment with question mark emoji (no session/task updates)
+- All handlers use internal Effect functions (updateSession, createAgentComment) not server actions
+- Task status updates use direct db.update() with eq() filter (no ownership verification needed in webhook context)
+- Sprite destruction wrapped in Effect.catchAll to log warnings but not fail webhook on cleanup errors
+- Used if/else discriminator instead of Match.tag (Schema.Literal doesn't create proper tagged union for Match)
+- Files changed: app/api/webhooks/sprite/[taskId]/route.ts
+- **Learnings:** Webhook handlers use internal Effect functions not server actions (no user context); sprite cleanup failures should not fail webhook processing (use catchAll + logWarning); Schema.Union with Schema.Literal creates type discriminator but not Effect tagged union (use if/else not Match.tag); task/session updates in webhooks skip ownership checks (verified during execution start)

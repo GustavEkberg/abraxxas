@@ -1,13 +1,56 @@
 import { Effect, Schema } from 'effect'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { eq } from 'drizzle-orm'
 import { AppLayer } from '@/lib/layers'
+import { Db } from '@/lib/services/db/live-layer'
+import { Sprites } from '@/lib/services/sprites/live-layer'
+import * as schema from '@/lib/services/db/schema'
 import { getLatestSession } from '@/lib/core/session/get-latest-session'
+import { updateSession } from '@/lib/core/session/update-session'
+import { createAgentComment } from '@/lib/core/comment/create-agent-comment'
 import { createHmac, timingSafeEqual } from 'crypto'
 
 type RouteContext = {
   params: Promise<{ taskId: string }>
 }
+
+// Webhook payload schemas
+const StartedPayloadSchema = Schema.Struct({
+  type: Schema.Literal('started'),
+  message: Schema.optional(Schema.String)
+})
+
+const ProgressPayloadSchema = Schema.Struct({
+  type: Schema.Literal('progress'),
+  messageCount: Schema.Number,
+  inputTokens: Schema.Number,
+  outputTokens: Schema.Number
+})
+
+const CompletedPayloadSchema = Schema.Struct({
+  type: Schema.Literal('completed'),
+  summary: Schema.optional(Schema.String),
+  pullRequestUrl: Schema.optional(Schema.String)
+})
+
+const ErrorPayloadSchema = Schema.Struct({
+  type: Schema.Literal('error'),
+  error: Schema.String
+})
+
+const QuestionPayloadSchema = Schema.Struct({
+  type: Schema.Literal('question'),
+  question: Schema.String
+})
+
+const WebhookPayloadSchema = Schema.Union(
+  StartedPayloadSchema,
+  ProgressPayloadSchema,
+  CompletedPayloadSchema,
+  ErrorPayloadSchema,
+  QuestionPayloadSchema
+)
 
 export async function POST(request: NextRequest, context: RouteContext) {
   return await Effect.runPromise(
@@ -52,11 +95,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
 
       // Signature verified - now we can parse the body
-      const PayloadSchema = Schema.Struct({
-        type: Schema.String
-      })
-
-      const parseResult = Schema.decodeUnknownEither(PayloadSchema)(JSON.parse(rawBody))
+      const parseResult = Schema.decodeUnknownEither(WebhookPayloadSchema)(JSON.parse(rawBody))
 
       if (parseResult._tag === 'Left') {
         return NextResponse.json({ error: 'Invalid payload format' }, { status: 400 })
@@ -64,11 +103,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       const payload = parseResult.right
 
-      // TODO: Handle different payload types in api-2
-      yield* Effect.logInfo('Webhook received', {
-        taskId,
-        type: payload.type
+      yield* Effect.annotateCurrentSpan({
+        'webhook.payloadType': payload.type
       })
+
+      // Handle different payload types based on discriminator
+      if (payload.type === 'started') {
+        yield* handleStarted(taskId, session.id, payload)
+      } else if (payload.type === 'progress') {
+        yield* handleProgress(session.id, payload)
+      } else if (payload.type === 'completed') {
+        yield* handleCompleted(taskId, session.id, payload)
+      } else if (payload.type === 'error') {
+        yield* handleError(taskId, session.id, payload)
+      } else if (payload.type === 'question') {
+        yield* handleQuestion(taskId, payload)
+      }
 
       return NextResponse.json({ success: true })
     }).pipe(
@@ -88,3 +138,164 @@ export async function POST(request: NextRequest, context: RouteContext) {
     )
   )
 }
+
+// Handler for 'started' event - posts agent comment
+const handleStarted = (
+  taskId: string,
+  sessionId: string,
+  payload: Schema.Schema.Type<typeof StartedPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    yield* updateSession({
+      sessionId,
+      status: 'in_progress'
+    })
+
+    const message = payload.message || 'Sprite execution started'
+    yield* createAgentComment({
+      taskId,
+      content: `🔥 **Execution started**\n\n${message}`,
+      agentName: 'Abraxas'
+    })
+
+    yield* Effect.logInfo('Started event handled', { taskId, sessionId })
+  })
+
+// Handler for 'progress' event - updates session stats
+const handleProgress = (
+  sessionId: string,
+  payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    yield* updateSession({
+      sessionId,
+      messageCount: String(payload.messageCount),
+      inputTokens: String(payload.inputTokens),
+      outputTokens: String(payload.outputTokens)
+    })
+
+    yield* Effect.logInfo('Progress event handled', {
+      sessionId,
+      messageCount: payload.messageCount,
+      inputTokens: payload.inputTokens,
+      outputTokens: payload.outputTokens
+    })
+  })
+
+// Handler for 'completed' event - moves task to trial, posts summary, destroys sprite
+const handleCompleted = (
+  taskId: string,
+  sessionId: string,
+  payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+    const sprites = yield* Sprites
+
+    // Update session to completed
+    const session = yield* updateSession({
+      sessionId,
+      status: 'completed',
+      completedAt: new Date(),
+      pullRequestUrl: payload.pullRequestUrl || null
+    })
+
+    // Move task to 'trial' status and set executionState to 'awaiting_review'
+    yield* db
+      .update(schema.tasks)
+      .set({
+        status: 'trial',
+        executionState: 'awaiting_review',
+        completedAt: new Date()
+      })
+      .where(eq(schema.tasks.id, taskId))
+
+    // Post completion comment
+    const summary = payload.summary || 'Task execution completed successfully'
+    const prLink = payload.pullRequestUrl ? `\n\n**PR:** ${payload.pullRequestUrl}` : ''
+    yield* createAgentComment({
+      taskId,
+      content: `✓ **Execution completed**\n\n${summary}${prLink}`,
+      agentName: 'Abraxas'
+    })
+
+    // Destroy the sprite if we have a sprite name
+    if (session.spriteName) {
+      yield* sprites.destroySprite(session.spriteName).pipe(
+        Effect.catchAll(error => {
+          // Log but don't fail if sprite destruction fails
+          return Effect.logWarning('Failed to destroy sprite', {
+            spriteName: session.spriteName,
+            error
+          })
+        })
+      )
+    }
+
+    yield* Effect.logInfo('Completed event handled', { taskId, sessionId })
+  })
+
+// Handler for 'error' event - moves task to cursed, posts error, destroys sprite
+const handleError = (
+  taskId: string,
+  sessionId: string,
+  payload: Schema.Schema.Type<typeof ErrorPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+    const sprites = yield* Sprites
+
+    // Update session to error
+    const session = yield* updateSession({
+      sessionId,
+      status: 'error',
+      errorMessage: payload.error,
+      completedAt: new Date()
+    })
+
+    // Move task to 'cursed' status and set executionState to 'error'
+    yield* db
+      .update(schema.tasks)
+      .set({
+        status: 'cursed',
+        executionState: 'error'
+      })
+      .where(eq(schema.tasks.id, taskId))
+
+    // Post error comment
+    yield* createAgentComment({
+      taskId,
+      content: `✗ **Execution failed**\n\n**Error:** ${payload.error}\n\nPlease review the error and try again.`,
+      agentName: 'Abraxas'
+    })
+
+    // Destroy the sprite if we have a sprite name
+    if (session.spriteName) {
+      yield* sprites.destroySprite(session.spriteName).pipe(
+        Effect.catchAll(error => {
+          // Log but don't fail if sprite destruction fails
+          return Effect.logWarning('Failed to destroy sprite', {
+            spriteName: session.spriteName,
+            error
+          })
+        })
+      )
+    }
+
+    yield* Effect.logInfo('Error event handled', { taskId, sessionId })
+  })
+
+// Handler for 'question' event - posts question as agent comment
+const handleQuestion = (
+  taskId: string,
+  payload: Schema.Schema.Type<typeof QuestionPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    yield* createAgentComment({
+      taskId,
+      content: `❓ **Question from Abraxas:**\n\n${payload.question}\n\nPlease respond in the comments to continue execution.`,
+      agentName: 'Abraxas'
+    })
+
+    yield* Effect.logInfo('Question event handled', { taskId, question: payload.question })
+  })

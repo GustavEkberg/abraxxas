@@ -413,7 +413,7 @@
         "Destroys sprite after completed/error (not progress/question)",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "context-1",
