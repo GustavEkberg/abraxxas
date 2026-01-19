@@ -75,7 +75,7 @@
         "Foreign key to tasks.id with cascade delete",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-6",

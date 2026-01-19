@@ -43,3 +43,12 @@ Started: 2026-01-19
 - isAgentComment defaults to false
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** Nullable FKs omit .notNull(), both user and agent comments stored in same table with isAgentComment flag
+
+## Task - db-5
+
+- Added opencodeSessions table for tracking Sprites.dev execution lifecycle
+- Columns: id, taskId (FK), sessionId, status (enum), executionMode (enum), spriteName, webhookSecret, branchName, pullRequestUrl, errorMessage, logs, messageCount, inputTokens, outputTokens, createdAt, updatedAt, completedAt
+- Foreign key to tasks.id with cascade delete
+- Status defaults to 'pending', all token/message/log fields are text (nullable)
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Session tracking table holds execution metadata, webhookSecret for HMAC verification, completedAt nullable for in-flight sessions

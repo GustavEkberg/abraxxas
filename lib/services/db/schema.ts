@@ -147,6 +147,39 @@ export type Comment = typeof comments.$inferSelect
 export type InsertComment = typeof comments.$inferInsert
 
 ////////////////////////////////////////////////////////////////////////
+// OPENCODE SESSIONS
+////////////////////////////////////////////////////////////////////////
+export const opencodeSessions = pgTable('opencodeSessions', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  taskId: text('taskId')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  sessionId: text('sessionId').notNull(),
+  status: sessionStatusEnum('status').notNull().default('pending'),
+  executionMode: executionModeEnum('executionMode').notNull(),
+  spriteName: text('spriteName'),
+  webhookSecret: text('webhookSecret'),
+  branchName: text('branchName'),
+  pullRequestUrl: text('pullRequestUrl'),
+  errorMessage: text('errorMessage'),
+  logs: text('logs'),
+  messageCount: text('messageCount'),
+  inputTokens: text('inputTokens'),
+  outputTokens: text('outputTokens'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  completedAt: timestamp('completedAt')
+})
+
+export type OpencodeSession = typeof opencodeSessions.$inferSelect
+export type InsertOpencodeSession = typeof opencodeSessions.$inferInsert
+
+////////////////////////////////////////////////////////////////////////
 // EXAMPLE - Post table
 ////////////////////////////////////////////////////////////////////////
 export const post = pgTable('post', {
