@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -14,9 +14,14 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
 import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
+import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
+import {
+  getTaskDetailsAction,
+  type TaskDetailsResult
+} from '@/lib/core/task/get-task-details-action'
 import type { Task, Project } from '@/lib/services/db/schema'
 
 const COLUMNS = [
@@ -191,6 +196,14 @@ export function RitualBoardClient({
   const [taskMessageCounts, setTaskMessageCounts] =
     useState<Record<string, number>>(initialMessageCounts)
 
+  // Task detail modal state - store ID only to avoid stale data issues
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [showTaskDetail, setShowTaskDetail] = useState(false)
+  const [taskDetails, setTaskDetails] = useState<TaskDetailsResult | null>(null)
+
+  // Derive selectedTask from tasks array to always have fresh data
+  const selectedTask = selectedTaskId ? (tasks.find(t => t.id === selectedTaskId) ?? null) : null
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -257,6 +270,17 @@ export function RitualBoardClient({
     setTaskMessageCounts(initialMessageCounts)
   }
 
+  // Fetch task details when modal opens
+  const fetchTaskDetails = useCallback(async (taskId: string) => {
+    const result = await getTaskDetailsAction(taskId)
+    if (result._tag === 'Success') {
+      setTaskDetails(result.data)
+    } else {
+      console.error('Failed to fetch task details:', result.message)
+      setTaskDetails({ comments: [], session: null })
+    }
+  }, [])
+
   const getTasksByStatus = (status: string) => {
     return tasks.filter(task => task.status === status)
   }
@@ -266,9 +290,18 @@ export function RitualBoardClient({
     setActiveTask(task || null)
   }
 
-  const handleTaskClick = (_task: Task) => {
-    // TODO: Open task detail modal
+  const handleTaskClick = (task: Task) => {
+    setSelectedTaskId(task.id)
+    setShowTaskDetail(true)
+    fetchTaskDetails(task.id)
   }
+
+  const handleTaskUpdate = useCallback(() => {
+    router.refresh()
+    if (selectedTask) {
+      fetchTaskDetails(selectedTask.id)
+    }
+  }, [router, selectedTask, fetchTaskDetails])
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
@@ -424,7 +457,17 @@ export function RitualBoardClient({
           })}
         </div>
 
-        {/* TODO: Add CreateInvocationDialog and TaskDetailModal */}
+        {/* Task Detail Modal */}
+        <TaskDetailModal
+          task={selectedTask}
+          comments={taskDetails?.comments ?? []}
+          ritualId={project.id}
+          repositoryUrl={project.repositoryUrl}
+          session={taskDetails?.session}
+          open={showTaskDetail}
+          onOpenChange={setShowTaskDetail}
+          onUpdate={handleTaskUpdate}
+        />
       </div>
 
       {/* Drag Overlay */}
