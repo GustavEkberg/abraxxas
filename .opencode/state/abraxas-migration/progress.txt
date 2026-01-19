@@ -329,3 +329,16 @@ Started: 2026-01-19
 - Recalculates intensity every second via setInterval in useEffect
 - Files changed: lib/contexts/fire-intensity-context.tsx
 - **Learnings:** Context pattern for global UI state; intensity formula allows exceeding 35 for color shift logic; time bonus increments automatically via interval without external updates
+
+## Task - component-1
+
+- Created components/ascii-fire.tsx with ASCII fire animation
+- Uses requestAnimationFrame for smooth 60fps animation loop
+- Fire height caps at intensity 35, above 35 color shifts from white to red/yellow
+- Smoothly interpolates intensity changes via targetIntensityRef and currentIntensityRef
+- Renders pre element fixed at bottom of screen with pointer-events-none
+- Fire propagates upwards with decay and horizontal drift for realistic effect
+- ASCII characters sorted by visual density: ' .:-=+*#%@'
+- Responds to window resize events
+- Files changed: components/ascii-fire.tsx
+- **Learnings:** Animation state stored in refs to avoid triggering re-renders; intensity interpolation creates smooth visual transitions; cleanup function cancels animation frame and removes event listeners

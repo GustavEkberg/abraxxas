@@ -446,7 +446,7 @@
         "Fixed at bottom of screen, pointer-events-none",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-2",
