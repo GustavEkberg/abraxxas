@@ -117,3 +117,12 @@ Started: 2026-01-19
 - Encoded format: iv:salt:authTag:encryptedData (base64)
 - Files changed: lib/core/crypto/errors.ts, lib/core/crypto/encrypt.ts
 - **Learnings:** Use Redacted.value() to access Config.redacted values; prefix unused vars with underscore to satisfy ESLint; Data.TaggedError sufficient for simple error types (no need for Schema.TaggedError)
+
+## Task - domain-project-1
+
+- Created lib/core/project/get-projects.ts for RSC data loading
+- Returns Effect with array of projects filtered by current user's ID
+- Uses getSession() to extract user, Db service to query schema.projects table
+- Filters by eq(schema.projects.userId, user.id)
+- Files changed: lib/core/project/get-projects.ts
+- **Learnings:** Domain functions for read operations follow simple pattern: getSession → Db → query → return; no error handling needed beyond UnauthenticatedError from getSession
