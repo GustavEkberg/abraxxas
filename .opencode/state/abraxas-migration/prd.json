@@ -544,7 +544,7 @@
         "Uses shadcn Dialog, Select, Button",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "page-1",

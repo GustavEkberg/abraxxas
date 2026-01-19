@@ -403,3 +403,21 @@ Started: 2026-01-19
 - Loading state shows 'Posting...' text
 - Files changed: components/invocations/add-comment-form.tsx
 - **Learnings:** Simple form component pattern - controlled input with useState, async onSubmit handler, clear form on success; error handling responsibility belongs to parent; disabled state on button prevents empty submissions
+
+## Task - component-7
+
+- Created components/invocations/task-detail-modal.tsx with full task detail view
+- 'use client' directive with React hooks for state management
+- Accepts task, comments, ritualId, repositoryUrl, session, open, onOpenChange, onUpdate props
+- Shows task metadata: title, description, status, type, model, executionState
+- Branch link to GitHub compare view if branchName exists
+- Session stats display: messageCount and total tokens (parsed from string fields)
+- Comments list with Comment component, synced with initialComments prop
+- AddCommentForm integration with createCommentAction
+- Type-safe Select handlers for type, model, executionState using type guard functions
+- Update handlers call updateTaskAction and handle optimistic UI + error states
+- Delete button with nested confirmation dialog, calls deleteTaskAction
+- Error display component for action failures
+- Uses Dialog, Select, Button from shadcn/ui
+- Files changed: components/invocations/task-detail-modal.tsx
+- **Learnings:** Modal uses server actions not API routes; type guards with null check for Select onValueChange (accepts string | null); session stats stored as text, must parse to int; nested Dialog for confirmation works (delete confirm inside detail modal); optimistic UI updates for comments by adding to local state; unused props prefixed with underscore
