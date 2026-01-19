@@ -173,3 +173,13 @@ Started: 2026-01-19
 - Revalidates '/' path on success (no need to revalidate detail page since it no longer exists)
 - Files changed: lib/core/project/delete-project-action.ts
 - **Learnings:** Delete actions simpler than update - no partial data handling; cascade delete via FK means no manual cleanup of child records needed
+
+## Task - domain-task-1
+
+- Created lib/core/task/get-tasks.ts for RSC data loading
+- Accepts projectId parameter
+- Verifies user owns project before returning tasks (checks project exists, then checks userId matches)
+- Returns Effect with array of tasks filtered by projectId
+- Has Effect.withSpan('Task.getTasks') for observability
+- Files changed: lib/core/task/get-tasks.ts
+- **Learnings:** Task read operations follow project pattern - verify ownership via parent project first, then fetch child resources
