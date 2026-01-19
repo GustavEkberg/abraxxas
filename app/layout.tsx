@@ -3,6 +3,8 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from 'sonner'
 import './globals.css'
 import { Inter } from 'next/font/google'
+import { FireIntensityProvider } from '@/lib/contexts/fire-intensity-context'
+import { FireBackground } from '@/components/fire-background'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -19,8 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
-        <NuqsAdapter>{children}</NuqsAdapter>
-        <Toaster />
+        <FireIntensityProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
+          <Toaster />
+          <FireBackground />
+        </FireIntensityProvider>
       </body>
     </html>
   )

@@ -453,3 +453,12 @@ Started: 2026-01-19
 - Back button navigates to dashboard, placeholder button for create invocation
 - Files changed: app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
 - **Learnings:** RSC can pass data to client components for DnD; type guards `(value: string): value is Type` satisfy no-type-assertion lint rule; router.refresh() triggers RSC re-fetch; DndContext active.id and over.id are string|number so need type checks; localStorage operations need typeof window check; Effect.runPromise works in RSC pages but NextEffect.runPromise for redirects
+
+## Task - page-3
+
+- Integrated FireIntensityProvider and FireBackground into app/layout.tsx
+- FireIntensityProvider wraps all page content including NuqsAdapter, Toaster, and children
+- FireBackground rendered as sibling to other layout components inside provider
+- Fire animation now appears at bottom of all pages via global layout
+- Files changed: app/layout.tsx
+- **Learnings:** Provider order matters - FireIntensityProvider must wrap FireBackground consumer; layout.tsx is best place for global UI features like fire animation; FireBackground placed after Toaster ensures fire appears on top visually

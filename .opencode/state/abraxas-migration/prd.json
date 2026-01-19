@@ -598,7 +598,7 @@
         "Fire appears at bottom of all pages",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "style-1",
