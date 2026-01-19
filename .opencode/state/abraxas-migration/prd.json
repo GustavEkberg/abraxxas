@@ -564,7 +564,7 @@
         "Loading state in Suspense fallback",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "page-2",

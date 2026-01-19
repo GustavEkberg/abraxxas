@@ -421,3 +421,18 @@ Started: 2026-01-19
 - Uses Dialog, Select, Button from shadcn/ui
 - Files changed: components/invocations/task-detail-modal.tsx
 - **Learnings:** Modal uses server actions not API routes; type guards with null check for Select onValueChange (accepts string | null); session stats stored as text, must parse to int; nested Dialog for confirmation works (delete confirm inside detail modal); optimistic UI updates for comments by adding to local state; unused props prefixed with underscore
+
+## Task - page-1
+
+- Created app/(dashboard)/page.tsx with RSC Suspense+Content pattern
+- Created app/(dashboard)/layout.tsx as simple wrapper
+- Content fetches projects via getProjects() Effect function
+- Header with title, CreateRitualDialog button, sign-out form button
+- Empty state when no projects with centered call-to-action
+- Project grid with Link-wrapped Card components showing name, description, repo, date
+- Logout uses form POST to /api/auth/sign-out (better-auth endpoint)
+- Type-safe error handling with 'message' in error type guard instead of assertion
+- Uses Effect.matchEffect with UnauthenticatedError redirect to /login
+- export const dynamic = 'force-dynamic' at top of file
+- Files changed: app/(dashboard)/page.tsx, app/(dashboard)/layout.tsx
+- **Learnings:** RSC pages use Link for navigation not router.push; sign-out via form POST to better-auth endpoint not client-side authClient.signOut(); type guards with 'in' operator satisfy no-type-assertion rule; await cookies() first line of Content component ensures dynamic rendering
