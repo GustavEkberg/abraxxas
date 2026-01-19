@@ -38,6 +38,7 @@ class AuthConfig extends Context.Tag('@app/AuthConfig')<
     readonly emailSender: string
     readonly vercelUrl: string | undefined
     readonly vercelBranchUrl: string | undefined
+    readonly vercelProductionUrl: string | undefined
   }
 >() {}
 
@@ -62,8 +63,12 @@ const AuthConfigLive = Layer.effect(
       Effect.option,
       Effect.map(opt => (opt._tag === 'Some' ? opt.value : undefined))
     )
+    const vercelProductionUrl = yield* Config.string('VERCEL_PROJECT_PRODUCTION_URL').pipe(
+      Effect.option,
+      Effect.map(opt => (opt._tag === 'Some' ? opt.value : undefined))
+    )
 
-    return { projectUrl, appName, emailSender, vercelUrl, vercelBranchUrl }
+    return { projectUrl, appName, emailSender, vercelUrl, vercelBranchUrl, vercelProductionUrl }
   })
 )
 
@@ -80,7 +85,8 @@ export class Auth extends Effect.Service<Auth>()('@app/Auth', {
       trustedOrigins: [
         config.projectUrl,
         ...(config.vercelBranchUrl ? [`https://${config.vercelBranchUrl}`] : []),
-        ...(config.vercelUrl ? [`https://${config.vercelUrl}`] : [])
+        ...(config.vercelUrl ? [`https://${config.vercelUrl}`] : []),
+        ...(config.vercelProductionUrl ? [`https://${config.vercelProductionUrl}`] : [])
       ],
       database: drizzleAdapter(authDb, {
         provider: 'pg',
