@@ -20,3 +20,10 @@ Started: 2026-01-19
 - Added six pgEnums to schema.ts: taskStatusEnum, taskExecutionStateEnum, taskTypeEnum, taskModelEnum, sessionStatusEnum, executionModeEnum
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** Import pgEnum from drizzle-orm/pg-core, all enum declarations precede table definitions, snake_case for enum names in DB
+
+## Task - db-2
+
+- Added projects table with id, userId (FK), name, description, repositoryUrl, encryptedGithubToken, agentsMdContent, createdAt, updatedAt
+- Foreign key to user.id with cascade delete
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Table follows standard pattern: cuid primary key, notNull constraints, cascade delete on FK, $onUpdate for updatedAt

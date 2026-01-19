@@ -37,7 +37,7 @@
         "Foreign key references user.id with cascade delete",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-3",

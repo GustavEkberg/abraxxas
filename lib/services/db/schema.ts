@@ -70,6 +70,31 @@ export type User = typeof user.$inferSelect
 export type InsertUser = typeof user.$inferInsert
 
 ////////////////////////////////////////////////////////////////////////
+// PROJECTS
+////////////////////////////////////////////////////////////////////////
+export const projects = pgTable('projects', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  repositoryUrl: text('repositoryUrl').notNull(),
+  encryptedGithubToken: text('encryptedGithubToken').notNull(),
+  agentsMdContent: text('agentsMdContent'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date())
+})
+
+export type Project = typeof projects.$inferSelect
+export type InsertProject = typeof projects.$inferInsert
+
+////////////////////////////////////////////////////////////////////////
 // EXAMPLE - Post table
 ////////////////////////////////////////////////////////////////////////
 export const post = pgTable('post', {
