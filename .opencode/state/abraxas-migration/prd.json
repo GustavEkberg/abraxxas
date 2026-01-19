@@ -50,7 +50,7 @@
         "Status defaults to 'abyss', executionState defaults to 'idle'",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-4",

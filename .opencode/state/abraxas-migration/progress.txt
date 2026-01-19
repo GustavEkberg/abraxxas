@@ -27,3 +27,11 @@ Started: 2026-01-19
 - Foreign key to user.id with cascade delete
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** Table follows standard pattern: cuid primary key, notNull constraints, cascade delete on FK, $onUpdate for updatedAt
+
+## Task - db-3
+
+- Added tasks table with id, projectId (FK), title, description, type (enum), model (enum), status (enum), executionState (enum), branchName, completedAt, createdAt, updatedAt
+- Foreign key to projects.id with cascade delete
+- Status defaults to 'abyss', executionState defaults to 'idle'
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Enum columns reference pgEnum definitions, default values set with .default(), nullable fields omit .notNull()

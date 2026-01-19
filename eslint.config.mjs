@@ -1,8 +1,8 @@
-import { defineConfig, globalIgnores } from 'eslint/config'
-import nextVitals from 'eslint-config-next/core-web-vitals'
-import nextTs from 'eslint-config-next/typescript'
-import prettier from 'eslint-config-prettier/flat'
-import { recommended as localRules } from './eslint-local-rules/index.js'
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
+import prettier from 'eslint-config-prettier/flat';
+import { recommended as localRules } from './eslint-local-rules/index.js';
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -35,8 +35,9 @@ const eslintConfig = defineConfig([
     '.next/**',
     'out/**',
     'build/**',
-    'next-env.d.ts'
+    'next-env.d.ts',
+    'old_repo/**'
   ])
-])
+]);
 
 export default eslintConfig

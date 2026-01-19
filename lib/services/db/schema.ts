@@ -95,6 +95,34 @@ export type Project = typeof projects.$inferSelect
 export type InsertProject = typeof projects.$inferInsert
 
 ////////////////////////////////////////////////////////////////////////
+// TASKS
+////////////////////////////////////////////////////////////////////////
+export const tasks = pgTable('tasks', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  projectId: text('projectId')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  type: taskTypeEnum('type').notNull(),
+  model: taskModelEnum('model').notNull(),
+  status: taskStatusEnum('status').notNull().default('abyss'),
+  executionState: taskExecutionStateEnum('executionState').notNull().default('idle'),
+  branchName: text('branchName'),
+  completedAt: timestamp('completedAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date())
+})
+
+export type Task = typeof tasks.$inferSelect
+export type InsertTask = typeof tasks.$inferInsert
+
+////////////////////////////////////////////////////////////////////////
 // EXAMPLE - Post table
 ////////////////////////////////////////////////////////////////////////
 export const post = pgTable('post', {
