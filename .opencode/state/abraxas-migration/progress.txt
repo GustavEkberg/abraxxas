@@ -149,3 +149,15 @@ Started: 2026-01-19
 - Has Effect.withSpan('action.project.create') with operation attribute
 - Files changed: lib/core/project/create-project-action.ts
 - **Learnings:** Server actions return typed error objects or success objects; revalidatePath called in onSuccess handler; encrypted tokens stored directly in projects table
+
+## Task - domain-project-4
+
+- Created lib/core/project/update-project-action.ts server action
+- Accepts UpdateProjectInput with projectId and optional fields: name, description, repositoryUrl, githubToken, agentsMdContent
+- Uses getProject() to verify ownership before update
+- Re-encrypts githubToken if provided (only if field is in input)
+- Builds partial update object conditionally (only includes fields present in input)
+- matchEffect handles NotFoundError, UnauthorizedError, UnauthenticatedError separately
+- Revalidates both '/' and '/rituals/[id]' paths on success
+- Files changed: lib/core/project/update-project-action.ts
+- **Learnings:** Update actions use getProject() for ownership check; partial updates built conditionally with !== undefined checks; revalidate all affected paths
