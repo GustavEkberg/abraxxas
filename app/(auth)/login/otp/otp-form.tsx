@@ -1,7 +1,7 @@
 'use client'
 
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp'
-import { LoaderCircleIcon, SendIcon } from 'lucide-react'
+import { LoaderCircleIcon } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -41,24 +41,31 @@ export const OtpForm = ({ email }: Props) => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-8">
-      <div className="flex flex-col justify-center items-center space-y-6">
-        <SendIcon className="size-12 text-muted-foreground/40" />
-        <h2 className="text-2xl font-semibold">
-          If the account exists, we&apos;ve sent a verification code to {email}
-        </h2>
+    <div className="flex flex-col items-center justify-center text-center gap-8 font-mono">
+      {/* Header */}
+      <div className="flex flex-col justify-center items-center space-y-4">
+        <h1 className="text-2xl font-bold text-white/90">ABRAXAS</h1>
+        <div className="text-6xl text-white/20">&#9683;</div>
+        <h2 className="text-xl text-white/80">A sigil has been dispatched to {email}</h2>
       </div>
 
+      {/* Status */}
       <div className="h-6">
         {isProcessing ? (
-          <LoaderCircleIcon className="animate-spin size-5" />
+          <div className="flex items-center gap-2 text-white/60">
+            <LoaderCircleIcon className="animate-spin size-4" />
+            <span>Verifying the seal...</span>
+          </div>
         ) : showError ? (
-          <div className="text-red-500">Invalid code</div>
+          <div className="text-red-400 border border-dashed border-red-500/20 bg-red-500/10 px-3 py-1">
+            Invalid sigil
+          </div>
         ) : (
-          <p className="text-base text-muted-foreground text-center">Enter the code to log in</p>
+          <p className="text-white/60">Enter the sacred sequence to complete the binding</p>
         )}
       </div>
 
+      {/* OTP Input */}
       <InputOTP
         value={otp}
         onChange={handleChange}
@@ -80,11 +87,15 @@ export const OtpForm = ({ email }: Props) => {
         </InputOTPGroup>
       </InputOTP>
 
-      <p className="text-muted-foreground text-sm text-center">
-        We only send login codes to registered accounts. If you have an account but haven&apos;t
-        received the code, check the spam folder.
-        <Link href="/login" className="block underline">
-          Request a new code
+      {/* Footer */}
+      <p className="text-white/40 text-sm text-center max-w-sm">
+        Sigils are only dispatched to bound vessels. Check the shadow realm (spam folder) if the
+        message has not arrived.
+        <Link
+          href="/login"
+          className="block mt-2 text-red-400 hover:text-red-300 transition-colors"
+        >
+          Request a new sigil
         </Link>
       </p>
     </div>

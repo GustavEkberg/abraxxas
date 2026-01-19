@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Impressions',
-  description: 'Impressions'
+  title: 'Abraxas - Enter the Realm',
+  description: 'Summon the ancient powers of cosmic demon execution'
 }
 
 export default async function Layout({

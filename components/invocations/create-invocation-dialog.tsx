@@ -100,14 +100,18 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          trigger || <Button className="bg-purple-600 hover:bg-purple-700">Invoke New Task</Button>
+          trigger || (
+            <Button className="border border-dashed border-red-500 bg-red-600 hover:bg-red-700">
+              Cast New Invocation
+            </Button>
+          )
         }
       />
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-white/90">Invoke a New Task</DialogTitle>
+          <DialogTitle className="text-2xl text-white/90">Cast New Invocation</DialogTitle>
           <DialogDescription className="text-white/60">
-            Channel your intent into the void. Summon an agent to do your bidding.
+            Summon a new invocation to The Abyss. Channel your intent into the void.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,39 +119,39 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
           {/* Task Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-white/90">
-              Task Title
+              Invocation Title
             </Label>
             <Input
               id="title"
-              placeholder="Add authentication system"
+              placeholder="Conjure authentication wards"
               value={formData.title}
               onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
               disabled={loading}
-              className="border-white/10 bg-zinc-900 text-white/90 placeholder:text-white/40"
+              className="border-dashed border-white/20 bg-zinc-900 text-white/90 placeholder:text-white/40"
             />
           </div>
 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-white/90">
-              Invocation Details (Optional)
+              Incantation (Optional)
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the task in greater detail..."
+              placeholder="Describe the dark purpose of this invocation..."
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
               disabled={loading}
-              className="border-white/10 bg-zinc-900 text-white/90 placeholder:text-white/40"
+              className="border-dashed border-white/20 bg-zinc-900 text-white/90 placeholder:text-white/40"
             />
           </div>
 
           {/* Type Select */}
           <div className="space-y-2">
             <Label htmlFor="type" className="text-white/90">
-              Task Type
+              Invocation Type
             </Label>
             <Select
               value={formData.type}
@@ -158,13 +162,16 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
               }}
               disabled={loading}
             >
-              <SelectTrigger id="type" className="border-white/10 bg-zinc-900 text-white/90 w-full">
+              <SelectTrigger
+                id="type"
+                className="border-dashed border-white/20 bg-zinc-900 text-white/90 w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="feature">Feature</SelectItem>
-                <SelectItem value="bug">Bug</SelectItem>
-                <SelectItem value="plan">Plan</SelectItem>
+                <SelectItem value="feature">Conjuration</SelectItem>
+                <SelectItem value="bug">Exorcism</SelectItem>
+                <SelectItem value="plan">Divination</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -186,7 +193,7 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
             >
               <SelectTrigger
                 id="model"
-                className="border-white/10 bg-zinc-900 text-white/90 w-full"
+                className="border-dashed border-white/20 bg-zinc-900 text-white/90 w-full"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -197,7 +204,7 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
                 <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-sm text-white/40">The AI model that will execute this task</p>
+            <p className="text-sm text-white/40">The demon that will execute this invocation</p>
           </div>
 
           {/* Error Message */}
@@ -214,16 +221,16 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
               variant="outline"
               onClick={() => setOpen(false)}
               disabled={loading}
-              className="border-white/10 bg-transparent text-white/60 hover:bg-zinc-900 hover:text-white/90"
+              className="border-dashed border-white/20 bg-transparent text-white/60 hover:bg-zinc-900 hover:text-white/90"
             >
-              Dismiss
+              Abandon
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-purple-600 text-white transition-all duration-200 hover:bg-purple-700 active:scale-95 disabled:opacity-50"
+              className="border border-dashed border-red-500 bg-red-600 text-white transition-all duration-200 hover:bg-red-700 active:scale-95 disabled:opacity-50"
             >
-              {loading ? 'Invoking...' : 'Invoke Task'}
+              {loading ? 'Casting...' : 'Cast Invocation'}
             </Button>
           </div>
         </form>

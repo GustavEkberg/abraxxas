@@ -7,7 +7,7 @@ import * as schema from './schema'
 // PostgreSQL connection layer (internal)
 const PgLive = PgClient.layerConfig({
   url: Config.redacted('DATABASE_URL'),
-  ssl: Config.succeed(true)
+  ssl: Config.boolean('DATABASE_SSL').pipe(Config.withDefault(false))
 })
 
 // Service definition

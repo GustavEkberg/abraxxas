@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import type { FormEvent} from 'react';
+import type { FormEvent } from 'react'
 import { useState, useTransition } from 'react'
 import { LoaderCircleIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -39,31 +39,46 @@ export const LoginForm = () => {
   }
 
   return (
-    <>
+    <div className="w-full space-y-8 font-mono">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-white/90">ABRAXAS</h1>
+        <p className="text-white/60">Enter the realm</p>
+      </div>
+
+      {/* Form */}
       <form onSubmit={handleLogin} className="w-full space-y-4">
         <Input
           id="email"
           type="email"
-          placeholder="Email"
+          placeholder="Your vessel identifier (email)"
           value={email}
           onChange={e => setEmail(formatEmail(e.target.value))}
           autoFocus
           required
+          className="border-dashed border-white/20 bg-zinc-950 text-white/90 placeholder:text-white/40"
         />
-        <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full border border-dashed border-red-500 bg-red-600 text-white transition-all duration-200 hover:bg-red-700 active:scale-95"
+          disabled={isProcessing}
+        >
           {isProcessing && <LoaderCircleIcon className="size-4 mr-1 animate-spin" />}
-          Log in
+          {isProcessing ? 'Channeling...' : 'Begin Invocation'}
         </Button>
       </form>
 
-      {errorMessage && <p className="text-red-500 text-sm text-center mt-4 mb-8">{errorMessage}</p>}
+      {errorMessage && (
+        <p className="text-red-400 text-sm text-center border border-dashed border-red-500/20 bg-red-500/10 p-3">
+          {errorMessage}
+        </p>
+      )}
 
-      {/* <p className="text-center text-sm text-muted-foreground"> */}
-      {/*   New user?{' '} */}
-      {/*   <Link href="/register" className="text-primary hover:underline"> */}
-      {/*     Create an account */}
-      {/*   </Link> */}
-      {/* </p> */}
-    </>
+      {/* Footer */}
+      <p className="text-center text-xs text-white/40">
+        Summon the ancient powers of cosmic demon execution
+      </p>
+    </div>
   )
 }
