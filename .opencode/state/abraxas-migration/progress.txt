@@ -364,3 +364,18 @@ Started: 2026-01-19
 - Uses Dialog, Input, Textarea, Button, Label from shadcn/ui
 - Files changed: components/rituals/create-ritual-dialog.tsx
 - **Learnings:** Form uses controlled inputs with useState for form data; conditional values use undefined instead of empty strings; error display uses themed styling with destructive colors; router.refresh() ensures server components refetch data after navigation
+
+## Task - component-4
+
+- Created components/invocations/create-invocation-dialog.tsx with form for task creation
+- 'use client' directive with React hooks for form state and loading/error handling
+- Form fields: title, description, type (select), model (select)
+- Accepts ritualId prop, calls createTaskAction on submit
+- Type options: bug, feature, plan, other via Select dropdown
+- Model options: grok-1, claude-sonnet-4-5, claude-opus-4-5, claude-haiku-4-5 via Select dropdown
+- Shows loading state during submission ('Invoking...')
+- Shows error message in styled error box on failure
+- Uses Dialog, Input, Textarea, Select, Button, Label from shadcn/ui
+- Type-safe select handlers using type guard functions (isTaskType, isTaskModel) instead of type assertions
+- Files changed: components/invocations/create-invocation-dialog.tsx
+- **Learnings:** Avoid type assertions in Select handlers by using type guard functions with explicit equality checks; null-check Select onValueChange value before type guard; explicit type guards with OR conditions satisfy ESLint no-type-assertion rule
