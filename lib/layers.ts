@@ -4,6 +4,7 @@ import { Auth } from './services/auth/live-layer'
 import { S3 } from './services/s3/live-layer'
 import { Telegram } from './services/telegram/live-layer'
 import { Activity } from './services/activity/live-layer'
+import { Sprites } from './services/sprites/live-layer'
 import { TelemetryLayer } from './services/telemetry/live-layer'
 
 // Combined app layer
@@ -13,5 +14,6 @@ export const AppLayer = Layer.mergeAll(
   S3.Live,
   Telegram.Live,
   Activity.Live,
+  Sprites.Live,
   TelemetryLayer
 )

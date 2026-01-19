@@ -126,7 +126,7 @@
         "Has static layer and Live properties",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "service-2",
@@ -141,7 +141,7 @@
         "All errors have appropriate fields (message, cause, spriteName, etc.)",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "service-3",
@@ -152,7 +152,7 @@
         "Add Sprites.Live to Layer.mergeAll in lib/layers.ts",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "security-1",

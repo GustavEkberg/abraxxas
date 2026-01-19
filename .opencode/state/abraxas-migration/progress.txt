@@ -5,7 +5,12 @@ Started: 2026-01-19
 
 ## Codebase Patterns
 
-<!-- Consolidate reusable patterns here -->
+### Service Architecture
+- Services use Effect.Service with static `layer` and `Live` properties (v4 compat)
+- Config lives in internal Context.Tag, provided via Layer.provide
+- All methods wrap with Effect.withSpan for observability
+- Error handlers use type guards instead of type assertions to satisfy lint rules
+- HTTP helpers use generic types to avoid `as` type assertions
 
 ---
 
@@ -75,3 +80,31 @@ Started: 2026-01-19
 - Verified all 4 new tables exist: projects, tasks, comments, opencodeSessions
 - Files changed: database schema only (no code changes)
 - **Learnings:** Project uses db:push not db:migrate; drizzle-kit push applies changes directly; local Postgres doesn't require SSL (unlike Neon)
+
+## Task - service-2
+
+- Created lib/services/sprites/errors.ts with four error types
+- SpritesApiError: API failures with status/cause
+- SpritesNotFoundError: 404 responses with spriteName
+- SpritesConfigError: missing env vars
+- SpriteExecutionError: command execution failures
+- Files changed: lib/services/sprites/errors.ts
+- **Learnings:** Error types defined before service implementation; all extend Data.TaggedError
+
+## Task - service-1
+
+- Created lib/services/sprites/live-layer.ts with Sprites Effect service
+- Methods: createSprite, getSprite, destroySprite, execCommand, listSprites
+- Internal SpritesConfig Context.Tag for SPRITES_TOKEN, WEBHOOK_BASE_URL, SPRITE_TIMEOUT_MS
+- Used generic makeRequest<T> helper to avoid type assertions
+- Added isErrorWithStatus type guard to handle fetch errors safely
+- All methods annotate spans with relevant attributes
+- Files changed: lib/services/sprites/live-layer.ts
+- **Learnings:** Generic helper functions eliminate need for `as` assertions; type guards satisfy @typescript-eslint/consistent-type-assertions rule
+
+## Task - service-3
+
+- Imported Sprites service in lib/layers.ts
+- Added Sprites.Live to Layer.mergeAll in AppLayer
+- Files changed: lib/layers.ts
+- **Learnings:** Services merge via Layer.mergeAll; use .Live to get fully composed layer with dependencies satisfied
