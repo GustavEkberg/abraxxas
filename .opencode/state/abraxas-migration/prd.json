@@ -524,7 +524,7 @@
         "Clears form on successful submit",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-7",

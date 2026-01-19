@@ -390,3 +390,16 @@ Started: 2026-01-19
 - DisplayName defaults to 'Abraxas' for agents, 'User' for users if names missing
 - Files changed: components/invocations/comment.tsx
 - **Learnings:** Presentational component with no client interactivity (no 'use client' needed); color theming via conditional className strings; date-fns formatDistanceToNow provides human-readable relative times
+
+## Task - component-6
+
+- Created components/invocations/add-comment-form.tsx with textarea and submit button
+- 'use client' directive for React hooks
+- Accepts onSubmit callback prop that returns Promise<void>
+- Textarea with 3 rows, disabled during loading, placeholder text
+- Submit button disabled when loading or content is empty (trimmed)
+- Clears form content on successful submit
+- Error handling delegated to parent component (onSubmit caller)
+- Loading state shows 'Posting...' text
+- Files changed: components/invocations/add-comment-form.tsx
+- **Learnings:** Simple form component pattern - controlled input with useState, async onSubmit handler, clear form on success; error handling responsibility belongs to parent; disabled state on button prevents empty submissions
