@@ -73,19 +73,29 @@ init/
 | Error types          | `lib/core/errors/index.ts`      | Shared domain errors                        |
 | File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                      |
 | URL state (filters)  | `app/*/search-params.ts`        | nuqs/server imports only, see NUQS spec     |
+| Project management   | `lib/core/project/`             | CRUD actions and domain functions           |
+| Task management      | `lib/core/task/`                | CRUD actions, execution, ownership checks   |
+| Comment management   | `lib/core/comment/`             | User and agent comments                     |
+| Session tracking     | `lib/core/session/`             | OpenCode session lifecycle management       |
+| Token encryption     | `lib/core/crypto/`              | AES-256-GCM encryption for GitHub tokens    |
 
 ## CODE MAP
 
-| Symbol                  | Type     | Location                              | Role                                      |
-| ----------------------- | -------- | ------------------------------------- | ----------------------------------------- |
-| `AppLayer`              | Layer    | `lib/layers.ts:10`                    | Merged service layer for Effect pipelines |
-| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`            | Handles redirects outside Effect context  |
-| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`     | Authentication (sign in/up/out, sessions) |
-| `Db`                    | Service  | `lib/services/db/live-layer.ts`       | Database (returns Drizzle client)         |
-| `Email`                 | Service  | `lib/services/email/live-layer.ts`    | Resend email sending                      |
-| `S3`                    | Service  | `lib/services/s3/live-layer.ts`       | AWS S3 file operations                    |
-| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts` | Telegram bot notifications                |
-| `Activity`              | Service  | `lib/services/activity/live-layer.ts` | Activity logging via Telegram             |
+| Symbol                  | Type     | Location                                   | Role                                        |
+| ----------------------- | -------- | ------------------------------------------ | ------------------------------------------- |
+| `AppLayer`              | Layer    | `lib/layers.ts:10`                         | Merged service layer for Effect pipelines   |
+| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`                 | Handles redirects outside Effect context    |
+| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`          | Authentication (sign in/up/out, sessions)   |
+| `Db`                    | Service  | `lib/services/db/live-layer.ts`            | Database (returns Drizzle client)           |
+| `Email`                 | Service  | `lib/services/email/live-layer.ts`         | Resend email sending                        |
+| `S3`                    | Service  | `lib/services/s3/live-layer.ts`            | AWS S3 file operations                      |
+| `Sprites`               | Service  | `lib/services/sprites/live-layer.ts`       | Sprites.dev API (create, exec, destroy)     |
+| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`      | Telegram bot notifications                  |
+| `Activity`              | Service  | `lib/services/activity/live-layer.ts`      | Activity logging via Telegram               |
+| `encryptToken`          | Function | `lib/core/crypto/encrypt.ts`               | AES-256-GCM encryption for sensitive tokens |
+| `decryptToken`          | Function | `lib/core/crypto/encrypt.ts`               | AES-256-GCM decryption for sensitive tokens |
+| `createAgentComment`    | Function | `lib/core/comment/create-agent-comment.ts` | Internal Effect function for agent comments |
+| `getLatestSession`      | Function | `lib/core/session/get-latest-session.ts`   | Fetch most recent session by taskId         |
 
 ## CONVENTIONS
 
@@ -119,6 +129,15 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 
 - **Always** use `Config.string('VAR')` or `Config.redacted('SECRET')`
 - **Never** use `process.env` directly with throws
+
+**Required Environment Variables:**
+
+| Variable            | Type   | Purpose                                     |
+| ------------------- | ------ | ------------------------------------------- |
+| `SPRITES_TOKEN`     | secret | Sprites.dev API authentication token        |
+| `WEBHOOK_BASE_URL`  | string | Base URL for webhook callbacks from Sprites |
+| `ENCRYPTION_KEY`    | secret | AES-256-GCM key for GitHub token encryption |
+| `SPRITE_TIMEOUT_MS` | string | Optional timeout for sprite operations (ms) |
 
 ### Observability
 
@@ -168,6 +187,7 @@ AppLayer
 ├── Auth.Live → Email.Live
 ├── Db.Live
 ├── S3.Live
+├── Sprites.Live
 ├── Telegram.Live
 ├── Activity.Live → Telegram.Live
 └── TelemetryLayer

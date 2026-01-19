@@ -671,7 +671,7 @@
         "Document new environment variables: SPRITES_TOKEN, WEBHOOK_BASE_URL, ENCRYPTION_KEY",
         "Update CODE MAP with new key symbols"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

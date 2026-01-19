@@ -513,3 +513,13 @@ Started: 2026-01-19
 - Verified no regressions via type checking and linting
 - Files changed: vitest.config.ts
 - **Learnings:** Vitest exits with code 1 by default when no tests found; passWithNoTests option allows CI/CD to pass; codebase has no unit tests, only e2e playwright tests
+
+## Task - docs-1
+
+- Added project/, task/, comment/, session/, crypto/ to WHERE TO LOOK table with descriptions
+- Added Sprites service to CODE MAP with location and role
+- Added encryptToken, decryptToken, createAgentComment, getLatestSession functions to CODE MAP
+- Added Sprites.Live to Service Dependency Hierarchy diagram
+- Added Required Environment Variables table with SPRITES_TOKEN, WEBHOOK_BASE_URL, ENCRYPTION_KEY, SPRITE_TIMEOUT_MS
+- Files changed: AGENTS.md
+- **Learnings:** AGENTS.md serves as living documentation for codebase structure; WHERE TO LOOK table guides developers to correct locations; CODE MAP provides symbol reference for key functions/services; environment variables documented for onboarding
