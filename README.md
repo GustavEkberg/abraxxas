@@ -1,6 +1,29 @@
-# Init
+# Abraxas
 
-A Next.js project starter with Effect-TS, designed to be cloned as the foundation for new projects.
+A mystical project management interface that summons the power of Claude Code to solve development tasks autonomously.
+
+## Overview
+
+Abraxas is a Trello-like project management tool with AI-powered task execution. Drag tasks to "The Ritual" column to spawn autonomous Claude Code sessions that execute work and create pull requests automatically.
+
+## Features
+
+- **Mystical Board Interface** - Tasks flow through six thematic columns from conception to completion
+- **Autonomous Task Execution** - Integration with Sprites.dev to spawn Claude Code sessions
+- **AI Feedback Loop** - Comment-based communication between humans and agents
+- **GitHub Integration** - Auto-generates feature branches and pull requests
+- **Dark Occult Theme** - Sleek, minimal UI with mystical aesthetics
+
+## Task Flow
+
+Tasks progress through mystical columns:
+
+1. **The Abyss** - Backlog of tasks waiting in darkness
+2. **The Altar** - Tasks prepared and ready for execution
+3. **The Ritual** - Active execution (triggers Claude Code session)
+4. **Cursed** - Blocked tasks with errors
+5. **The Trial** - Completed tasks awaiting human review
+6. **Vanquished** - Successfully completed and approved
 
 ## Stack
 
@@ -206,15 +229,6 @@ export const getSomething = (id: string) =>
     return result
   }).pipe(Effect.withSpan('example.get-something'))
 ```
-
-## After Cloning
-
-1. Update `package.json` name and version
-2. Update this README
-3. Remove example code (`lib/core/post/`, example routes)
-4. Add your own database schema in `lib/services/db/schema.ts`
-5. Create your services in `lib/core/`
-6. Remove unwanted services in `lib/services/`. Add more services as needed (port them to the init repo).
 
 ## Inspiration
 
