@@ -303,7 +303,7 @@ export function RitualBoardClient({
     }
   }, [router, selectedTask, fetchTaskDetails])
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
 
@@ -323,51 +323,57 @@ export function RitualBoardClient({
     const task = tasks.find(t => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    // Optimistically update UI
+    const originalStatus = task.status
+
+    // Optimistically update UI immediately - drag lands instantly
     setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)))
 
-    // Update via server action
-    const result = await updateTaskAction({ taskId, status: newStatus })
-
-    if (result._tag === 'Error') {
-      // Revert on error
-      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: task.status } : t)))
-      console.error('Failed to update task status:', result.message)
-      return
-    }
-
-    // If moved to "ritual" column, trigger execution
-    if (newStatus === 'ritual') {
-      const executeResult = await executeTaskAction({ taskId })
-
-      if (executeResult._tag === 'Success') {
-        const inProgressState: ExecutionState = 'in_progress'
-        // Update execution state and add to fire intensity
-        setTasks(prev =>
-          prev.map(t => (t.id === taskId ? { ...t, executionState: inProgressState } : t))
-        )
-        addRunningTask(taskId)
-
-        // Persist running task to localStorage
-        setPersistedRunningTasks(prev => {
-          const updated = [...prev, taskId]
-          persistRunningTasks(project.id, updated)
-          return updated
-        })
-
-        // Refresh to get updated comments
-        router.refresh()
-      } else {
-        console.error('Failed to execute task:', executeResult.message)
-        const cursedStatus: TaskStatus = 'cursed'
-        const errorState: ExecutionState = 'error'
-        // Move to cursed on execution error
-        setTasks(prev =>
-          prev.map(t =>
-            t.id === taskId ? { ...t, status: cursedStatus, executionState: errorState } : t
-          )
-        )
+    // Fire server action async - don't await
+    updateTaskAction({ taskId, status: newStatus }).then(result => {
+      if (result._tag === 'Error') {
+        // Revert on error
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: originalStatus } : t)))
+        console.error('Failed to update task status:', result.message)
       }
+    })
+
+    // If moved to "ritual" column, trigger execution async
+    if (newStatus === 'ritual') {
+      const inProgressState: ExecutionState = 'in_progress'
+
+      // Optimistically set in_progress immediately
+      setTasks(prev =>
+        prev.map(t => (t.id === taskId ? { ...t, executionState: inProgressState } : t))
+      )
+      addRunningTask(taskId)
+
+      // Persist running task to localStorage immediately
+      setPersistedRunningTasks(prev => {
+        const updated = [...prev, taskId]
+        persistRunningTasks(project.id, updated)
+        return updated
+      })
+
+      // Fire execution async - move to cursed on failure
+      executeTaskAction({ taskId }).then(executeResult => {
+        if (executeResult._tag === 'Success') {
+          // Refresh to get updated comments
+          router.refresh()
+        } else {
+          console.error('Failed to execute task:', executeResult.message)
+          const cursedStatus: TaskStatus = 'cursed'
+          const errorState: ExecutionState = 'error'
+          // Move to cursed on execution error
+          setTasks(prev =>
+            prev.map(t =>
+              t.id === taskId ? { ...t, status: cursedStatus, executionState: errorState } : t
+            )
+          )
+
+          // Also update server with cursed status
+          updateTaskAction({ taskId, status: cursedStatus, executionState: errorState })
+        }
+      })
     }
   }
 
