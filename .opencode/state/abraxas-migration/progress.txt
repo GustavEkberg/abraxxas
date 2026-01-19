@@ -379,3 +379,14 @@ Started: 2026-01-19
 - Type-safe select handlers using type guard functions (isTaskType, isTaskModel) instead of type assertions
 - Files changed: components/invocations/create-invocation-dialog.tsx
 - **Learnings:** Avoid type assertions in Select handlers by using type guard functions with explicit equality checks; null-check Select onValueChange value before type guard; explicit type guards with OR conditions satisfy ESLint no-type-assertion rule
+
+## Task - component-5
+
+- Created components/invocations/comment.tsx with display component for user and agent comments
+- User comments: left-aligned with purple accent (bg-purple-950/30 border-purple-500/20, text-purple-400)
+- Agent comments: right-aligned with cyan accent (bg-cyan-950/30 border-cyan-500/20, text-cyan-400)
+- Shows relative timestamp using formatDistanceToNow from date-fns
+- Whitespace preserved with whitespace-pre-wrap class for markdown content
+- DisplayName defaults to 'Abraxas' for agents, 'User' for users if names missing
+- Files changed: components/invocations/comment.tsx
+- **Learnings:** Presentational component with no client interactivity (no 'use client' needed); color theming via conditional className strings; date-fns formatDistanceToNow provides human-readable relative times

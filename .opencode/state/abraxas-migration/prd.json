@@ -509,7 +509,7 @@
         "Whitespace preserved for markdown",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-6",
