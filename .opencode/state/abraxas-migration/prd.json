@@ -10,7 +10,7 @@
         "Verify packages appear in package.json dependencies",
         "Run pnpm tsc to ensure no type errors from new deps"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-1",

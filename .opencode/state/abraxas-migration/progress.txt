@@ -1,0 +1,16 @@
+# Progress Log
+
+PRD: abraxas-migration
+Started: 2026-01-19
+
+## Codebase Patterns
+
+<!-- Consolidate reusable patterns here -->
+
+---
+
+## Task - setup-1
+
+- Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, date-fns dependencies
+- Files changed: package.json, pnpm-lock.yaml
+- **Learnings:** Type checking passes for new deps, old_repo contains reference code with expected errors
