@@ -108,3 +108,12 @@ Started: 2026-01-19
 - Added Sprites.Live to Layer.mergeAll in AppLayer
 - Files changed: lib/layers.ts
 - **Learnings:** Services merge via Layer.mergeAll; use .Live to get fully composed layer with dependencies satisfied
+
+## Task - security-1
+
+- Created lib/core/crypto/errors.ts with EncryptionError, DecryptionError, CryptoConfigError
+- Created lib/core/crypto/encrypt.ts with encryptToken/decryptToken functions
+- Uses AES-256-GCM with random IV and salt per encryption
+- Encoded format: iv:salt:authTag:encryptedData (base64)
+- Files changed: lib/core/crypto/errors.ts, lib/core/crypto/encrypt.ts
+- **Learnings:** Use Redacted.value() to access Config.redacted values; prefix unused vars with underscore to satisfy ESLint; Data.TaggedError sufficient for simple error types (no need for Schema.TaggedError)

@@ -166,7 +166,7 @@
         "Returns Effect with appropriate error types",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "domain-project-1",
