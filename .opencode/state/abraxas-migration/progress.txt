@@ -462,3 +462,14 @@ Started: 2026-01-19
 - Fire animation now appears at bottom of all pages via global layout
 - Files changed: app/layout.tsx
 - **Learnings:** Provider order matters - FireIntensityProvider must wrap FireBackground consumer; layout.tsx is best place for global UI features like fire animation; FireBackground placed after Toaster ensures fire appears on top visually
+
+## Task - style-1
+
+- Updated globals.css with mystical occult theme colors (HSL format)
+- Changed from oklch to HSL color space with proper hsl() wrapper in @theme inline
+- Updated CSS variables: --background (0 0% 4%), --primary (270 60% 60% purple), --destructive (0 62% 50% red), --border (0 0% 100% / 10%)
+- Added font-mono class to body in @layer base
+- Added ASCII border utilities (.ascii-border with ::before pseudo-element using linear gradients)
+- Configured --font-ibm-plex-mono for both --font-sans and --font-mono
+- Files changed: app/globals.css
+- **Learnings:** Tailwind v4 uses hsl() wrapper for color variables; occult theme uses almost-black background (4% lightness) with purple accent (270° hue); ASCII borders use linear-gradient with ch units for monospace alignment

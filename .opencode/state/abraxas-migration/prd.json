@@ -613,7 +613,7 @@
         "ASCII border utilities present",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "style-2",
