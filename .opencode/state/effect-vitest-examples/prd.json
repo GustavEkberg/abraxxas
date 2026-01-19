@@ -1,0 +1,146 @@
+{
+  "prdName": "effect-vitest-examples",
+  "tasks": [
+    {
+      "id": "setup-1",
+      "category": "setup",
+      "description": "Install @effect/vitest and configure vitest for Effect testing",
+      "steps": [
+        "@effect/vitest is in devDependencies",
+        "vitest.config.ts imports work with @effect/vitest",
+        "pnpm test:run executes without config errors"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-1",
+      "category": "test",
+      "description": "Basic it.effect test variants (it.effect, it.live, it.scoped, it.scopedLive)",
+      "steps": [
+        "Test exists using it.effect for basic Effect test",
+        "Test exists using it.live for real time/IO",
+        "Test exists using it.scoped for resource cleanup",
+        "Test exists using it.scopedLive"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-2",
+      "category": "test",
+      "description": "TestClock patterns for time-based testing",
+      "steps": [
+        "Test demonstrates forking + TestClock.adjust",
+        "Test demonstrates timeout testing",
+        "Test demonstrates retry with exponential backoff",
+        "Comment explains why fork is required (blocks without it)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-3",
+      "category": "test",
+      "description": "Layer sharing with layer() for mock services",
+      "steps": [
+        "Test demonstrates layer() for shared mock services",
+        "Test demonstrates nested it.layer()",
+        "Example shares mock Auth + Db across post tests"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-4",
+      "category": "test",
+      "description": "Mock services pattern with Auth and Db mocks",
+      "steps": [
+        "Mock Auth service returns test session/user",
+        "Mock Db service uses in-memory post storage",
+        "Example captures Db calls for assertions",
+        "Clear factory pattern for creating test implementations"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-5",
+      "category": "test",
+      "description": "Property testing with it.prop and Arbitrary.make",
+      "steps": [
+        "Test demonstrates it.prop with post input Schema",
+        "Test demonstrates it.effect.prop for async validation",
+        "Test demonstrates Arbitrary.make() from post Schema",
+        "Example tests filter/sort invariants"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-6",
+      "category": "test",
+      "description": "Error testing with Effect.either, Effect.exit, Effect.catchTag",
+      "steps": [
+        "Test demonstrates Effect.either for UnauthenticatedError",
+        "Test demonstrates Effect.exit with Cause inspection",
+        "Test demonstrates Effect.catchTag for NotFoundError recovery",
+        "Examples use domain errors (UnauthenticatedError, NotFoundError)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "test-7",
+      "category": "test",
+      "description": "Database testing reference comment",
+      "steps": [
+        "Comment in test file points to specs/EFFECT_TESTING.md testcontainers section",
+        "Note states integration tests require additional setup"
+      ],
+      "passes": true
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Create specs/TESTING_STRATEGY.md with coverage targets and philosophy",
+      "steps": [
+        "Testing philosophy section (what to test, what not to test)",
+        "Coverage targets and expectations documented",
+        "Test organization explained (colocated *.test.ts files)",
+        "When to use unit vs integration vs e2e tests",
+        "Mock strategy for Effect services",
+        "Reference to specs/EFFECT_TESTING.md for implementation patterns"
+      ],
+      "passes": true
+    },
+    {
+      "id": "docs-2",
+      "category": "docs",
+      "description": "Update AGENTS.md with testing infrastructure",
+      "steps": [
+        "\"No tests yet\" note removed from NOTES section",
+        "Testing info added to WHERE TO LOOK table",
+        "specs/TESTING_STRATEGY.md added to SPECS table",
+        "Test commands documented in relevant section"
+      ],
+      "passes": true
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Effect testing: specs/EFFECT_TESTING.md",
+      "Domain logic: lib/core/post/",
+      "Error types: lib/core/errors/index.ts",
+      "Services: lib/services/*/live-layer.ts"
+    ],
+    "keyFiles": [
+      "vitest.config.ts",
+      "package.json",
+      "lib/core/post/get-posts.ts",
+      "lib/core/post/create-post-action.ts",
+      "lib/core/post/delete-post-action.ts",
+      "AGENTS.md",
+      "specs/EFFECT_TESTING.md"
+    ],
+    "nonGoals": [
+      "Real business logic tests - pattern examples only",
+      "100% code coverage - focus on demonstrating patterns",
+      "E2E test integration - exists separately in e2e/",
+      "CI integration - deployment handles via Vercel"
+    ]
+  }
+}
