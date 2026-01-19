@@ -494,3 +494,13 @@ Started: 2026-01-19
 - Board now polls every 10s when tasks in_progress, updates fire intensity context with real message counts from sessions
 - Files changed: lib/core/session/get-task-sessions.ts, app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
 - **Learnings:** Polling already implemented in board-client via router.refresh; session.messageCount stored as text so must parse to int; avoid setState in useEffect by using lazy initializer or conditional setState in render body; fire intensity context tracks message counts to increase fire animation intensity
+
+## Task - verify-1
+
+- Verified pnpm tsc passes with no errors
+- Verified pnpm lint passes with no errors
+- Verified no `any` types in new code (only namespace imports like `* as schema`)
+- Verified no `as` type assertions in new code (only `as const` allowed)
+- Verified no `disableValidation` usage anywhere
+- Files changed: none (verification only)
+- **Learnings:** Type safety verification complete; all ESLint rules satisfied; no forbidden patterns in new code

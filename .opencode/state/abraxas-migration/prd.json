@@ -652,7 +652,7 @@
         "No as type assertions in new code",
         "No disableValidation usage"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "verify-2",
