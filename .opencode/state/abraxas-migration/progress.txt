@@ -126,3 +126,13 @@ Started: 2026-01-19
 - Filters by eq(schema.projects.userId, user.id)
 - Files changed: lib/core/project/get-projects.ts
 - **Learnings:** Domain functions for read operations follow simple pattern: getSession → Db → query → return; no error handling needed beyond UnauthenticatedError from getSession
+
+## Task - domain-project-2
+
+- Created lib/core/project/get-project.ts for single project loading by ID
+- Returns Effect with single project
+- Verifies user owns project before returning
+- Returns NotFoundError if project doesn't exist (length === 0 check on result array)
+- Returns UnauthorizedError if userId doesn't match session user
+- Files changed: lib/core/project/get-project.ts
+- **Learnings:** Authorization checks: first check existence (NotFoundError), then check ownership (UnauthorizedError); Drizzle select returns array so must access [0] after length check
