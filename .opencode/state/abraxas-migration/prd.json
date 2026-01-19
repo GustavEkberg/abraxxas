@@ -639,7 +639,7 @@
         "Persists running task IDs to localStorage across refresh",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "verify-1",

@@ -482,3 +482,15 @@ Started: 2026-01-19
 - Updated metadata title to 'Abraxas - Task Execution from the Cosmic Void'
 - Files changed: app/layout.tsx
 - **Learnings:** IBM Plex Mono requires explicit weight array; variable name must match globals.css references; font applied to html element propagates to body via CSS variables
+
+## Task - polish-1
+
+- Status polling and localStorage persistence already implemented in board-client.tsx
+- Created lib/core/session/get-task-sessions.ts to fetch sessions for multiple tasks in one query
+- Updated page.tsx to fetch task sessions and build messageCountsByTask map from session.messageCount field
+- Passed initialMessageCounts prop to RitualBoardClient component
+- Fixed localStorage init to use lazy initializer to avoid effect setState lint error
+- Fixed state sync to use conditional setState in render instead of useEffect (acceptable for external system sync)
+- Board now polls every 10s when tasks in_progress, updates fire intensity context with real message counts from sessions
+- Files changed: lib/core/session/get-task-sessions.ts, app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
+- **Learnings:** Polling already implemented in board-client via router.refresh; session.messageCount stored as text so must parse to int; avoid setState in useEffect by using lazy initializer or conditional setState in render body; fire intensity context tracks message counts to increase fire animation intensity

@@ -172,15 +172,23 @@ function DraggableCard({ task, onClick, messageCount }: DraggableCardProps) {
 interface RitualBoardClientProps {
   project: Project
   initialTasks: Task[]
+  initialMessageCounts: Record<string, number>
 }
 
-export function RitualBoardClient({ project, initialTasks }: RitualBoardClientProps) {
+export function RitualBoardClient({
+  project,
+  initialTasks,
+  initialMessageCounts
+}: RitualBoardClientProps) {
   const router = useRouter()
   const { addRunningTask, removeRunningTask, updateTaskMessages } = useFireIntensity()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
-  const [persistedRunningTasks, setPersistedRunningTasks] = useState<string[]>([])
-  const [taskMessageCounts] = useState<Record<string, number>>({})
+  const [persistedRunningTasks, setPersistedRunningTasks] = useState<string[]>(() =>
+    getPersistedRunningTasks(project.id)
+  )
+  const [taskMessageCounts, setTaskMessageCounts] =
+    useState<Record<string, number>>(initialMessageCounts)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -189,12 +197,6 @@ export function RitualBoardClient({ project, initialTasks }: RitualBoardClientPr
       }
     })
   )
-
-  // Load persisted running tasks on mount
-  useEffect(() => {
-    const persisted = getPersistedRunningTasks(project.id)
-    setPersistedRunningTasks(persisted)
-  }, [project.id])
 
   // Sync running tasks with fire intensity context
   useEffect(() => {
@@ -245,10 +247,14 @@ export function RitualBoardClient({ project, initialTasks }: RitualBoardClientPr
     return () => clearInterval(pollInterval)
   }, [tasks, persistedRunningTasks, router])
 
-  // Update tasks when initialTasks changes (from router.refresh)
-  useEffect(() => {
+  // Sync tasks and message counts when server data changes (from router.refresh)
+  // This is acceptable because we're syncing with external system (server state)
+  if (tasks !== initialTasks) {
     setTasks(initialTasks)
-  }, [initialTasks])
+  }
+  if (taskMessageCounts !== initialMessageCounts) {
+    setTaskMessageCounts(initialMessageCounts)
+  }
 
   const getTasksByStatus = (status: string) => {
     return tasks.filter(task => task.status === status)

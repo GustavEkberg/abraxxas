@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { Effect } from 'effect'
 import { getProject } from '@/lib/core/project/get-project'
 import { getTasks } from '@/lib/core/task/get-tasks'
+import { getTaskSessions } from '@/lib/core/session/get-task-sessions'
 import { AppLayer } from '@/lib/layers'
 import { redirect } from 'next/navigation'
 import { RitualBoardClient } from './board-client'
@@ -20,8 +21,21 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
     Effect.gen(function* () {
       const project = yield* getProject(ritualId)
       const tasks = yield* getTasks(ritualId)
+      const taskIds = tasks.map(t => t.id)
+      const sessions = yield* getTaskSessions(taskIds)
 
-      return { project, tasks }
+      // Build message count map from latest session per task
+      const sessionsByTask = new Map<string, number>()
+      sessions.forEach(session => {
+        if (!sessionsByTask.has(session.taskId) && session.messageCount) {
+          const count = parseInt(session.messageCount, 10)
+          if (!isNaN(count)) {
+            sessionsByTask.set(session.taskId, count)
+          }
+        }
+      })
+
+      return { project, tasks, messageCountsByTask: Object.fromEntries(sessionsByTask) }
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
@@ -44,7 +58,13 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
     )
   )
 
-  return <RitualBoardClient project={result.project} initialTasks={result.tasks} />
+  return (
+    <RitualBoardClient
+      project={result.project}
+      initialTasks={result.tasks}
+      initialMessageCounts={result.messageCountsByTask}
+    />
+  )
 }
 
 export default async function RitualBoardPage({ params }: { params: Promise<{ id: string }> }) {
