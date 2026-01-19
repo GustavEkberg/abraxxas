@@ -183,3 +183,15 @@ Started: 2026-01-19
 - Has Effect.withSpan('Task.getTasks') for observability
 - Files changed: lib/core/task/get-tasks.ts
 - **Learnings:** Task read operations follow project pattern - verify ownership via parent project first, then fetch child resources
+
+## Task - domain-task-2
+
+- Created lib/core/task/create-task-action.ts server action
+- 'use server' directive at top
+- Accepts CreateTaskInput: projectId, title, description, type, model
+- Uses getProject() to verify ownership before creation
+- Creates task with status='abyss' and executionState='idle' (schema defaults)
+- matchEffect handles NotFoundError, UnauthorizedError, UnauthenticatedError separately
+- Revalidates /rituals/[projectId] path on success
+- Files changed: lib/core/task/create-task-action.ts
+- **Learnings:** Task creation actions use getProject() for ownership check; schema defaults handle status/state without explicit values in insert; revalidate the board page to show new task
