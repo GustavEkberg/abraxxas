@@ -21,8 +21,19 @@ const StartedPayloadSchema = Schema.Struct({
   message: Schema.optional(Schema.String)
 })
 
+const ProgressDataSchema = Schema.Struct({
+  messageCount: Schema.Number,
+  inputTokens: Schema.Number,
+  outputTokens: Schema.Number,
+  message: Schema.optional(Schema.String)
+})
+
 const ProgressPayloadSchema = Schema.Struct({
   type: Schema.Literal('progress'),
+  progress: ProgressDataSchema
+})
+
+const StatsSchema = Schema.Struct({
   messageCount: Schema.Number,
   inputTokens: Schema.Number,
   outputTokens: Schema.Number
@@ -31,7 +42,8 @@ const ProgressPayloadSchema = Schema.Struct({
 const CompletedPayloadSchema = Schema.Struct({
   type: Schema.Literal('completed'),
   summary: Schema.optional(Schema.String),
-  pullRequestUrl: Schema.optional(Schema.String)
+  pullRequestUrl: Schema.optional(Schema.String),
+  stats: Schema.optional(StatsSchema)
 })
 
 const ErrorPayloadSchema = Schema.Struct({
@@ -170,18 +182,19 @@ const handleProgress = (
   payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
 ) =>
   Effect.gen(function* () {
+    const { progress } = payload
     yield* updateSession({
       sessionId,
-      messageCount: String(payload.messageCount),
-      inputTokens: String(payload.inputTokens),
-      outputTokens: String(payload.outputTokens)
+      messageCount: String(progress.messageCount),
+      inputTokens: String(progress.inputTokens),
+      outputTokens: String(progress.outputTokens)
     })
 
     yield* Effect.logInfo('Progress event handled', {
       sessionId,
-      messageCount: payload.messageCount,
-      inputTokens: payload.inputTokens,
-      outputTokens: payload.outputTokens
+      messageCount: progress.messageCount,
+      inputTokens: progress.inputTokens,
+      outputTokens: progress.outputTokens
     })
   })
 
@@ -195,12 +208,17 @@ const handleCompleted = (
     const db = yield* Db
     const sprites = yield* Sprites
 
-    // Update session to completed
+    // Update session to completed with stats if available
     const session = yield* updateSession({
       sessionId,
       status: 'completed',
       completedAt: new Date(),
-      pullRequestUrl: payload.pullRequestUrl || null
+      pullRequestUrl: payload.pullRequestUrl || null,
+      ...(payload.stats && {
+        messageCount: String(payload.stats.messageCount),
+        inputTokens: String(payload.stats.inputTokens),
+        outputTokens: String(payload.stats.outputTokens)
+      })
     })
 
     // Move task to 'trial' status and set executionState to 'awaiting_review'
@@ -213,12 +231,15 @@ const handleCompleted = (
       })
       .where(eq(schema.tasks.id, taskId))
 
-    // Post completion comment
+    // Post completion comment with stats
     const summary = payload.summary || 'Task execution completed successfully'
     const prLink = payload.pullRequestUrl ? `\n\n**PR:** ${payload.pullRequestUrl}` : ''
+    const statsText = payload.stats
+      ? `\n\n**Stats:** ${payload.stats.messageCount} messages, ${payload.stats.inputTokens} input tokens, ${payload.stats.outputTokens} output tokens`
+      : ''
     yield* createAgentComment({
       taskId,
-      content: `✓ **Execution completed**\n\n${summary}${prLink}`,
+      content: `✓ **Execution completed**\n\n${summary}${prLink}${statsText}`,
       agentName: 'Abraxas'
     })
 
