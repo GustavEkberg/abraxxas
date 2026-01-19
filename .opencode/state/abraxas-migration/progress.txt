@@ -35,3 +35,11 @@ Started: 2026-01-19
 - Status defaults to 'abyss', executionState defaults to 'idle'
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** Enum columns reference pgEnum definitions, default values set with .default(), nullable fields omit .notNull()
+
+## Task - db-4
+
+- Added comments table with id, taskId (FK), userId (nullable FK), isAgentComment (boolean), agentName (nullable), content, createdAt, updatedAt
+- Foreign keys: tasks.id (cascade delete), user.id (cascade delete, nullable)
+- isAgentComment defaults to false
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Nullable FKs omit .notNull(), both user and agent comments stored in same table with isAgentComment flag

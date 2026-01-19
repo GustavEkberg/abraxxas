@@ -63,7 +63,7 @@
         "Foreign key to user.id with cascade delete (nullable)",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-5",

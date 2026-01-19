@@ -123,6 +123,30 @@ export type Task = typeof tasks.$inferSelect
 export type InsertTask = typeof tasks.$inferInsert
 
 ////////////////////////////////////////////////////////////////////////
+// COMMENTS
+////////////////////////////////////////////////////////////////////////
+export const comments = pgTable('comments', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  taskId: text('taskId')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  userId: text('userId').references(() => user.id, { onDelete: 'cascade' }),
+  isAgentComment: boolean('isAgentComment').notNull().default(false),
+  agentName: text('agentName'),
+  content: text('content').notNull(),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date())
+})
+
+export type Comment = typeof comments.$inferSelect
+export type InsertComment = typeof comments.$inferInsert
+
+////////////////////////////////////////////////////////////////////////
 // EXAMPLE - Post table
 ////////////////////////////////////////////////////////////////////////
 export const post = pgTable('post', {
