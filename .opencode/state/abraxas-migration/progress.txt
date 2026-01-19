@@ -436,3 +436,20 @@ Started: 2026-01-19
 - export const dynamic = 'force-dynamic' at top of file
 - Files changed: app/(dashboard)/page.tsx, app/(dashboard)/layout.tsx
 - **Learnings:** RSC pages use Link for navigation not router.push; sign-out via form POST to better-auth endpoint not client-side authClient.signOut(); type guards with 'in' operator satisfy no-type-assertion rule; await cookies() first line of Content component ensures dynamic rendering
+
+## Task - page-2
+
+- Created app/(dashboard)/rituals/[id]/page.tsx with RSC Suspense+Content pattern fetching project and tasks
+- Created board-client.tsx as "use client" component handling drag-and-drop with @dnd-kit
+- Six column kanban board: abyss, altar, ritual (double height), trial, cursed (stacked), vanquished (double height)
+- DndContext with PointerSensor (8px activation distance)
+- DroppableColumn and DraggableCard components with visual state based on executionState
+- Drag to ritual column triggers executeTaskAction server action
+- Optimistic UI updates with type-safe status guards (no `as` assertions)
+- Polling every 10s for running tasks via router.refresh() pattern
+- localStorage persistence for running tasks across page refreshes
+- Fire intensity context integration with message count tracking
+- Type guards for TaskStatus validation instead of assertions
+- Back button navigates to dashboard, placeholder button for create invocation
+- Files changed: app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
+- **Learnings:** RSC can pass data to client components for DnD; type guards `(value: string): value is Type` satisfy no-type-assertion lint rule; router.refresh() triggers RSC re-fetch; DndContext active.id and over.id are string|number so need type checks; localStorage operations need typeof window check; Effect.runPromise works in RSC pages but NextEffect.runPromise for redirects

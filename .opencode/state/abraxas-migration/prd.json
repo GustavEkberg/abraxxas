@@ -586,7 +586,7 @@
         "TaskDetailModal on card click",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "page-3",
