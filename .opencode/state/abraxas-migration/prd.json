@@ -459,7 +459,7 @@
         "Renders AsciiFire with intensity prop",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-3",

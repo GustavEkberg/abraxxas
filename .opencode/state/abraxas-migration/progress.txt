@@ -342,3 +342,12 @@ Started: 2026-01-19
 - Responds to window resize events
 - Files changed: components/ascii-fire.tsx
 - **Learnings:** Animation state stored in refs to avoid triggering re-renders; intensity interpolation creates smooth visual transitions; cleanup function cancels animation frame and removes event listeners
+
+## Task - component-2
+
+- Created components/fire-background.tsx as wrapper component
+- 'use client' directive for React hook usage
+- Imports useFireIntensity hook from context to get dynamic intensity value
+- Renders AsciiFire component with intensity prop from context
+- Files changed: components/fire-background.tsx
+- **Learnings:** Simple wrapper pattern connects context provider to presentational component; keeps AsciiFire reusable with prop-based intensity
