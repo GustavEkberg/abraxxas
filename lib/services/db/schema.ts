@@ -179,29 +179,6 @@ export const opencodeSessions = pgTable('opencodeSessions', {
 export type OpencodeSession = typeof opencodeSessions.$inferSelect
 export type InsertOpencodeSession = typeof opencodeSessions.$inferInsert
 
-////////////////////////////////////////////////////////////////////////
-// EXAMPLE - Post table
-////////////////////////////////////////////////////////////////////////
-export const post = pgTable('post', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  title: text('title').notNull(),
-  content: text('content'),
-  published: boolean('published').notNull().default(false),
-  userId: text('userId')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date())
-})
-
-export type Post = typeof post.$inferSelect
-export type InsertPost = typeof post.$inferInsert
-
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt').notNull(),
@@ -257,7 +234,6 @@ export const verification = pgTable('verification', {
 export const relations = defineRelations(
   {
     user,
-    post,
     session,
     account,
     verification,
@@ -268,20 +244,9 @@ export const relations = defineRelations(
   },
   r => ({
     user: {
-      posts: r.many.post({
-        from: r.user.id,
-        to: r.post.userId
-      }),
       projects: r.many.projects({
         from: r.user.id,
         to: r.projects.userId
-      })
-    },
-    post: {
-      author: r.one.user({
-        from: r.post.userId,
-        to: r.user.id,
-        optional: false
       })
     },
     projects: {

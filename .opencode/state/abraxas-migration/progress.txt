@@ -59,3 +59,11 @@ Started: 2026-01-19
 - Relations added: user->projects (many), projects->user (one), projects->tasks (many), tasks->project (one), tasks->comments (many), tasks->opencodeSessions (many), comments->task (one), comments->user (one, optional), opencodeSessions->task (one)
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** defineRelations takes all tables in first arg, relations map in second; r.one/r.many methods with from/to fields; optional flag for nullable FKs
+
+## Task - db-7
+
+- Removed post table definition from schema.ts (lines 183-203)
+- Removed post from defineRelations: removed from tables object, removed posts relation from user, removed entire post relation block
+- Removed all post-related files: lib/core/post/, app/page.tsx, app/post-*.tsx, app/search-params.ts, app/api/example/route.ts
+- Files changed: lib/services/db/schema.ts, deleted 10+ example files
+- **Learnings:** Removing table requires cleanup of both table definition and all relations; example code must be removed to pass type checking

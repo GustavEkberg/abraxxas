@@ -101,7 +101,7 @@
         "No references to post remain in codebase (except old_repo)",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-8",
