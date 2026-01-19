@@ -6,16 +6,26 @@ import * as schema from '../db/schema'
 import { emailOTP } from 'better-auth/plugins'
 import { Email } from '../email/live-layer'
 import { AuthApiError, AuthConfigError } from './errors'
-import { drizzle } from 'drizzle-orm/neon-http'
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http'
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
+import pg from 'pg'
 
-// Auth database service (internal) - uses Neon HTTP driver for serverless
-class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, ReturnType<typeof drizzle>>() {}
+// Auth database service (internal)
+// Uses node-postgres for local dev, neon-http for production
+type AuthDbClient = ReturnType<typeof drizzleNeon> | ReturnType<typeof drizzlePg>
+class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, AuthDbClient>() {}
 
 const AuthDbLive = Layer.effect(
   AuthDb,
   Effect.gen(function* () {
     const url = yield* Config.string('DATABASE_URL')
-    return drizzle({ connection: url, schema })
+    const isLocal = url.includes('localhost') || url.includes('127.0.0.1')
+
+    if (isLocal) {
+      const pool = new pg.Pool({ connectionString: url })
+      return drizzlePg({ client: pool, schema })
+    }
+    return drizzleNeon({ connection: url, schema })
   })
 )
 

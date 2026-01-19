@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
+import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
@@ -356,14 +357,7 @@ export function RitualBoardClient({
                 {project.repositoryUrl.replace('https://github.com/', '')}
               </p>
             </div>
-            <button
-              onClick={() => {
-                /* TODO: Open dialog */
-              }}
-              className="border border-dashed border-red-500 bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:cursor-pointer active:scale-95 font-mono"
-            >
-              Cast New Invocation
-            </button>
+            <CreateInvocationDialog ritualId={project.id} />
           </div>
         </div>
 
