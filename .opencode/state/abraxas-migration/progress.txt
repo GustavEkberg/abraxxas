@@ -285,3 +285,20 @@ Started: 2026-01-19
 - All have Effect.withSpan annotations for observability
 - Files changed: lib/core/session/create-session.ts, lib/core/session/update-session.ts, lib/core/session/get-latest-session.ts
 - **Learnings:** Session management follows same patterns as comment/task - Effect.gen with Db service, annotateCurrentSpan for tracing, conditional field updates with !== undefined checks; get functions use desc() ordering for latest-first; session stats (messageCount, tokens) stored as text fields per schema
+
+## Task - api-1
+
+- Created app/api/webhooks/sprite/[taskId]/route.ts webhook handler API route
+- POST handler extracts taskId from dynamic route params (using Promise-based context.params)
+- Reads raw body as text using request.text() for signature verification
+- Gets X-Webhook-Signature header and validates presence
+- Fetches latest session to get webhookSecret using getLatestSession(taskId)
+- Verifies HMAC-SHA256 signature using crypto.createHmac and timingSafeEqual
+- Checks buffer lengths match before timing-safe comparison (prevents timing attacks)
+- Returns 401 for missing/invalid signatures, 500 for missing webhook secret
+- Parses body using Schema.decodeUnknownEither (no type assertions)
+- Returns 400 for invalid payload format
+- Uses Effect.runPromise with AppLayer and Effect.scoped
+- Has Effect.withSpan('webhook.sprite') with operation attribute
+- Files changed: app/api/webhooks/sprite/[taskId]/route.ts
+- **Learnings:** Next.js 15 route params are async (Promise<{ taskId: string }>); use type import for NextRequest to satisfy lint; use Schema.decodeUnknownEither instead of type assertions for JSON parsing; HMAC verification requires timing-safe comparison via crypto.timingSafeEqual; raw body must be preserved for signature verification before parsing
