@@ -261,3 +261,15 @@ Started: 2026-01-19
 - Revalidates /rituals/[projectId] path on success
 - Files changed: lib/core/comment/create-comment-action.ts
 - **Learnings:** Comment creation follows same ownership verification pattern as task actions (two fetches); return projectId for revalidation path construction; user comments automatically get userId from session
+
+## Task - domain-comment-3
+
+- Created lib/core/comment/create-agent-comment.ts internal function
+- NOT a server action - pure Effect function for internal use
+- Returns Effect that creates comment with isAgentComment=true, userId=null
+- Accepts CreateAgentCommentInput: taskId, content, agentName
+- No ownership verification needed - called from contexts that already verified access
+- Has Effect.withSpan('Comment.createAgentComment') with operation attribute
+- Returns created comment from .returning()
+- Files changed: lib/core/comment/create-agent-comment.ts
+- **Learnings:** Internal domain functions skip ownership checks (caller's responsibility); agent comments set userId=null with agentName field; reusable across webhook handlers and server actions
