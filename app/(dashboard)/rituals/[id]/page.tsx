@@ -24,18 +24,21 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
       const taskIds = tasks.map(t => t.id)
       const sessions = yield* getTaskSessions(taskIds)
 
-      // Build message count map from latest session per task
-      const sessionsByTask = new Map<string, number>()
+      // Build stats map from latest session per task
+      const statsByTask = new Map<
+        string,
+        { messageCount: number; inputTokens: number; outputTokens: number }
+      >()
       sessions.forEach(session => {
-        if (!sessionsByTask.has(session.taskId) && session.messageCount) {
-          const count = parseInt(session.messageCount, 10)
-          if (!isNaN(count)) {
-            sessionsByTask.set(session.taskId, count)
-          }
+        if (!statsByTask.has(session.taskId)) {
+          const messageCount = session.messageCount ? parseInt(session.messageCount, 10) : 0
+          const inputTokens = session.inputTokens ? parseInt(session.inputTokens, 10) : 0
+          const outputTokens = session.outputTokens ? parseInt(session.outputTokens, 10) : 0
+          statsByTask.set(session.taskId, { messageCount, inputTokens, outputTokens })
         }
       })
 
-      return { project, tasks, messageCountsByTask: Object.fromEntries(sessionsByTask) }
+      return { project, tasks, statsByTask: Object.fromEntries(statsByTask) }
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
@@ -62,7 +65,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
     <RitualBoardClient
       project={result.project}
       initialTasks={result.tasks}
-      initialMessageCounts={result.messageCountsByTask}
+      initialStats={result.statsByTask}
     />
   )
 }

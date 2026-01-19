@@ -110,13 +110,19 @@ function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
   )
 }
 
+interface TaskStats {
+  messageCount: number
+  inputTokens: number
+  outputTokens: number
+}
+
 interface DraggableCardProps {
   task: Task
   onClick: (task: Task) => void
-  messageCount?: number
+  stats?: TaskStats
 }
 
-function DraggableCard({ task, onClick, messageCount }: DraggableCardProps) {
+function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id
   })
@@ -167,8 +173,10 @@ function DraggableCard({ task, onClick, messageCount }: DraggableCardProps) {
       <div className="mt-2 flex items-center gap-2 text-xs text-white/40">
         <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
         <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>
-        {messageCount !== undefined && messageCount > 0 && (
-          <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{messageCount}m</span>
+        {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
+          <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">
+            {stats.messageCount}m · {Math.round((stats.inputTokens + stats.outputTokens) / 1000)}k
+          </span>
         )}
       </div>
     </Card>
@@ -178,14 +186,10 @@ function DraggableCard({ task, onClick, messageCount }: DraggableCardProps) {
 interface RitualBoardClientProps {
   project: Project
   initialTasks: Task[]
-  initialMessageCounts: Record<string, number>
+  initialStats: Record<string, TaskStats>
 }
 
-export function RitualBoardClient({
-  project,
-  initialTasks,
-  initialMessageCounts
-}: RitualBoardClientProps) {
+export function RitualBoardClient({ project, initialTasks, initialStats }: RitualBoardClientProps) {
   const router = useRouter()
   const { addRunningTask, removeRunningTask, updateTaskMessages } = useFireIntensity()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -193,8 +197,7 @@ export function RitualBoardClient({
   const [persistedRunningTasks, setPersistedRunningTasks] = useState<string[]>(() =>
     getPersistedRunningTasks(project.id)
   )
-  const [taskMessageCounts, setTaskMessageCounts] =
-    useState<Record<string, number>>(initialMessageCounts)
+  const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
 
   // Task detail modal state - store ID only to avoid stale data issues
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -218,15 +221,15 @@ export function RitualBoardClient({
 
     // Add any new running tasks to fire intensity with message count
     runningTasks.forEach(task => {
-      const messageCount = taskMessageCounts[task.id] || 0
+      const messageCount = taskStats[task.id]?.messageCount ?? 0
       addRunningTask(task.id, messageCount)
     })
 
     // Update message counts for existing running tasks
     runningTasks.forEach(task => {
-      const messageCount = taskMessageCounts[task.id]
-      if (messageCount !== undefined) {
-        updateTaskMessages(task.id, messageCount)
+      const stats = taskStats[task.id]
+      if (stats) {
+        updateTaskMessages(task.id, stats.messageCount)
       }
     })
 
@@ -241,7 +244,7 @@ export function RitualBoardClient({
           return updated
         })
       })
-  }, [tasks, taskMessageCounts, project.id, addRunningTask, removeRunningTask, updateTaskMessages])
+  }, [tasks, taskStats, project.id, addRunningTask, removeRunningTask, updateTaskMessages])
 
   // Poll for running task status updates
   useEffect(() => {
@@ -261,13 +264,13 @@ export function RitualBoardClient({
     return () => clearInterval(pollInterval)
   }, [tasks, persistedRunningTasks, router])
 
-  // Sync tasks and message counts when server data changes (from router.refresh)
+  // Sync tasks and stats when server data changes (from router.refresh)
   // This is acceptable because we're syncing with external system (server state)
   if (tasks !== initialTasks) {
     setTasks(initialTasks)
   }
-  if (taskMessageCounts !== initialMessageCounts) {
-    setTaskMessageCounts(initialMessageCounts)
+  if (taskStats !== initialStats) {
+    setTaskStats(initialStats)
   }
 
   // Fetch task details when modal opens
@@ -453,7 +456,7 @@ export function RitualBoardClient({
                         key={task.id}
                         task={task}
                         onClick={handleTaskClick}
-                        messageCount={taskMessageCounts[task.id]}
+                        stats={taskStats[task.id]}
                       />
                     ))
                   )}
