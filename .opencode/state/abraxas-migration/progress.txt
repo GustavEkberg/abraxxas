@@ -136,3 +136,16 @@ Started: 2026-01-19
 - Returns UnauthorizedError if userId doesn't match session user
 - Files changed: lib/core/project/get-project.ts
 - **Learnings:** Authorization checks: first check existence (NotFoundError), then check ownership (UnauthorizedError); Drizzle select returns array so must access [0] after length check
+
+## Task - domain-project-3
+
+- Created lib/core/project/create-project-action.ts server action
+- 'use server' directive at top
+- Accepts CreateProjectInput: name, description, repositoryUrl, githubToken, agentsMdContent
+- Encrypts githubToken using encryptToken() before storage
+- Uses NextEffect.runPromise with AppLayer and Effect.scoped
+- matchEffect handles UnauthenticatedError (redirect to login) and generic errors
+- Returns { _tag: 'Success', data: project } on success with revalidatePath('/')
+- Has Effect.withSpan('action.project.create') with operation attribute
+- Files changed: lib/core/project/create-project-action.ts
+- **Learnings:** Server actions return typed error objects or success objects; revalidatePath called in onSuccess handler; encrypted tokens stored directly in projects table
