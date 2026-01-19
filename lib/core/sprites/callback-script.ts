@@ -12,6 +12,8 @@ export interface CallbackScriptConfig {
   repoUrl: string
   githubToken: string
   branchName: string
+  /** Model in format provider/model (e.g., anthropic/claude-sonnet-4-5-20250929) */
+  model: string
   /** Optional setup script to run before cloning (e.g., install opencode) */
   setupScript?: string
 }
@@ -75,6 +77,7 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
     repoUrl,
     githubToken,
     branchName,
+    model,
     setupScript = DEFAULT_SETUP_SCRIPT
   } = config
 
@@ -265,7 +268,7 @@ OPENCODE_EXIT_CODE=0
 
 touch "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE"
 
-opencode run --format json "${escapedPrompt} !ALWAYS COMMIT YOUR WORK TO BRANCH ${branchName} AND PUSH WHEN YOU ARE DONE!" > >(tee "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE") 2>&1 &
+opencode run --model "${model}" --format json "${escapedPrompt} !ALWAYS COMMIT YOUR WORK TO BRANCH ${branchName} AND PUSH WHEN YOU ARE DONE!" > >(tee "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE") 2>&1 &
 OPENCODE_PID=$!
 
 monitor_progress "$OPENCODE_JSON_FILE" "$OPENCODE_OUTPUT_FILE" "$OPENCODE_PID" &

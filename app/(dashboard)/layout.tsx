@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react'
+import { Header } from '@/components/header'
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return children
+  return (
+    <>
+      <Header />
+      {children}
+    </>
+  )
 }

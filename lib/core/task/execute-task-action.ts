@@ -4,6 +4,7 @@ import { Effect, Match } from 'effect'
 import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
+import { getSession } from '@/lib/services/auth/get-session'
 import { Db } from '@/lib/services/db/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { getProject } from '@/lib/core/project/get-project'
@@ -11,6 +12,7 @@ import { eq } from 'drizzle-orm'
 import { NotFoundError, ValidationError } from '@/lib/core/errors'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
 import { spawnSpriteForTask } from '@/lib/core/sprites/spawn-sprite'
+import { getOpencodeModel } from '@/lib/utils'
 import { createId } from '@paralleldrive/cuid2'
 
 type ExecuteTaskInput = {
@@ -45,10 +47,12 @@ const buildPrompt = (
 export const executeTaskAction = async (input: ExecuteTaskInput) => {
   return await NextEffect.runPromise(
     Effect.gen(function* () {
+      const { user } = yield* getSession()
       const db = yield* Db
 
       yield* Effect.annotateCurrentSpan({
-        'task.id': input.taskId
+        'task.id': input.taskId,
+        'user.id': user.id
       })
 
       // Fetch the task
@@ -104,7 +108,8 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
           id: task.id,
           title: task.title,
           description: task.description,
-          branchName: task.branchName
+          branchName: task.branchName,
+          model: task.model
         },
         project: {
           id: project.id,
@@ -113,7 +118,9 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
           encryptedGithubToken: project.encryptedGithubToken
         },
         prompt,
-        decryptedGithubToken: decryptedToken
+        decryptedGithubToken: decryptedToken,
+        userId: user.id,
+        opencodeModel: getOpencodeModel(task.model)
       })
 
       yield* Effect.log(`Spawned sprite ${spriteName} for task ${task.id}`)

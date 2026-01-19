@@ -1,4 +1,4 @@
-import { Effect, Config } from 'effect'
+import { Effect, Config, Option } from 'effect'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import {
   generateCallbackScript,
@@ -7,16 +7,21 @@ import {
 } from './callback-script'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { ValidationError } from '@/lib/core/errors'
+import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
 import type { Task, Project } from '@/lib/services/db/schema'
 
 /**
  * Configuration for spawning a sprite for a task.
  */
 export interface SpawnSpriteConfig {
-  task: Pick<Task, 'id' | 'title' | 'description' | 'branchName'>
+  task: Pick<Task, 'id' | 'title' | 'description' | 'branchName' | 'model'>
   project: Pick<Project, 'id' | 'name' | 'repositoryUrl' | 'encryptedGithubToken'>
   prompt: string
   decryptedGithubToken: string
+  /** User ID to fetch opencode auth for model access */
+  userId: string
+  /** Opencode model string (provider/model format) */
+  opencodeModel: string
 }
 
 /**
@@ -63,7 +68,7 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     const sprites = yield* Sprites
     const webhookBaseUrl = yield* Config.string('WEBHOOK_BASE_URL')
 
-    const { task, project, prompt, decryptedGithubToken } = config
+    const { task, project, prompt, decryptedGithubToken, userId, opencodeModel } = config
 
     // Validate project has repository URL
     if (!project.repositoryUrl) {
@@ -106,6 +111,70 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       )
     )
 
+    // Upload opencode auth.json if user has one configured
+    const opencodeAuth = yield* getOpencodeAuth(userId)
+    if (Option.isSome(opencodeAuth)) {
+      yield* Effect.log('Uploading opencode auth.json to sprite')
+
+      // Create directory structure using $HOME for portability
+      // Also create in /root in case opencode runs as root
+      yield* sprites
+        .execCommand(spriteName, [
+          'bash',
+          '-c',
+          'mkdir -p "$HOME/.local/share/opencode" /root/.local/share/opencode 2>/dev/null || true'
+        ])
+        .pipe(
+          Effect.mapError(
+            error =>
+              new SpriteExecutionError({
+                message: `Failed to create opencode directory: ${error.message}`,
+                spriteName,
+                cause: error
+              })
+          ),
+          Effect.catchAll(error => {
+            return sprites.destroySprite(spriteName).pipe(
+              Effect.catchAll(() => Effect.void),
+              Effect.flatMap(() => Effect.fail(error))
+            )
+          })
+        )
+
+      // Write auth.json to both locations to ensure opencode finds it
+      // Set restrictive permissions (600) since this contains secrets
+      yield* sprites
+        .execCommand(
+          spriteName,
+          [
+            'bash',
+            '-c',
+            'cat > "$HOME/.local/share/opencode/auth.json" && chmod 600 "$HOME/.local/share/opencode/auth.json" && cp "$HOME/.local/share/opencode/auth.json" /root/.local/share/opencode/auth.json 2>/dev/null && chmod 600 /root/.local/share/opencode/auth.json 2>/dev/null || true'
+          ],
+          { stdin: opencodeAuth.value }
+        )
+        .pipe(
+          Effect.mapError(
+            error =>
+              new SpriteExecutionError({
+                message: `Failed to write opencode auth.json: ${error.message}`,
+                spriteName,
+                cause: error
+              })
+          ),
+          Effect.catchAll(error => {
+            return sprites.destroySprite(spriteName).pipe(
+              Effect.catchAll(() => Effect.void),
+              Effect.flatMap(() => Effect.fail(error))
+            )
+          })
+        )
+
+      yield* Effect.log('Uploaded opencode auth.json to sprite')
+    } else {
+      yield* Effect.log('No opencode auth configured for user, skipping auth upload')
+    }
+
     // Generate the execution script with setup phase
     const setupScript = DEFAULT_SETUP_SCRIPT
 
@@ -118,6 +187,7 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       repoUrl: project.repositoryUrl,
       githubToken: decryptedGithubToken,
       branchName,
+      model: opencodeModel,
       setupScript
     })
 

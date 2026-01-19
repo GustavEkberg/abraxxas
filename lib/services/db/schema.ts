@@ -60,6 +60,9 @@ export const user = pgTable('user', {
     .notNull()
     .default('USER'),
 
+  // Encrypted opencode auth.json for sprite execution
+  encryptedOpencodeAuth: text('encryptedOpencodeAuth'),
+
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt')
     .notNull()
