@@ -351,3 +351,16 @@ Started: 2026-01-19
 - Renders AsciiFire component with intensity prop from context
 - Files changed: components/fire-background.tsx
 - **Learnings:** Simple wrapper pattern connects context provider to presentational component; keeps AsciiFire reusable with prop-based intensity
+
+## Task - component-3
+
+- Created components/rituals/create-ritual-dialog.tsx with form for project creation
+- 'use client' directive with React hooks for form state and loading/error handling
+- Form fields: name, description, repositoryUrl, githubToken, agentsMdContent
+- Calls createProjectAction on submit with proper error handling
+- Shows loading state during submission ('Summoning...')
+- Shows error message in styled error box on failure
+- Redirects to /rituals/[id] on success using router.push + router.refresh
+- Uses Dialog, Input, Textarea, Button, Label from shadcn/ui
+- Files changed: components/rituals/create-ritual-dialog.tsx
+- **Learnings:** Form uses controlled inputs with useState for form data; conditional values use undefined instead of empty strings; error display uses themed styling with destructive colors; router.refresh() ensures server components refetch data after navigation

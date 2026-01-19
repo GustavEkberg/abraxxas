@@ -476,7 +476,7 @@
         "Uses shadcn Dialog, Input, Textarea, Button, Label",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-4",
