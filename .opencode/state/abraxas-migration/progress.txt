@@ -195,3 +195,15 @@ Started: 2026-01-19
 - Revalidates /rituals/[projectId] path on success
 - Files changed: lib/core/task/create-task-action.ts
 - **Learnings:** Task creation actions use getProject() for ownership check; schema defaults handle status/state without explicit values in insert; revalidate the board page to show new task
+
+## Task - domain-task-3
+
+- Created lib/core/task/update-task-action.ts server action
+- Accepts UpdateTaskInput with taskId and optional fields: status, type, model, executionState, branchName
+- Verifies ownership via two-step check: fetch task → fetch parent project → verify userId matches
+- Builds partial update object conditionally (only includes fields present in input)
+- matchEffect handles NotFoundError (task or project), UnauthorizedError, UnauthenticatedError
+- Returns both task and projectId in success result to enable revalidatePath
+- Revalidates /rituals/[projectId] path on success
+- Files changed: lib/core/task/update-task-action.ts
+- **Learnings:** Task update requires two fetches (task for projectId, project for ownership); return projectId alongside updated entity when revalidation path needs it; partial updates use !== undefined checks
