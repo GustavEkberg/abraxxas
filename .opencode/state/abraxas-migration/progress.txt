@@ -318,3 +318,14 @@ Started: 2026-01-19
 - Used if/else discriminator instead of Match.tag (Schema.Literal doesn't create proper tagged union for Match)
 - Files changed: app/api/webhooks/sprite/[taskId]/route.ts
 - **Learnings:** Webhook handlers use internal Effect functions not server actions (no user context); sprite cleanup failures should not fail webhook processing (use catchAll + logWarning); Schema.Union with Schema.Literal creates type discriminator but not Effect tagged union (use if/else not Match.tag); task/session updates in webhooks skip ownership checks (verified during execution start)
+
+## Task - context-1
+
+- Created lib/contexts/fire-intensity-context.tsx with FireIntensityProvider component
+- Tracks running tasks with id, startedAt, messageCount fields
+- Exports useFireIntensity hook that throws error if used outside provider
+- Provides addRunningTask, removeRunningTask, updateTaskMessages functions
+- calculateIntensity: base 10 per task + message bonus (capped at 10) + time bonus (1 per 30s, capped at 15)
+- Recalculates intensity every second via setInterval in useEffect
+- Files changed: lib/contexts/fire-intensity-context.tsx
+- **Learnings:** Context pattern for global UI state; intensity formula allows exceeding 35 for color shift logic; time bonus increments automatically via interval without external updates

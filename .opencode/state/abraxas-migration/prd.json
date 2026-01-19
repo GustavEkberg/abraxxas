@@ -429,7 +429,7 @@
         "Recalculates intensity every second",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-1",
