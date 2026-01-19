@@ -273,3 +273,15 @@ Started: 2026-01-19
 - Returns created comment from .returning()
 - Files changed: lib/core/comment/create-agent-comment.ts
 - **Learnings:** Internal domain functions skip ownership checks (caller's responsibility); agent comments set userId=null with agentName field; reusable across webhook handlers and server actions
+
+## Task - domain-session-1
+
+- Created lib/core/session/create-session.ts for creating opencode sessions
+- Created lib/core/session/update-session.ts for updating session status and stats
+- Created lib/core/session/get-latest-session.ts for fetching most recent session by taskId
+- All functions return Effect with appropriate types (OpencodeSession or NotFoundError)
+- update-session builds partial update object conditionally (only includes fields present in input)
+- get-latest-session orders by createdAt desc with limit 1, returns NotFoundError if no sessions
+- All have Effect.withSpan annotations for observability
+- Files changed: lib/core/session/create-session.ts, lib/core/session/update-session.ts, lib/core/session/get-latest-session.ts
+- **Learnings:** Session management follows same patterns as comment/task - Effect.gen with Db service, annotateCurrentSpan for tracing, conditional field updates with !== undefined checks; get functions use desc() ordering for latest-first; session stats (messageCount, tokens) stored as text fields per schema

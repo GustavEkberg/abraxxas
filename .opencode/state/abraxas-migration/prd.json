@@ -382,7 +382,7 @@
         "All have Effect.withSpan annotations",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "api-1",
