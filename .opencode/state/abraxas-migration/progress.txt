@@ -14,3 +14,9 @@ Started: 2026-01-19
 - Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, date-fns dependencies
 - Files changed: package.json, pnpm-lock.yaml
 - **Learnings:** Type checking passes for new deps, old_repo contains reference code with expected errors
+
+## Task - db-1
+
+- Added six pgEnums to schema.ts: taskStatusEnum, taskExecutionStateEnum, taskTypeEnum, taskModelEnum, sessionStatusEnum, executionModeEnum
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Import pgEnum from drizzle-orm/pg-core, all enum declarations precede table definitions, snake_case for enum names in DB

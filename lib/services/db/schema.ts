@@ -1,6 +1,44 @@
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core'
 import { defineRelations } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
+
+////////////////////////////////////////////////////////////////////////
+// ENUMS
+////////////////////////////////////////////////////////////////////////
+export const taskStatusEnum = pgEnum('task_status', [
+  'abyss',
+  'altar',
+  'ritual',
+  'cursed',
+  'trial',
+  'vanquished'
+])
+
+export const taskExecutionStateEnum = pgEnum('task_execution_state', [
+  'idle',
+  'in_progress',
+  'awaiting_review',
+  'completed',
+  'error'
+])
+
+export const taskTypeEnum = pgEnum('task_type', ['bug', 'feature', 'plan', 'other'])
+
+export const taskModelEnum = pgEnum('task_model', [
+  'grok-1',
+  'claude-opus-4-5',
+  'claude-sonnet-4-5',
+  'claude-haiku-4-5'
+])
+
+export const sessionStatusEnum = pgEnum('session_status', [
+  'pending',
+  'in_progress',
+  'completed',
+  'error'
+])
+
+export const executionModeEnum = pgEnum('execution_mode', ['local', 'sprite'])
 
 ////////////////////////////////////////////////////////////////////////
 // AUTH - Better-auth expects singular model names

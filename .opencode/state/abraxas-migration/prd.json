@@ -25,7 +25,7 @@
         "executionModeEnum exists with values: local, sprite",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-2",
