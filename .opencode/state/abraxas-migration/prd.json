@@ -625,7 +625,7 @@
         "CSS variable --font-ibm-plex-mono set",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "polish-1",

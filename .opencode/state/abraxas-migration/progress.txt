@@ -473,3 +473,12 @@ Started: 2026-01-19
 - Configured --font-ibm-plex-mono for both --font-sans and --font-mono
 - Files changed: app/globals.css
 - **Learnings:** Tailwind v4 uses hsl() wrapper for color variables; occult theme uses almost-black background (4% lightness) with purple accent (270° hue); ASCII borders use linear-gradient with ch units for monospace alignment
+
+## Task - style-2
+
+- Replaced Inter font with IBM Plex Mono in app/layout.tsx
+- Imported IBM_Plex_Mono from next/font/google with weights 400, 500, 600, 700
+- Set CSS variable --font-ibm-plex-mono on html element via className
+- Updated metadata title to 'Abraxas - Task Execution from the Cosmic Void'
+- Files changed: app/layout.tsx
+- **Learnings:** IBM Plex Mono requires explicit weight array; variable name must match globals.css references; font applied to html element propagates to body via CSS variables
