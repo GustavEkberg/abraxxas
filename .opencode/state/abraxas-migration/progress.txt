@@ -238,3 +238,13 @@ Started: 2026-01-19
 - Revalidates /rituals/[projectId] path on success
 - Files changed: lib/core/task/execute-task-action.ts, lib/core/sprites/callback-script.ts, lib/core/sprites/spawn-sprite.ts
 - **Learnings:** Complex orchestration requires helper functions (callback script, spawn sprite); decryption happens in action before passing to Effect pipeline; sprite execution is fire-and-forget (webhook handles completion); agent comments use isAgentComment=true with agentName field; execution state transitions: idle → in_progress; status transitions: abyss/altar → ritual
+
+## Task - domain-comment-1
+
+- Created lib/core/comment/get-comments.ts for RSC data loading
+- Returns Effect with array of comments for a task
+- Verifies user owns parent project before returning comments (two-step fetch: task → project → ownership check)
+- Orders comments by createdAt ascending using asc() helper
+- Has Effect.withSpan('Comment.getComments') for observability
+- Files changed: lib/core/comment/get-comments.ts
+- **Learnings:** Comment read operations follow task pattern - verify ownership via parent project (task → project); use asc() from drizzle-orm for ascending order in orderBy()
