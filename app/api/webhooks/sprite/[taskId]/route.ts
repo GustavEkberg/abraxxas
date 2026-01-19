@@ -78,11 +78,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
 
       // Verify the signature using timing-safe comparison
+      // Client sends "sha256=<hex>", extract just the hex part
+      const signatureHex = signature.startsWith('sha256=') ? signature.slice(7) : signature
+
       const expectedSignature = createHmac('sha256', session.webhookSecret)
         .update(rawBody)
         .digest('hex')
 
-      const signatureBuffer = Buffer.from(signature, 'utf8')
+      const signatureBuffer = Buffer.from(signatureHex, 'utf8')
       const expectedBuffer = Buffer.from(expectedSignature, 'utf8')
 
       // Ensure buffers are same length before comparison
