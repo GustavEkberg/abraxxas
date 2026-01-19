@@ -89,7 +89,7 @@
         "All relations use Drizzle v1.0 RQB v2 defineRelations API",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-7",

@@ -254,18 +254,80 @@ export const verification = pgTable('verification', {
 ////////////////////////////////////////////////////////////////////////
 // RELATIONS - Drizzle v1.0 RQB v2 API
 ////////////////////////////////////////////////////////////////////////
-export const relations = defineRelations({ user, post, session, account, verification }, r => ({
-  user: {
-    posts: r.many.post({
-      from: r.user.id,
-      to: r.post.userId
-    })
+export const relations = defineRelations(
+  {
+    user,
+    post,
+    session,
+    account,
+    verification,
+    projects,
+    tasks,
+    comments,
+    opencodeSessions
   },
-  post: {
-    author: r.one.user({
-      from: r.post.userId,
-      to: r.user.id,
-      optional: false
-    })
-  }
-}))
+  r => ({
+    user: {
+      posts: r.many.post({
+        from: r.user.id,
+        to: r.post.userId
+      }),
+      projects: r.many.projects({
+        from: r.user.id,
+        to: r.projects.userId
+      })
+    },
+    post: {
+      author: r.one.user({
+        from: r.post.userId,
+        to: r.user.id,
+        optional: false
+      })
+    },
+    projects: {
+      user: r.one.user({
+        from: r.projects.userId,
+        to: r.user.id,
+        optional: false
+      }),
+      tasks: r.many.tasks({
+        from: r.projects.id,
+        to: r.tasks.projectId
+      })
+    },
+    tasks: {
+      project: r.one.projects({
+        from: r.tasks.projectId,
+        to: r.projects.id,
+        optional: false
+      }),
+      comments: r.many.comments({
+        from: r.tasks.id,
+        to: r.comments.taskId
+      }),
+      opencodeSessions: r.many.opencodeSessions({
+        from: r.tasks.id,
+        to: r.opencodeSessions.taskId
+      })
+    },
+    comments: {
+      task: r.one.tasks({
+        from: r.comments.taskId,
+        to: r.tasks.id,
+        optional: false
+      }),
+      user: r.one.user({
+        from: r.comments.userId,
+        to: r.user.id,
+        optional: true
+      })
+    },
+    opencodeSessions: {
+      task: r.one.tasks({
+        from: r.opencodeSessions.taskId,
+        to: r.tasks.id,
+        optional: false
+      })
+    }
+  })
+)

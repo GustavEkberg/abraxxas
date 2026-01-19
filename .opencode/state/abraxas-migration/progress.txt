@@ -52,3 +52,10 @@ Started: 2026-01-19
 - Status defaults to 'pending', all token/message/log fields are text (nullable)
 - Files changed: lib/services/db/schema.ts
 - **Learnings:** Session tracking table holds execution metadata, webhookSecret for HMAC verification, completedAt nullable for in-flight sessions
+
+## Task - db-6
+
+- Configured Drizzle relations for all new tables using RQB v2 defineRelations API
+- Relations added: user->projects (many), projects->user (one), projects->tasks (many), tasks->project (one), tasks->comments (many), tasks->opencodeSessions (many), comments->task (one), comments->user (one, optional), opencodeSessions->task (one)
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** defineRelations takes all tables in first arg, relations map in second; r.one/r.many methods with from/to fields; optional flag for nullable FKs
