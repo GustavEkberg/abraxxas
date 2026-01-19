@@ -161,3 +161,15 @@ Started: 2026-01-19
 - Revalidates both '/' and '/rituals/[id]' paths on success
 - Files changed: lib/core/project/update-project-action.ts
 - **Learnings:** Update actions use getProject() for ownership check; partial updates built conditionally with !== undefined checks; revalidate all affected paths
+
+## Task - domain-project-5
+
+- Created lib/core/project/delete-project-action.ts server action
+- 'use server' directive at top
+- Accepts projectId string parameter
+- Uses getProject() to verify ownership before delete
+- Performs db.delete() with cascade (automatically deletes tasks, comments, sessions via FK constraints)
+- matchEffect handles NotFoundError, UnauthorizedError, UnauthenticatedError
+- Revalidates '/' path on success (no need to revalidate detail page since it no longer exists)
+- Files changed: lib/core/project/delete-project-action.ts
+- **Learnings:** Delete actions simpler than update - no partial data handling; cascade delete via FK means no manual cleanup of child records needed
