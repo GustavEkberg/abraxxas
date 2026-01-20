@@ -23,3 +23,11 @@ Started: 2026-01-20
 - Files changed: lib/services/db/schema.ts (lines 193-220)
 - Columns: id, projectId (FK), prdName, status (enum), spriteName, spriteUrl, spritePassword, webhookSecret, prdJson, errorMessage, createdAt, updatedAt, completedAt
 - **Learnings:** Tables go in their own section; nullable columns need no `.notNull()`
+
+## Task - db-3
+
+- Added manifests to relations registry in `defineRelations`
+- Added `projects.manifests: r.many.manifests` relation
+- Added `manifests.project: r.one.projects` relation  
+- Files changed: lib/services/db/schema.ts (lines 274-352)
+- **Learnings:** Arrow function returning object needs `})` not just `}` before closing `defineRelations)`

@@ -32,7 +32,7 @@
         "Manifest belongs to project relation defined",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-4",

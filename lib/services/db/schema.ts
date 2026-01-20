@@ -280,7 +280,8 @@ export const relations = defineRelations(
     projects,
     tasks,
     comments,
-    opencodeSessions
+    opencodeSessions,
+    manifests
   },
   r => ({
     user: {
@@ -298,6 +299,10 @@ export const relations = defineRelations(
       tasks: r.many.tasks({
         from: r.projects.id,
         to: r.tasks.projectId
+      }),
+      manifests: r.many.manifests({
+        from: r.projects.id,
+        to: r.manifests.projectId
       })
     },
     tasks: {
@@ -331,6 +336,13 @@ export const relations = defineRelations(
       task: r.one.tasks({
         from: r.opencodeSessions.taskId,
         to: r.tasks.id,
+        optional: false
+      })
+    },
+    manifests: {
+      project: r.one.projects({
+        from: r.manifests.projectId,
+        to: r.projects.id,
         optional: false
       })
     }
