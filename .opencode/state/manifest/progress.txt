@@ -105,3 +105,13 @@ Started: 2026-01-20
 - Revalidates `/rituals/${projectId}` on success
 - Files changed: lib/core/manifest/start-task-loop-action.ts (new)
 - **Learnings:** Server actions that need both db + service must yield both; discriminated union return type with `_tag` is standard pattern for actions
+
+## Task - domain-6
+
+- Created `lib/core/manifest/stop-task-loop-action.ts` server action
+- Accepts `manifestId`, verifies status='running', verifies user owns project
+- Kills task-loop via `pkill -f task-loop` on sprite
+- Updates manifest status back to 'active'
+- Returns discriminated union `{ _tag: 'Success' } | { _tag: 'Error', message }`
+- Files changed: lib/core/manifest/stop-task-loop-action.ts (new)
+- **Learnings:** pkill -f matches full command line, ideal for killing scripts by name
