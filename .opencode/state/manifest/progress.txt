@@ -61,3 +61,14 @@ Started: 2026-01-20
 - Returns `{ spriteName, spriteUrl, spritePassword, webhookSecret }`
 - Files changed: lib/core/manifest/spawn-manifest-sprite.ts (new)
 - **Learnings:** Manifest sprites need manifestId for webhook URL; sprite setup includes opencode install + abraxas-opencode-setup repo; cleanupOnError helper pattern useful for sprite destruction on failure
+
+## Task - domain-2
+
+- Created `lib/core/manifest/create-manifest-action.ts` server action
+- Uses `getProject()` for ownership verification (reuses existing pattern)
+- Checks for active manifest via `inArray(status, ['pending', 'active', 'running'])`
+- Creates manifest with status='pending', spawns sprite, updates to status='active'
+- On spawn failure: marks manifest as error with errorMessage
+- Returns manifest + credentials on success
+- Files changed: lib/core/manifest/create-manifest-action.ts (new)
+- **Learnings:** Don't need to `yield* Sprites` if just calling an Effect that uses Sprites internally; use drizzle-orm operators directly (eq, and, inArray) with Effect-wrapped db
