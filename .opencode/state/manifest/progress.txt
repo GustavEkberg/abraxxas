@@ -82,3 +82,13 @@ Started: 2026-01-20
 - Returns `Effect` with `Manifest[]`
 - Files changed: lib/core/manifest/get-manifests.ts (new)
 - **Learnings:** RSC data loading functions follow same pattern as get-projects.ts - gen function, yield db/session, simple select with ordering
+
+## Task - domain-4
+
+- Created `lib/core/manifest/get-active-manifest.ts`
+- Returns `Effect` with `Option<Manifest>`
+- Filters by status in ('pending', 'active', 'running') using `inArray`
+- Returns `Option.fromNullable(manifest)` for Option handling
+- Does NOT verify ownership (caller responsibility) - simpler than get-manifests
+- Files changed: lib/core/manifest/get-active-manifest.ts (new)
+- **Learnings:** Use `Option.fromNullable()` for converting nullable db results to Option; `limit(1)` + destructure for single record queries
