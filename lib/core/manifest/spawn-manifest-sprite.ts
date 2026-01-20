@@ -5,7 +5,6 @@ import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
 import type { Project } from '@/lib/services/db/schema'
-import { generateWebhookSecret } from '@/lib/core/sprites/callback-script'
 
 /**
  * Configuration for spawning a manifest sprite.
@@ -17,6 +16,8 @@ export interface SpawnManifestSpriteConfig {
   prdName: string
   /** User ID to fetch opencode auth for model access */
   userId: string
+  /** Pre-generated webhook secret (must be saved to DB before calling this) */
+  webhookSecret: string
 }
 
 /**
@@ -26,7 +27,6 @@ export interface SpawnManifestSpriteResult {
   spriteName: string
   spriteUrl: string
   spritePassword: string
-  webhookSecret: string
 }
 
 /**
@@ -62,11 +62,10 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     const sprites = yield* Sprites
     const webhookBaseUrl = yield* Config.string('WEBHOOK_BASE_URL')
 
-    const { manifestId, project, prdName, userId } = config
+    const { manifestId, project, prdName, userId, webhookSecret } = config
 
     const spriteName = generateManifestSpriteName(project.id)
     const spritePassword = generateSpritePassword()
-    const webhookSecret = generateWebhookSecret()
 
     // Decrypt GitHub token for repo cloning
     const githubToken = yield* decryptToken(project.encryptedGithubToken)
@@ -336,7 +335,6 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     return {
       spriteName,
       spriteUrl,
-      spritePassword,
-      webhookSecret
+      spritePassword
     } satisfies SpawnManifestSpriteResult
   }).pipe(Effect.withSpan('Manifest.spawnManifestSprite'))

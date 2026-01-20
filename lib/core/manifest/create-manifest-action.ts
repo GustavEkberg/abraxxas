@@ -9,6 +9,7 @@ import { Db } from '@/lib/services/db/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { ValidationError } from '@/lib/core/errors'
 import { getProject } from '@/lib/core/project/get-project'
+import { generateWebhookSecret } from '@/lib/core/sprites/callback-script'
 import { spawnManifestSprite } from './spawn-manifest-sprite'
 
 type CreateManifestInput = {
@@ -68,24 +69,29 @@ export const createManifestAction = async (
         )
       }
 
-      // Create manifest record with status='pending'
+      // Generate webhook secret upfront so it's in DB before sprite sends webhook
+      const webhookSecret = generateWebhookSecret()
+
+      // Create manifest record with status='pending' and webhook secret
       const [manifest] = yield* db
         .insert(schema.manifests)
         .values({
           projectId: input.projectId,
           prdName: input.prdName,
-          status: 'pending'
+          status: 'pending',
+          webhookSecret
         })
         .returning()
 
       yield* Effect.log(`Created manifest ${manifest.id} with status=pending`)
 
-      // Spawn the sprite
+      // Spawn the sprite (pass pre-generated webhook secret)
       const spriteResult = yield* spawnManifestSprite({
         manifestId: manifest.id,
         project,
         prdName: input.prdName,
-        userId: project.userId
+        userId: project.userId,
+        webhookSecret
       }).pipe(
         Effect.catchAll(error => {
           // Cleanup: mark manifest as error on failure
@@ -105,15 +111,14 @@ export const createManifestAction = async (
 
       yield* Effect.log(`Sprite created: ${spriteResult.spriteName}`)
 
-      // Update manifest with sprite details and status='active'
+      // Update manifest with sprite details (webhookSecret already saved)
       const [updatedManifest] = yield* db
         .update(schema.manifests)
         .set({
           status: 'active',
           spriteName: spriteResult.spriteName,
           spriteUrl: spriteResult.spriteUrl,
-          spritePassword: spriteResult.spritePassword,
-          webhookSecret: spriteResult.webhookSecret
+          spritePassword: spriteResult.spritePassword
         })
         .where(eq(schema.manifests.id, manifest.id))
         .returning()
