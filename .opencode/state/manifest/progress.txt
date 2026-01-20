@@ -136,3 +136,16 @@ Started: 2026-01-20
 - Sprite destruction uses `Effect.catchAll` to log but not fail on errors
 - Files changed: app/api/webhooks/manifest/[manifestId]/route.ts
 - **Learnings:** Same handler pattern as sprite webhook - separate functions with typed payloads, db updates, sprite cleanup with error handling
+
+## Task - ui-1
+
+- Created `components/manifest/manifest-card.tsx`
+- 'use client' directive, uses useTransition for action calls
+- Status badge with statusConfig mapping: pending/active/running/completed/error
+- CopyableField subcomponent with InputGroup for copyable fields + masked reveal
+- Displays PRD name, sprite name, sprite URL, password (masked)
+- 'Open OpenCode' button via Button render prop for anchor composition
+- 'Start Task Loop' and 'Stop Task Loop' buttons with loading states
+- Timestamps formatted with Intl.DateTimeFormat
+- Files changed: components/manifest/manifest-card.tsx (new)
+- **Learnings:** Base UI Button uses `render` prop for composition, not `asChild`; InputGroupButton with icon-xs for copy buttons
