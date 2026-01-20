@@ -15,6 +15,8 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
 import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
+import { ManifestCard } from '@/components/manifest/manifest-card'
+import { CreateManifestDialog } from '@/components/manifest/create-manifest-dialog'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
@@ -22,7 +24,7 @@ import {
   getTaskDetailsAction,
   type TaskDetailsResult
 } from '@/lib/core/task/get-task-details-action'
-import type { Task, Project } from '@/lib/services/db/schema'
+import type { Task, Project, Manifest } from '@/lib/services/db/schema'
 
 const COLUMNS = [
   {
@@ -187,9 +189,15 @@ interface RitualBoardClientProps {
   project: Project
   initialTasks: Task[]
   initialStats: Record<string, TaskStats>
+  initialManifests: Manifest[]
 }
 
-export function RitualBoardClient({ project, initialTasks, initialStats }: RitualBoardClientProps) {
+export function RitualBoardClient({
+  project,
+  initialTasks,
+  initialStats,
+  initialManifests
+}: RitualBoardClientProps) {
   const router = useRouter()
   const { addRunningTask, removeRunningTask, updateTaskMessages } = useFireIntensity()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -198,6 +206,12 @@ export function RitualBoardClient({ project, initialTasks, initialStats }: Ritua
     getPersistedRunningTasks(project.id)
   )
   const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
+  const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
+  const [showManifestHistory, setShowManifestHistory] = useState(false)
+
+  // Derive active and historical manifests
+  const activeManifest = manifests.find(m => ['pending', 'active', 'running'].includes(m.status))
+  const historicalManifests = manifests.filter(m => ['completed', 'error'].includes(m.status))
 
   // Task detail modal state - store ID only to avoid stale data issues
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -264,13 +278,16 @@ export function RitualBoardClient({ project, initialTasks, initialStats }: Ritua
     return () => clearInterval(pollInterval)
   }, [tasks, persistedRunningTasks, router])
 
-  // Sync tasks and stats when server data changes (from router.refresh)
+  // Sync tasks, stats, and manifests when server data changes (from router.refresh)
   // This is acceptable because we're syncing with external system (server state)
   if (tasks !== initialTasks) {
     setTasks(initialTasks)
   }
   if (taskStats !== initialStats) {
     setTaskStats(initialStats)
+  }
+  if (manifests !== initialManifests) {
+    setManifests(initialManifests)
   }
 
   // Fetch task details when modal opens
@@ -401,6 +418,40 @@ export function RitualBoardClient({ project, initialTasks, initialStats }: Ritua
             </div>
             <CreateInvocationDialog ritualId={project.id} />
           </div>
+        </div>
+
+        {/* Manifest Section */}
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-lg font-semibold text-white/90">Manifests</h2>
+            {!activeManifest && <CreateManifestDialog projectId={project.id} />}
+          </div>
+
+          {activeManifest ? (
+            <ManifestCard manifest={activeManifest} />
+          ) : (
+            <div className="border border-dashed border-white/10 bg-zinc-950/50 p-6 text-center font-mono text-sm text-white/40">
+              No active manifest. Create one to spawn an autonomous agent.
+            </div>
+          )}
+
+          {historicalManifests.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowManifestHistory(prev => !prev)}
+                className="font-mono text-sm text-white/60 transition-colors hover:text-white/90"
+              >
+                {showManifestHistory ? '▼' : '▶'} History ({historicalManifests.length})
+              </button>
+              {showManifestHistory && (
+                <div className="mt-3 space-y-3">
+                  {historicalManifests.map(manifest => (
+                    <ManifestCard key={manifest.id} manifest={manifest} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Board Columns */}

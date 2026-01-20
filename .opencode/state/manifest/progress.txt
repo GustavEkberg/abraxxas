@@ -162,3 +162,13 @@ Started: 2026-01-20
 - Uses shadcn Dialog, Input, Button, Label, InputGroup components
 - Files changed: components/manifest/create-manifest-dialog.tsx (new)
 - **Learnings:** DialogTrigger uses `render` prop for custom trigger; discriminated union state pattern cleaner than multiple booleans
+
+## Task - page-1
+
+- Added manifest section to ritual board page
+- RSC fetches manifests via getManifests() and passes to client
+- board-client.tsx derives activeManifest + historicalManifests from manifests array
+- Shows ManifestCard for active manifest OR placeholder + CreateManifestDialog
+- Collapsible history section for completed/error manifests
+- Files changed: app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
+- **Learnings:** Derive active vs historical manifests in client using Array.find/filter rather than separate server queries

@@ -246,7 +246,7 @@
         "Shows completed/error manifests in collapsed history section",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "verify-1",
