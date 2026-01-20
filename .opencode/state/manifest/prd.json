@@ -181,7 +181,7 @@
         "Returns 401 if signature invalid",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "api-2",

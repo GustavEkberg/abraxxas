@@ -115,3 +115,13 @@ Started: 2026-01-20
 - Returns discriminated union `{ _tag: 'Success' } | { _tag: 'Error', message }`
 - Files changed: lib/core/manifest/stop-task-loop-action.ts (new)
 - **Learnings:** pkill -f matches full command line, ideal for killing scripts by name
+
+## Task - api-1
+
+- Created `app/api/webhooks/manifest/[manifestId]/route.ts`
+- POST handler extracts manifestId from params, reads raw body, verifies HMAC signature
+- Uses timing-safe comparison via `crypto.timingSafeEqual`
+- Returns 401 if signature invalid/missing, 404 if manifest not found
+- Defines webhook payload schemas for started/task_loop_started/completed/error
+- Files changed: app/api/webhooks/manifest/[manifestId]/route.ts (new)
+- **Learnings:** Follow exact sprite webhook pattern - raw body read, signature hex extraction, buffer length check before timingSafeEqual
