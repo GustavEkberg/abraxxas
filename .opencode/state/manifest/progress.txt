@@ -92,3 +92,16 @@ Started: 2026-01-20
 - Does NOT verify ownership (caller responsibility) - simpler than get-manifests
 - Files changed: lib/core/manifest/get-active-manifest.ts (new)
 - **Learnings:** Use `Option.fromNullable()` for converting nullable db results to Option; `limit(1)` + destructure for single record queries
+
+## Task - domain-5
+
+- Created `lib/core/manifest/start-task-loop-action.ts` server action
+- Accepts `manifestId` parameter
+- Fetches manifest and verifies status='active'
+- Verifies sprite name exists
+- Uses `getProject()` to verify user owns parent project
+- Executes `task-loop <prdName>` command on sprite via Sprites.execCommand
+- Returns `{ _tag: 'Success' }` or `{ _tag: 'Error', message }` discriminated union
+- Revalidates `/rituals/${projectId}` on success
+- Files changed: lib/core/manifest/start-task-loop-action.ts (new)
+- **Learnings:** Server actions that need both db + service must yield both; discriminated union return type with `_tag` is standard pattern for actions

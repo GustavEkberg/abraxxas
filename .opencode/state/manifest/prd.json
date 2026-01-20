@@ -147,7 +147,7 @@
         "Has Effect.withSpan annotation",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "domain-6",
