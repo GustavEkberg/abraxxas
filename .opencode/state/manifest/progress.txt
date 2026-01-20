@@ -47,3 +47,17 @@ Started: 2026-01-20
 - Follows existing method pattern with `Effect.withSpan`, `Effect.annotateCurrentSpan`, `Effect.tapError`
 - Files changed: lib/services/sprites/live-layer.ts
 - **Learnings:** Sprites service methods follow consistent pattern: annotate span, make request, validate response, add withSpan + tapError
+
+## Task - domain-1
+
+- Created `lib/core/manifest/spawn-manifest-sprite.ts`
+- Generates sprite name: `manifest-{projectId-short}-{timestamp}`
+- Generates 32-char alphanumeric password via `randomBytes`
+- Creates sprite with `url_settings.auth = 'public'`
+- Clones repo with decrypted GitHub token
+- Uploads opencode auth.json if user has one
+- Downloads abraxas-opencode-setup and installs commands/skills/task-loop
+- Sends 'started' webhook via HMAC-signed POST
+- Returns `{ spriteName, spriteUrl, spritePassword, webhookSecret }`
+- Files changed: lib/core/manifest/spawn-manifest-sprite.ts (new)
+- **Learnings:** Manifest sprites need manifestId for webhook URL; sprite setup includes opencode install + abraxas-opencode-setup repo; cleanupOnError helper pattern useful for sprite destruction on failure
