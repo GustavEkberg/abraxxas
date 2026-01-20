@@ -1,5 +1,5 @@
-import { Effect, Config, Option } from 'effect'
-import { createHmac, randomBytes } from 'crypto'
+import { Effect, Option } from 'effect'
+import { randomBytes } from 'crypto'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
@@ -10,14 +10,12 @@ import type { Project } from '@/lib/services/db/schema'
  * Configuration for spawning a manifest sprite.
  */
 export interface SpawnManifestSpriteConfig {
-  /** Manifest ID for webhook URL construction */
+  /** Manifest ID for logging/tracing */
   manifestId: string
   project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken'>
   prdName: string
   /** User ID to fetch opencode auth for model access */
   userId: string
-  /** Pre-generated webhook secret (must be saved to DB before calling this) */
-  webhookSecret: string
 }
 
 /**
@@ -60,9 +58,8 @@ export function generateSpritePassword(): string {
 export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
   Effect.gen(function* () {
     const sprites = yield* Sprites
-    const webhookBaseUrl = yield* Config.string('WEBHOOK_BASE_URL')
 
-    const { manifestId, project, prdName, userId, webhookSecret } = config
+    const { manifestId, project, prdName, userId } = config
 
     const spriteName = generateManifestSpriteName(project.id)
     const spritePassword = generateSpritePassword()
@@ -70,14 +67,9 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     // Decrypt GitHub token for repo cloning
     const githubToken = yield* decryptToken(project.encryptedGithubToken)
 
-    // Normalize webhook base URL and construct manifest webhook URL
-    const baseUrl = webhookBaseUrl.replace(/\/$/, '')
-    const webhookUrl = `${baseUrl}/api/webhooks/manifest/${manifestId}`
-
     yield* Effect.annotateCurrentSpan({
       'sprite.name': spriteName,
       'sprite.prdName': prdName,
-      'sprite.webhookUrl': webhookUrl,
       'project.id': project.id,
       'manifest.id': manifestId
     })
@@ -301,12 +293,13 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     yield* Effect.log('opencode installed')
 
     // Start opencode serve in background (for browser access via sprite URL)
+    // Bind to 0.0.0.0 for external access, set password for security
     yield* cleanupOnError(
       sprites
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'cd /home/sprite/repo && nohup "$HOME/.opencode/bin/opencode" serve --port 80 > /tmp/opencode.log 2>&1 &'
+          `cd /home/sprite/repo && OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup "$HOME/.opencode/bin/opencode" serve --host 0.0.0.0 --port 80 > /tmp/opencode.log 2>&1 &`
         ])
         .pipe(
           Effect.mapError(
@@ -321,37 +314,6 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     )
 
     yield* Effect.log('opencode serve started')
-
-    // Send 'started' webhook to notify setup is complete
-    yield* Effect.log('Sending started webhook...')
-
-    const payload = JSON.stringify({ type: 'started', manifestId })
-    const signature = `sha256=${createHmac('sha256', webhookSecret).update(payload).digest('hex')}`
-
-    yield* Effect.tryPromise({
-      try: async () => {
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Signature': signature
-          },
-          body: payload
-        })
-        if (!response.ok) {
-          const text = await response.text()
-          throw new Error(`Webhook failed: ${response.status} ${text}`)
-        }
-      },
-      catch: error =>
-        new SpriteExecutionError({
-          message: `Failed to send started webhook: ${error instanceof Error ? error.message : String(error)}`,
-          spriteName,
-          cause: error
-        })
-    })
-
-    yield* Effect.log('Started webhook sent')
     yield* Effect.log(`Manifest sprite setup complete: ${spriteName}`)
 
     return {

@@ -85,13 +85,12 @@ export const createManifestAction = async (
 
       yield* Effect.log(`Created manifest ${manifest.id} with status=pending`)
 
-      // Spawn the sprite (pass pre-generated webhook secret)
+      // Spawn the sprite
       const spriteResult = yield* spawnManifestSprite({
         manifestId: manifest.id,
         project,
         prdName: input.prdName,
-        userId: project.userId,
-        webhookSecret
+        userId: project.userId
       }).pipe(
         Effect.catchAll(error => {
           // Cleanup: mark manifest as error on failure
