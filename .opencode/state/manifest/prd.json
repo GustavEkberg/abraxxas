@@ -1,0 +1,301 @@
+{
+  "prdName": "manifest",
+  "tasks": [
+    {
+      "id": "db-1",
+      "category": "db",
+      "description": "Add manifestStatusEnum to database schema",
+      "steps": [
+        "manifestStatusEnum exists with values: pending, active, running, completed, error",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "db-2",
+      "category": "db",
+      "description": "Add manifests table to database schema",
+      "steps": [
+        "manifests table exists in schema.ts",
+        "Columns: id (text, cuid), projectId (FK to projects), prdName, status (enum), spriteName, spriteUrl, spritePassword, webhookSecret, prdJson, errorMessage, createdAt, updatedAt, completedAt",
+        "Foreign key references projects.id with cascade delete",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "db-3",
+      "category": "db",
+      "description": "Add manifests relation to schema",
+      "steps": [
+        "Project has many manifests relation defined",
+        "Manifest belongs to project relation defined",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "db-4",
+      "category": "db",
+      "description": "Run database migration for manifests table",
+      "steps": [
+        "Run pnpm db:generate to create migration",
+        "Run pnpm db:migrate to apply migration",
+        "Verify table exists in database"
+      ],
+      "passes": false
+    },
+    {
+      "id": "service-1",
+      "category": "service",
+      "description": "Add updateUrlSettings method to Sprites service",
+      "steps": [
+        "updateUrlSettings(name, auth) method exists in Sprites service",
+        "Makes PUT request to /v1/sprites/{name} with url_settings body",
+        "Returns updated Sprite object",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-1",
+      "category": "domain",
+      "description": "Create spawn-manifest-sprite.ts Effect function",
+      "steps": [
+        "lib/core/manifest/spawn-manifest-sprite.ts exists",
+        "Generates sprite name: manifest-{projectId-short}-{timestamp}",
+        "Generates random 32-char alphanumeric password",
+        "Generates webhook secret",
+        "Creates sprite with url_settings.auth = 'public'",
+        "Clones repository to /home/sprite/repo using GitHub token",
+        "Uploads opencode auth.json if user has encryptedOpencodeAuth",
+        "Downloads abraxas-opencode-setup repo",
+        "Copies command/*.md to ~/.config/opencode/command/",
+        "Copies skill/*/ to ~/.config/opencode/skill/",
+        "Copies bin/task-loop.sh to /usr/local/bin/task-loop with chmod +x",
+        "Logs each setup step with timestamps",
+        "Sends 'started' webhook when complete",
+        "Returns { spriteName, spriteUrl, spritePassword, webhookSecret }",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-2",
+      "category": "domain",
+      "description": "Create create-manifest-action.ts server action",
+      "steps": [
+        "lib/core/manifest/create-manifest-action.ts exists",
+        "'use server' directive at top",
+        "Accepts projectId and prdName",
+        "Verifies user owns project",
+        "Checks no active manifest exists for project",
+        "Creates manifest record with status='pending'",
+        "Calls spawn-manifest-sprite",
+        "Updates manifest with sprite details and status='active'",
+        "Returns manifest with credentials on success",
+        "Cleans up sprite on failure",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-3",
+      "category": "domain",
+      "description": "Create get-manifests.ts for RSC data loading",
+      "steps": [
+        "lib/core/manifest/get-manifests.ts exists",
+        "Returns Effect with array of manifests for a project",
+        "Accepts projectId parameter",
+        "Verifies user owns the project",
+        "Ordered by createdAt descending",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-4",
+      "category": "domain",
+      "description": "Create get-active-manifest.ts for fetching active manifest",
+      "steps": [
+        "lib/core/manifest/get-active-manifest.ts exists",
+        "Returns Effect with Option<Manifest>",
+        "Accepts projectId parameter",
+        "Filters by status in ('pending', 'active', 'running')",
+        "Returns Option.none() if no active manifest",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-5",
+      "category": "domain",
+      "description": "Create start-task-loop-action.ts server action",
+      "steps": [
+        "lib/core/manifest/start-task-loop-action.ts exists",
+        "'use server' directive at top",
+        "Accepts manifestId",
+        "Verifies manifest exists and is active",
+        "Verifies user owns parent project",
+        "Sends exec command to sprite: task-loop <prdName>",
+        "Returns success/error",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "domain-6",
+      "category": "domain",
+      "description": "Create stop-task-loop-action.ts server action",
+      "steps": [
+        "lib/core/manifest/stop-task-loop-action.ts exists",
+        "'use server' directive at top",
+        "Accepts manifestId",
+        "Verifies manifest exists and is running",
+        "Verifies user owns parent project",
+        "Sends exec command to sprite to kill task-loop process",
+        "Updates manifest status back to active",
+        "Returns success/error",
+        "Has Effect.withSpan annotation",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "api-1",
+      "category": "api",
+      "description": "Create manifest webhook handler API route",
+      "steps": [
+        "app/api/webhooks/manifest/[manifestId]/route.ts exists",
+        "POST handler extracts manifestId from params",
+        "Reads raw body for signature verification",
+        "Gets X-Webhook-Signature header",
+        "Verifies HMAC signature using manifest's webhookSecret",
+        "Uses timing-safe comparison",
+        "Returns 401 if signature invalid",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "api-2",
+      "category": "api",
+      "description": "Implement webhook payload type handlers",
+      "steps": [
+        "Webhook handles 'started' type: updates manifest status to active",
+        "Webhook handles 'task_loop_started' type: updates status to running, stores prdJson",
+        "Webhook handles 'completed' type: updates status to completed, stores final prdJson, destroys sprite",
+        "Webhook handles 'error' type: updates status to error with errorMessage, destroys sprite",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Create manifest-card.tsx component",
+      "steps": [
+        "components/manifest/manifest-card.tsx exists",
+        "'use client' directive",
+        "Displays status badge (Summoning/Active/Running/Complete/Failed)",
+        "Displays PRD name",
+        "Displays copyable sprite name field with copy button",
+        "Displays copyable sprite URL field with copy button",
+        "Displays copyable password field (masked by default)",
+        "'Open OpenCode' button opens sprite URL in new tab",
+        "'Start Task Loop' button calls start-task-loop-action",
+        "'Stop Task Loop' button calls stop-task-loop-action (visible when running)",
+        "Displays timestamps",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Create create-manifest-dialog.tsx component",
+      "steps": [
+        "components/manifest/create-manifest-dialog.tsx exists",
+        "'use client' directive",
+        "Form with PRD name input",
+        "Validates kebab-case format",
+        "Submit calls create-manifest-action",
+        "Shows loading state during sprite creation",
+        "Shows error message on failure",
+        "Shows credentials on success",
+        "Uses shadcn Dialog, Input, Button, Label",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "page-1",
+      "category": "page",
+      "description": "Add manifest section to ritual board page",
+      "steps": [
+        "app/(dashboard)/rituals/[id]/page.tsx includes manifest section",
+        "Fetches manifests via get-manifests.ts",
+        "Shows active manifest card if exists",
+        "Shows 'Create Manifest' button if no active manifest",
+        "Shows completed/error manifests in collapsed history section",
+        "pnpm tsc passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "verify-1",
+      "category": "verify",
+      "description": "Verify full type safety and lint compliance",
+      "steps": [
+        "pnpm tsc passes with no errors",
+        "pnpm lint passes with no errors",
+        "No any types in new code",
+        "No as type assertions in new code"
+      ],
+      "passes": false
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Update AGENTS.md with manifest domain structure",
+      "steps": [
+        "Add manifest to WHERE TO LOOK table",
+        "Add lib/core/manifest/ entry",
+        "Add components/manifest/ entry",
+        "Document manifest webhook API route"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Task sprite spawning: lib/core/sprites/spawn-sprite.ts",
+      "Callback script generation: lib/core/sprites/callback-script.ts",
+      "Sprites service API: lib/services/sprites/live-layer.ts",
+      "Webhook handler: app/api/webhooks/sprite/[taskId]/route.ts",
+      "Server action pattern: lib/core/project/create-project-action.ts",
+      "RSC data loading: lib/core/project/get-projects.ts"
+    ],
+    "keyFiles": [
+      "lib/services/db/schema.ts",
+      "lib/services/sprites/live-layer.ts",
+      "lib/core/sprites/spawn-sprite.ts",
+      "lib/core/sprites/callback-script.ts",
+      "app/api/webhooks/sprite/[taskId]/route.ts",
+      "app/(dashboard)/rituals/[id]/page.tsx"
+    ],
+    "nonGoals": [
+      "Multiple active manifests per project",
+      "Manifest checkpoints/restore",
+      "Real-time task progress (polling-based is sufficient)",
+      "Manifest sharing between users",
+      "Password regeneration"
+    ]
+  }
+}
