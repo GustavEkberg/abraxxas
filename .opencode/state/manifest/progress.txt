@@ -172,3 +172,12 @@ Started: 2026-01-20
 - Collapsible history section for completed/error manifests
 - Files changed: app/(dashboard)/rituals/[id]/page.tsx, app/(dashboard)/rituals/[id]/board-client.tsx
 - **Learnings:** Derive active vs historical manifests in client using Array.find/filter rather than separate server queries
+
+## Task - verify-1
+
+- Verified `pnpm tsc` passes with no errors
+- Verified `pnpm lint` passes with no errors
+- Confirmed no `any` types in lib/core/manifest, components/manifest, or app/api/webhooks/manifest
+- Confirmed no `as Type` assertions in new manifest code
+- Files checked: lib/core/manifest/*, components/manifest/*, app/api/webhooks/manifest/*
+- **Learnings:** ESLint rules catch any/as violations; grep patterns `: any\b|<any>|\bany\)` and `\bas\s+[A-Z]` useful for manual verification

@@ -258,7 +258,7 @@
         "No any types in new code",
         "No as type assertions in new code"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",
