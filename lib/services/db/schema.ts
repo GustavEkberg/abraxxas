@@ -40,6 +40,14 @@ export const sessionStatusEnum = pgEnum('session_status', [
 
 export const executionModeEnum = pgEnum('execution_mode', ['local', 'sprite'])
 
+export const manifestStatusEnum = pgEnum('manifest_status', [
+  'pending',
+  'active',
+  'running',
+  'completed',
+  'error'
+])
+
 ////////////////////////////////////////////////////////////////////////
 // AUTH - Better-auth expects singular model names
 ////////////////////////////////////////////////////////////////////////

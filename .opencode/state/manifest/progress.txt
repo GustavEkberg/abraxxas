@@ -1,0 +1,18 @@
+# Progress Log
+
+PRD: manifest
+Started: 2026-01-20
+
+## Codebase Patterns
+
+- **DB enums**: Use `pgEnum` from drizzle-orm/pg-core, snake_case name, place in ENUMS section of schema.ts
+- **DB tables**: Use `pgTable` with cuid2 id generation via `$defaultFn(() => createId())`
+- **Relations**: Use `defineRelations` with RQB v2 API (r.many/r.one patterns)
+
+---
+
+## Task - db-1
+
+- Added `manifestStatusEnum` with values: pending, active, running, completed, error
+- Files changed: lib/services/db/schema.ts
+- **Learnings:** Enums go in the ENUMS section around line 6-42

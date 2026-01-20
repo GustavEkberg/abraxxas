@@ -9,7 +9,7 @@
         "manifestStatusEnum exists with values: pending, active, running, completed, error",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "db-2",
