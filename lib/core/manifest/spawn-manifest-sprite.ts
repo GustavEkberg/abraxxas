@@ -299,7 +299,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          `cd /home/sprite/repo && OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup "$HOME/.opencode/bin/opencode" serve --host 0.0.0.0 --port 80 > /tmp/opencode.log 2>&1 &`
+          `cd /home/sprite/repo && OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup "$HOME/.opencode/bin/opencode" serve --hostname 0.0.0.0 --port 80 > /tmp/opencode.log 2>&1 &`
         ])
         .pipe(
           Effect.mapError(
