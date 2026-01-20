@@ -301,12 +301,13 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     yield* Effect.log('opencode installed')
 
     // Start opencode serve in background (for browser access via sprite URL)
+    // Use full path since nohup may not have ~/.local/bin in PATH
     yield* cleanupOnError(
       sprites
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'cd /home/sprite/repo && nohup opencode serve --port 80 > /tmp/opencode.log 2>&1 &'
+          'cd /home/sprite/repo && nohup ~/.local/bin/opencode serve --port 80 > /tmp/opencode.log 2>&1 &'
         ])
         .pipe(
           Effect.mapError(
