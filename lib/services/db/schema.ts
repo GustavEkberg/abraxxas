@@ -190,6 +190,35 @@ export const opencodeSessions = pgTable('opencodeSessions', {
 export type OpencodeSession = typeof opencodeSessions.$inferSelect
 export type InsertOpencodeSession = typeof opencodeSessions.$inferInsert
 
+////////////////////////////////////////////////////////////////////////
+// MANIFESTS
+////////////////////////////////////////////////////////////////////////
+export const manifests = pgTable('manifests', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  projectId: text('projectId')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  prdName: text('prdName').notNull(),
+  status: manifestStatusEnum('status').notNull().default('pending'),
+  spriteName: text('spriteName'),
+  spriteUrl: text('spriteUrl'),
+  spritePassword: text('spritePassword'),
+  webhookSecret: text('webhookSecret'),
+  prdJson: text('prdJson'),
+  errorMessage: text('errorMessage'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  completedAt: timestamp('completedAt')
+})
+
+export type Manifest = typeof manifests.$inferSelect
+export type InsertManifest = typeof manifests.$inferInsert
+
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt').notNull(),
