@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Copy, Check, ExternalLink, Play, Square } from 'lucide-react'
+import { Copy, Check, ExternalLink, Play, Square, Trash2 } from 'lucide-react'
 import type { Manifest } from '@/lib/services/db/schema'
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/input-group'
 import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action'
 import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action'
+import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
 
 type StatusConfig = {
   label: string
@@ -113,6 +114,17 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
     })
   }
 
+  const handleDelete = () => {
+    if (!confirm('Delete this manifest? This will also destroy the sprite.')) return
+    setError(null)
+    startTransition(async () => {
+      const result = await deleteManifestAction(manifest.id)
+      if (result._tag === 'Error') {
+        setError(result.message)
+      }
+    })
+  }
+
   return (
     <Card size="sm">
       <CardHeader>
@@ -166,9 +178,22 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
           </div>
         )}
 
-        <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <span>Created: {formatTimestamp(manifest.createdAt)}</span>
-          {manifest.completedAt && <span>Completed: {formatTimestamp(manifest.completedAt)}</span>}
+        <div className="flex items-center justify-between">
+          <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <span>Created: {formatTimestamp(manifest.createdAt)}</span>
+            {manifest.completedAt && (
+              <span>Completed: {formatTimestamp(manifest.completedAt)}</span>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="size-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

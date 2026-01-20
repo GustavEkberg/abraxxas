@@ -332,7 +332,7 @@ The spawn-manifest-sprite function generates a script that:
 
 1. Runs opencode install (if needed)
 2. Clones repository to /home/sprite/repo
-3. Creates and checks out branch `codex/{prdName}`
+3. Creates and checks out branch `manifest/{prdName}`
 4. Downloads abraxas-opencode-setup repo
 5. Copies command/\*.md to ~/.config/opencode/command/
 6. Copies skill/\*/ to ~/.config/opencode/skill/
