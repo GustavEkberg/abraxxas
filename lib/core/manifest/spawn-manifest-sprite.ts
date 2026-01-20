@@ -149,12 +149,13 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     if (Option.isSome(opencodeAuth)) {
       yield* Effect.log('Uploading opencode auth.json...')
 
+      // Use /home/sprite explicitly since that's where the sprite user's home is
       yield* cleanupOnError(
         sprites
           .execCommand(spriteName, [
             'bash',
             '-c',
-            'mkdir -p "$HOME/.local/share/opencode" /root/.local/share/opencode 2>/dev/null || true'
+            'mkdir -p /home/sprite/.local/share/opencode /root/.local/share/opencode 2>/dev/null || true'
           ])
           .pipe(
             Effect.mapError(
@@ -175,7 +176,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
             [
               'bash',
               '-c',
-              'cat > "$HOME/.local/share/opencode/auth.json" && chmod 600 "$HOME/.local/share/opencode/auth.json" && cp "$HOME/.local/share/opencode/auth.json" /root/.local/share/opencode/auth.json 2>/dev/null && chmod 600 /root/.local/share/opencode/auth.json 2>/dev/null || true'
+              'cat > /home/sprite/.local/share/opencode/auth.json && chmod 600 /home/sprite/.local/share/opencode/auth.json && cp /home/sprite/.local/share/opencode/auth.json /root/.local/share/opencode/auth.json 2>/dev/null && chmod 600 /root/.local/share/opencode/auth.json 2>/dev/null || true'
             ],
             { stdin: opencodeAuth.value }
           )
@@ -227,7 +228,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'mkdir -p "$HOME/.config/opencode/command" && cp /tmp/abraxas-opencode-setup-main/command/*.md "$HOME/.config/opencode/command/"'
+          'mkdir -p /home/sprite/.config/opencode/command && cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/command/'
         ])
         .pipe(
           Effect.mapError(
@@ -249,7 +250,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'mkdir -p "$HOME/.config/opencode/skill" && cp -r /tmp/abraxas-opencode-setup-main/skill/* "$HOME/.config/opencode/skill/"'
+          'mkdir -p /home/sprite/.config/opencode/skill && cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skill/'
         ])
         .pipe(
           Effect.mapError(
@@ -316,7 +317,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          `cd /home/sprite/repo && OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup "$HOME/.opencode/bin/opencode" serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &`
+          `cd /home/sprite/repo && HOME=/home/sprite OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &`
         ])
         .pipe(
           Effect.mapError(
