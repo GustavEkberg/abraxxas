@@ -108,21 +108,15 @@ export const createManifestAction = async (
         })
       )
 
-      yield* Effect.log(`Sprite created: ${spriteResult.spriteName}`)
+      yield* Effect.log(`Sprite spawned: ${spriteResult.spriteName}`)
 
-      // Update manifest with sprite details (webhookSecret already saved)
+      // Sprite details already saved in spawnManifestSprite
+      // Fetch updated manifest for return value
       const [updatedManifest] = yield* db
-        .update(schema.manifests)
-        .set({
-          status: 'active',
-          spriteName: spriteResult.spriteName,
-          spriteUrl: spriteResult.spriteUrl,
-          spritePassword: spriteResult.spritePassword
-        })
+        .select()
+        .from(schema.manifests)
         .where(eq(schema.manifests.id, manifest.id))
-        .returning()
-
-      yield* Effect.log(`Manifest ${manifest.id} updated to active`)
+        .limit(1)
 
       return {
         manifest: updatedManifest,

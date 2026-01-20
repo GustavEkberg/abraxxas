@@ -1,10 +1,13 @@
 import { Effect, Option } from 'effect'
 import { randomBytes } from 'crypto'
+import { eq } from 'drizzle-orm'
 import { Sprites } from '@/lib/services/sprites/live-layer'
+import { Db } from '@/lib/services/db/live-layer'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
 import type { Project } from '@/lib/services/db/schema'
+import * as schema from '@/lib/services/db/schema'
 
 /**
  * Configuration for spawning a manifest sprite.
@@ -58,6 +61,7 @@ export function generateSpritePassword(): string {
 export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
   Effect.gen(function* () {
     const sprites = yield* Sprites
+    const db = yield* Db
 
     const { manifestId, project, prdName, userId } = config
 
@@ -91,6 +95,19 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     const spriteUrl = sprite.url
 
     yield* Effect.log(`Sprite created: ${spriteUrl}`)
+
+    // Save sprite details to DB immediately so we don't lose them on timeout
+    yield* db
+      .update(schema.manifests)
+      .set({
+        status: 'active',
+        spriteName,
+        spriteUrl,
+        spritePassword
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    yield* Effect.log(`Saved sprite details to manifest ${manifestId}`)
 
     // Helper to clean up sprite on failure
     const cleanupOnError = <E, A>(effect: Effect.Effect<A, E>) =>
