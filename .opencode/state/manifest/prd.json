@@ -232,7 +232,7 @@
         "Uses shadcn Dialog, Input, Button, Label",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "page-1",

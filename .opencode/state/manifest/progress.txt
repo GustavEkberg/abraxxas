@@ -149,3 +149,16 @@ Started: 2026-01-20
 - Timestamps formatted with Intl.DateTimeFormat
 - Files changed: components/manifest/manifest-card.tsx (new)
 - **Learnings:** Base UI Button uses `render` prop for composition, not `asChild`; InputGroupButton with icon-xs for copy buttons
+
+## Task - ui-2
+
+- Created `components/manifest/create-manifest-dialog.tsx`
+- 'use client' directive with controlled Dialog state
+- Form with prdName input, kebab-case regex validation
+- DialogState discriminated union: form | loading | success | error
+- Shows loading text "Summoning..." during creation
+- Shows error message with retry button on failure
+- Shows credentials (spriteUrl + password with CopyableCredential) on success
+- Uses shadcn Dialog, Input, Button, Label, InputGroup components
+- Files changed: components/manifest/create-manifest-dialog.tsx (new)
+- **Learnings:** DialogTrigger uses `render` prop for custom trigger; discriminated union state pattern cleaner than multiple booleans
