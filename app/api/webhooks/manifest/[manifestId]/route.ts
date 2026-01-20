@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { AppLayer } from '@/lib/layers'
 import { Db } from '@/lib/services/db/live-layer'
+import { Sprites } from '@/lib/services/sprites/live-layer'
 import * as schema from '@/lib/services/db/schema'
 
 type RouteContext = {
@@ -107,11 +108,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
         'webhook.payloadType': payload.type
       })
 
-      // Placeholder: actual handlers to be implemented in api-2
-      yield* Effect.logInfo('Manifest webhook received', {
-        manifestId,
-        payloadType: payload.type
-      })
+      // Handle different payload types based on discriminator
+      if (payload.type === 'started') {
+        yield* handleStarted(manifestId)
+      } else if (payload.type === 'task_loop_started') {
+        yield* handleTaskLoopStarted(manifestId, payload)
+      } else if (payload.type === 'completed') {
+        yield* handleCompleted(manifestId, manifest.spriteName, payload)
+      } else if (payload.type === 'error') {
+        yield* handleError(manifestId, manifest.spriteName, payload)
+      }
 
       return NextResponse.json({ success: true })
     }).pipe(
@@ -131,3 +137,111 @@ export async function POST(request: NextRequest, context: RouteContext) {
     )
   )
 }
+
+// Handler for 'started' event - updates manifest status to active
+const handleStarted = (manifestId: string) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+
+    yield* db
+      .update(schema.manifests)
+      .set({
+        status: 'active',
+        updatedAt: new Date()
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    yield* Effect.logInfo('Started event handled', { manifestId })
+  })
+
+// Handler for 'task_loop_started' event - updates status to running, stores prdJson
+const handleTaskLoopStarted = (
+  manifestId: string,
+  payload: Schema.Schema.Type<typeof TaskLoopStartedPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+
+    yield* db
+      .update(schema.manifests)
+      .set({
+        status: 'running',
+        prdJson: payload.prdJson,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    yield* Effect.logInfo('Task loop started event handled', { manifestId })
+  })
+
+// Handler for 'completed' event - updates status to completed, stores prdJson, destroys sprite
+const handleCompleted = (
+  manifestId: string,
+  spriteName: string | null,
+  payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+    const sprites = yield* Sprites
+
+    yield* db
+      .update(schema.manifests)
+      .set({
+        status: 'completed',
+        prdJson: payload.prdJson,
+        updatedAt: new Date(),
+        completedAt: new Date()
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    // Destroy the sprite if we have a sprite name
+    if (spriteName) {
+      yield* sprites.destroySprite(spriteName).pipe(
+        Effect.catchAll(error => {
+          // Log but don't fail if sprite destruction fails
+          return Effect.logWarning('Failed to destroy sprite', {
+            spriteName,
+            error
+          })
+        })
+      )
+    }
+
+    yield* Effect.logInfo('Completed event handled', { manifestId })
+  })
+
+// Handler for 'error' event - updates status to error with errorMessage, destroys sprite
+const handleError = (
+  manifestId: string,
+  spriteName: string | null,
+  payload: Schema.Schema.Type<typeof ErrorPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+    const sprites = yield* Sprites
+
+    yield* db
+      .update(schema.manifests)
+      .set({
+        status: 'error',
+        errorMessage: payload.error,
+        updatedAt: new Date(),
+        completedAt: new Date()
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    // Destroy the sprite if we have a sprite name
+    if (spriteName) {
+      yield* sprites.destroySprite(spriteName).pipe(
+        Effect.catchAll(error => {
+          // Log but don't fail if sprite destruction fails
+          return Effect.logWarning('Failed to destroy sprite', {
+            spriteName,
+            error
+          })
+        })
+      )
+    }
+
+    yield* Effect.logInfo('Error event handled', { manifestId })
+  })

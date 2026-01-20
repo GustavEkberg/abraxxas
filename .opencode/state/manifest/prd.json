@@ -194,7 +194,7 @@
         "Webhook handles 'error' type: updates status to error with errorMessage, destroys sprite",
         "pnpm tsc passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",

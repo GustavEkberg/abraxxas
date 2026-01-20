@@ -125,3 +125,14 @@ Started: 2026-01-20
 - Defines webhook payload schemas for started/task_loop_started/completed/error
 - Files changed: app/api/webhooks/manifest/[manifestId]/route.ts (new)
 - **Learnings:** Follow exact sprite webhook pattern - raw body read, signature hex extraction, buffer length check before timingSafeEqual
+
+## Task - api-2
+
+- Implemented all webhook payload type handlers in manifest webhook route
+- `handleStarted`: updates manifest status to 'active'
+- `handleTaskLoopStarted`: updates status to 'running', stores prdJson
+- `handleCompleted`: updates status to 'completed', stores final prdJson, destroys sprite
+- `handleError`: updates status to 'error' with errorMessage, destroys sprite
+- Sprite destruction uses `Effect.catchAll` to log but not fail on errors
+- Files changed: app/api/webhooks/manifest/[manifestId]/route.ts
+- **Learnings:** Same handler pattern as sprite webhook - separate functions with typed payloads, db updates, sprite cleanup with error handling
