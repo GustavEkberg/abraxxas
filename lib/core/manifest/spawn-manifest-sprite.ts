@@ -298,7 +298,29 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         )
     )
 
-    yield* Effect.log('opencode ready')
+    yield* Effect.log('opencode installed')
+
+    // Start opencode serve in background (for browser access via sprite URL)
+    yield* cleanupOnError(
+      sprites
+        .execCommand(spriteName, [
+          'bash',
+          '-c',
+          'cd /home/sprite/repo && nohup opencode serve --port 80 > /tmp/opencode.log 2>&1 &'
+        ])
+        .pipe(
+          Effect.mapError(
+            error =>
+              new SpriteExecutionError({
+                message: `Failed to start opencode serve: ${error.message}`,
+                spriteName,
+                cause: error
+              })
+          )
+        )
+    )
+
+    yield* Effect.log('opencode serve started')
 
     // Send 'started' webhook to notify setup is complete
     yield* Effect.log('Sending started webhook...')
