@@ -38,3 +38,12 @@ Started: 2026-01-20
 - Applied migration via `pnpm drizzle-kit push` (no `db:migrate` script exists)
 - `manifests` table created in database with all columns and FK constraint
 - **Learnings:** Project uses `db:push` not `db:migrate`; `drizzle-kit migrate` requires journal tracking but project uses push workflow
+
+## Task - service-1
+
+- Added `updateUrlSettings(name, auth)` method to Sprites service
+- Makes PUT request to `/v1/sprites/{name}` with `{ url_settings: { auth } }` body
+- Returns updated `Sprite` object
+- Follows existing method pattern with `Effect.withSpan`, `Effect.annotateCurrentSpan`, `Effect.tapError`
+- Files changed: lib/services/sprites/live-layer.ts
+- **Learnings:** Sprites service methods follow consistent pattern: annotate span, make request, validate response, add withSpan + tapError

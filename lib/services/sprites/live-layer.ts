@@ -273,7 +273,38 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
         Effect.tapError(error => Effect.logError('List sprites failed', { error }))
       )
 
-    return { createSprite, getSprite, destroySprite, execCommand, listSprites } as const
+    const updateUrlSettings = (name: string, auth: 'sprite' | 'public') =>
+      Effect.gen(function* () {
+        yield* Effect.annotateCurrentSpan({
+          'sprites.name': name,
+          'sprites.urlAuth': auth
+        })
+
+        const sprite = yield* makeRequest<Sprite>(
+          'PUT',
+          `/sprites/${name}`,
+          Redacted.value(config.token),
+          { url_settings: { auth } }
+        )
+
+        if (!sprite) {
+          return yield* new SpritesApiError({ message: 'Update sprite returned no data' })
+        }
+
+        return sprite
+      }).pipe(
+        Effect.withSpan('Sprites.updateUrlSettings'),
+        Effect.tapError(error => Effect.logError('Update URL settings failed', { name, error }))
+      )
+
+    return {
+      createSprite,
+      getSprite,
+      destroySprite,
+      execCommand,
+      listSprites,
+      updateUrlSettings
+    } as const
   })
 }) {
   // Base layer (has unsatisfied SpritesConfig dependency)
