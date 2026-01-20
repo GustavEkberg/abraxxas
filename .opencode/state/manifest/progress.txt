@@ -72,3 +72,13 @@ Started: 2026-01-20
 - Returns manifest + credentials on success
 - Files changed: lib/core/manifest/create-manifest-action.ts (new)
 - **Learnings:** Don't need to `yield* Sprites` if just calling an Effect that uses Sprites internally; use drizzle-orm operators directly (eq, and, inArray) with Effect-wrapped db
+
+## Task - domain-3
+
+- Created `lib/core/manifest/get-manifests.ts`
+- Accepts `projectId` parameter
+- Uses `getProject()` to verify ownership (reuses existing pattern)
+- Queries manifests table, ordered by `createdAt` desc
+- Returns `Effect` with `Manifest[]`
+- Files changed: lib/core/manifest/get-manifests.ts (new)
+- **Learnings:** RSC data loading functions follow same pattern as get-projects.ts - gen function, yield db/session, simple select with ordering
