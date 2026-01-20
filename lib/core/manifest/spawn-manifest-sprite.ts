@@ -278,13 +278,13 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
 
     yield* Effect.log('Installed task-loop')
 
-    // Install opencode if not present
+    // Install opencode if not present (installs to ~/.opencode/bin)
     yield* cleanupOnError(
       sprites
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'command -v opencode &> /dev/null || curl -fsSL https://opencode.ai/install | bash'
+          '[ -x "$HOME/.opencode/bin/opencode" ] || curl -fsSL https://opencode.ai/install | bash'
         ])
         .pipe(
           Effect.mapError(
@@ -301,13 +301,12 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     yield* Effect.log('opencode installed')
 
     // Start opencode serve in background (for browser access via sprite URL)
-    // opencode installs to ~/.opencode/bin
     yield* cleanupOnError(
       sprites
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'cd /home/sprite/repo && nohup ~/.opencode/bin/opencode serve --port 80 > /tmp/opencode.log 2>&1 &'
+          'cd /home/sprite/repo && nohup "$HOME/.opencode/bin/opencode" serve --port 80 > /tmp/opencode.log 2>&1 &'
         ])
         .pipe(
           Effect.mapError(
