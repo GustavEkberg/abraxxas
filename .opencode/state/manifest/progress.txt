@@ -31,3 +31,10 @@ Started: 2026-01-20
 - Added `manifests.project: r.one.projects` relation  
 - Files changed: lib/services/db/schema.ts (lines 274-352)
 - **Learnings:** Arrow function returning object needs `})` not just `}` before closing `defineRelations)`
+
+## Task - db-4
+
+- Generated migration via `pnpm db:generate`
+- Applied migration via `pnpm drizzle-kit push` (no `db:migrate` script exists)
+- `manifests` table created in database with all columns and FK constraint
+- **Learnings:** Project uses `db:push` not `db:migrate`; `drizzle-kit migrate` requires journal tracking but project uses push workflow
