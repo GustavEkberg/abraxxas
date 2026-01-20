@@ -270,7 +270,7 @@
         "Add components/manifest/ entry",
         "Document manifest webhook API route"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

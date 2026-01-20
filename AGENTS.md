@@ -78,6 +78,9 @@ init/
 | Comment management   | `lib/core/comment/`             | User and agent comments                     |
 | Session tracking     | `lib/core/session/`             | OpenCode session lifecycle management       |
 | Token encryption     | `lib/core/crypto/`              | AES-256-GCM encryption for GitHub tokens    |
+| Manifest management  | `lib/core/manifest/`            | Sprite-based PRD execution lifecycle        |
+| Manifest components  | `components/manifest/`          | ManifestCard, CreateManifestDialog          |
+| Manifest webhook     | `app/api/webhooks/manifest/`    | HMAC-signed webhook from manifest sprites   |
 
 ## CODE MAP
 

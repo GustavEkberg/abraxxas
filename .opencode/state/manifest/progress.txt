@@ -181,3 +181,12 @@ Started: 2026-01-20
 - Confirmed no `as Type` assertions in new manifest code
 - Files checked: lib/core/manifest/*, components/manifest/*, app/api/webhooks/manifest/*
 - **Learnings:** ESLint rules catch any/as violations; grep patterns `: any\b|<any>|\bany\)` and `\bas\s+[A-Z]` useful for manual verification
+
+## Task - docs-1
+
+- Updated AGENTS.md WHERE TO LOOK table with manifest entries
+- Added: `lib/core/manifest/` for PRD execution lifecycle
+- Added: `components/manifest/` for ManifestCard, CreateManifestDialog
+- Added: `app/api/webhooks/manifest/` for HMAC-signed webhook handling
+- Files changed: AGENTS.md
+- **Learnings:** Keep docs entries concise with brief descriptions
