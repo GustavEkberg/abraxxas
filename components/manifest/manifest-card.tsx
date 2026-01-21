@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
+import { useAlert } from '@/components/ui/gnostic-alert'
 import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action'
 import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action'
 import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
@@ -178,6 +179,7 @@ function EditPrdNameDialog({
 export function ManifestCard({ manifest }: { manifest: Manifest }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const { confirm } = useAlert()
 
   const isPendingStatus = manifest.status === 'pending'
   const isActive = manifest.status === 'active'
@@ -224,8 +226,15 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
     })
   }
 
-  const handleDelete = () => {
-    if (!confirm('Delete this manifest? This will also destroy the sprite.')) return
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Banish this Manifest?',
+      message: 'This will destroy the sprite and banish it to the void. This cannot be undone.',
+      variant: 'warning',
+      confirmText: 'Banish',
+      cancelText: 'Spare'
+    })
+    if (!confirmed) return
     setError(null)
     startTransition(async () => {
       const result = await deleteManifestAction(manifest.id)

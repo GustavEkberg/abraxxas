@@ -16,8 +16,17 @@ interface AlertOptions {
   confirmText?: string
 }
 
+interface ConfirmOptions {
+  title?: string
+  message: string
+  variant?: AlertVariant
+  confirmText?: string
+  cancelText?: string
+}
+
 interface AlertContextValue {
   alert: (options: AlertOptions | string) => Promise<void>
+  confirm: (options: ConfirmOptions | string) => Promise<boolean>
 }
 
 const AlertContext = createContext<AlertContextValue | null>(null)
@@ -52,17 +61,23 @@ const variantConfig: Record<
   }
 }
 
-interface AlertState {
+type DialogMode = 'alert' | 'confirm'
+
+interface DialogState {
   open: boolean
-  options: AlertOptions
-  resolve: (() => void) | null
+  mode: DialogMode
+  options: AlertOptions | ConfirmOptions
+  resolveAlert: (() => void) | null
+  resolveConfirm: ((value: boolean) => void) | null
 }
 
 export function AlertProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AlertState>({
+  const [state, setState] = useState<DialogState>({
     open: false,
+    mode: 'alert',
     options: { message: '' },
-    resolve: null
+    resolveAlert: null,
+    resolveConfirm: null
   })
 
   const alert = useCallback((optionsOrMessage: AlertOptions | string): Promise<void> => {
@@ -72,25 +87,54 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     return new Promise<void>(resolve => {
       setState({
         open: true,
+        mode: 'alert',
         options,
-        resolve
+        resolveAlert: resolve,
+        resolveConfirm: null
       })
     })
   }, [])
 
-  const handleClose = useCallback(() => {
-    state.resolve?.()
-    setState(prev => ({ ...prev, open: false, resolve: null }))
-  }, [state])
+  const confirm = useCallback((optionsOrMessage: ConfirmOptions | string): Promise<boolean> => {
+    const options: ConfirmOptions =
+      typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage
 
-  const variant = state.options.variant ?? 'info'
+    return new Promise<boolean>(resolve => {
+      setState({
+        open: true,
+        mode: 'confirm',
+        options,
+        resolveAlert: null,
+        resolveConfirm: resolve
+      })
+    })
+  }, [])
+
+  const handleClose = useCallback(
+    (confirmed: boolean) => {
+      if (state.mode === 'alert') {
+        state.resolveAlert?.()
+      } else {
+        state.resolveConfirm?.(confirmed)
+      }
+      setState(prev => ({ ...prev, open: false, resolveAlert: null, resolveConfirm: null }))
+    },
+    [state]
+  )
+
+  const variant = state.options.variant ?? 'warning'
   const config = variantConfig[variant]
   const Icon = config.icon
+  const isConfirmMode = state.mode === 'confirm'
+  const cancelText = 'cancelText' in state.options ? state.options.cancelText : undefined
 
   return (
-    <AlertContext.Provider value={{ alert }}>
+    <AlertContext.Provider value={{ alert, confirm }}>
       {children}
-      <AlertDialogPrimitive.Root open={state.open} onOpenChange={open => !open && handleClose()}>
+      <AlertDialogPrimitive.Root
+        open={state.open}
+        onOpenChange={open => !open && handleClose(false)}
+      >
         <AlertDialogPrimitive.Portal>
           <AlertDialogPrimitive.Backdrop
             className={cn(
@@ -132,22 +176,24 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
 
-              {/* Action */}
-              <div className="flex justify-end pt-2">
-                <AlertDialogPrimitive.Close
-                  render={
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'border-dashed font-mono',
-                        config.borderClass,
-                        'hover:bg-white/5'
-                      )}
-                    />
-                  }
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-2">
+                {isConfirmMode && (
+                  <Button
+                    variant="ghost"
+                    className="border border-dashed border-white/20 font-mono hover:bg-white/5"
+                    onClick={() => handleClose(false)}
+                  >
+                    {cancelText ?? 'Deny'}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className={cn('border-dashed font-mono', config.borderClass, 'hover:bg-white/5')}
+                  onClick={() => handleClose(true)}
                 >
-                  {state.options.confirmText ?? 'Acknowledge'}
-                </AlertDialogPrimitive.Close>
+                  {state.options.confirmText ?? (isConfirmMode ? 'Confirm' : 'Acknowledge')}
+                </Button>
               </div>
             </div>
 
