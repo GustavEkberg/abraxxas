@@ -172,6 +172,14 @@ cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/s
 cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop
 chmod +x /usr/local/bin/task-loop
 
+# Create opencode config with default model
+cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+CONFIGEOF
+
 # Start opencode serve
 echo "Starting opencode serve..."
 cd /home/sprite/repo
