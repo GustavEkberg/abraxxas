@@ -1,13 +1,36 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Check, ExternalLink, Link, Play, Square, Trash2, Terminal, Lock } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  Link,
+  Play,
+  Square,
+  Trash2,
+  Terminal,
+  Lock,
+  Pencil
+} from 'lucide-react'
 import type { Manifest } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
 import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action'
 import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action'
 import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
+import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action'
+
+const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
 function CopyButton({
   value,
@@ -36,6 +59,119 @@ function CopyButton({
     >
       {copied ? <Check className="size-3.5" /> : icon}
     </Button>
+  )
+}
+
+function EditPrdNameDialog({
+  manifestId,
+  currentPrdName,
+  disabled,
+  highlight
+}: {
+  manifestId: string
+  currentPrdName: string | null
+  disabled?: boolean
+  highlight?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [prdName, setPrdName] = useState(currentPrdName ?? '')
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  const validationError =
+    prdName.length > 0 && !KEBAB_CASE_REGEX.test(prdName)
+      ? 'Must be kebab-case (e.g., my-feature)'
+      : null
+
+  const canSubmit = prdName.length > 0 && !validationError && prdName !== (currentPrdName ?? '')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canSubmit) return
+
+    setError(null)
+    startTransition(async () => {
+      const result = await updatePrdNameAction(manifestId, prdName)
+      if (result._tag === 'Error') {
+        setError(result.message)
+      } else {
+        setOpen(false)
+      }
+    })
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setPrdName(currentPrdName ?? '')
+      setError(null)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 px-2 ${highlight ? 'text-yellow-400 hover:text-yellow-300' : 'text-white/40 hover:text-white/90'}`}
+            title={highlight ? 'Inscribe the path' : 'Edit path'}
+            disabled={disabled}
+          >
+            <Pencil className="size-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit PRD Name</DialogTitle>
+          <DialogDescription>
+            Change the PRD name for this manifest. This determines which prd.json file will be
+            executed.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="prdName">PRD Name</Label>
+            <Input
+              id="prdName"
+              placeholder="my-feature"
+              value={prdName}
+              onChange={e => setPrdName(e.target.value)}
+              disabled={isPending}
+              aria-invalid={!!validationError}
+              className="font-mono"
+            />
+            {validationError && <p className="text-destructive text-xs">{validationError}</p>}
+            <p className="text-muted-foreground text-xs">
+              Path: .opencode/state/{prdName || '<name>'}/prd.json
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSubmit || isPending}>
+              {isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -108,25 +244,43 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
           {isRunning && (
             <div className="flex shrink-0 items-center gap-1">
               <div className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
-              <span className="text-xs text-red-400">Running</span>
+              <span className="text-xs text-red-400">Invoking</span>
             </div>
           )}
           {isPendingStatus && (
             <div className="flex shrink-0 items-center gap-1">
               <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
-              <span className="text-xs text-yellow-400">Summoning</span>
+              <span className="text-xs text-yellow-400">Conjuring</span>
             </div>
           )}
-          {isActive && (
+          {isActive && manifest.prdName && (
             <span className="shrink-0 rounded bg-green-500/10 px-1.5 py-0.5 text-xs text-green-400">
-              Ready
+              Awakened
             </span>
           )}
-          {isCompleted && <span className="shrink-0 text-xs text-green-400">✓ Complete</span>}
-          {isError && <span className="shrink-0 text-xs text-red-400">✗ Failed</span>}
+          {isActive && !manifest.prdName && (
+            <span className="shrink-0 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-400">
+              Unsealed
+            </span>
+          )}
+          {isCompleted && <span className="shrink-0 text-xs text-green-400">✓ Fulfilled</span>}
+          {isError && <span className="shrink-0 text-xs text-red-400">✗ Shattered</span>}
 
-          {/* PRD name */}
-          <span className="truncate text-sm font-medium text-white/90">{manifest.prdName}</span>
+          {/* Manifest name */}
+          <span className="truncate text-sm font-medium text-white/90">{manifest.name}</span>
+
+          {/* PRD name indicator */}
+          {manifest.prdName && <span className="text-xs text-white/40">({manifest.prdName})</span>}
+
+          {/* Edit PRD name - only when editable, highlighted if not set */}
+          {(isPendingStatus || isActive) && (
+            <EditPrdNameDialog
+              manifestId={manifest.id}
+              currentPrdName={manifest.prdName}
+              disabled={isPending}
+              highlight={!manifest.prdName}
+            />
+          )}
         </div>
 
         {/* Action buttons */}
@@ -164,8 +318,8 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
             </>
           )}
 
-          {/* Start/Stop controls */}
-          {isActive && (
+          {/* Start/Stop controls - only show when prdName is set */}
+          {isActive && manifest.prdName && (
             <Button
               onClick={handleStart}
               disabled={isPending}

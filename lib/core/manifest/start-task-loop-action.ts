@@ -237,6 +237,16 @@ export const startTaskLoopAction = async (manifestId: string): Promise<StartTask
         )
       }
 
+      // Verify prdName is set
+      if (!manifest.prdName) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: 'PRD name must be set before starting task loop',
+            field: 'prdName'
+          })
+        )
+      }
+
       // Verify user owns parent project
       yield* getProject(manifest.projectId)
 

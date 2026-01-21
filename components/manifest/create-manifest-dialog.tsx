@@ -26,8 +26,6 @@ interface CreateManifestDialogProps {
   trigger?: React.ReactElement
 }
 
-const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-
 function CopyableCredential({
   label,
   value,
@@ -81,15 +79,10 @@ type DialogState =
 
 export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialogProps) {
   const [open, setOpen] = useState(false)
-  const [prdName, setPrdName] = useState('')
+  const [name, setName] = useState('')
   const [state, setState] = useState<DialogState>({ _tag: 'form' })
 
-  const validationError =
-    prdName.length > 0 && !KEBAB_CASE_REGEX.test(prdName)
-      ? 'PRD name must be kebab-case (e.g., my-feature)'
-      : null
-
-  const canSubmit = prdName.length > 0 && !validationError && state._tag === 'form'
+  const canSubmit = name.length > 0 && state._tag === 'form'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,7 +90,7 @@ export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialo
 
     setState({ _tag: 'loading' })
 
-    const result = await createManifestAction({ projectId, prdName })
+    const result = await createManifestAction({ projectId, name })
 
     if (result._tag === 'Error') {
       setState({ _tag: 'error', message: result.message })
@@ -115,7 +108,7 @@ export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialo
     setOpen(nextOpen)
     if (!nextOpen) {
       // Reset state when closing
-      setPrdName('')
+      setName('')
       setState({ _tag: 'form' })
     }
   }
@@ -152,19 +145,16 @@ export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialo
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="prdName">PRD Name</Label>
+              <Label htmlFor="name">Manifest Name</Label>
               <Input
-                id="prdName"
-                placeholder="my-feature"
-                value={prdName}
-                onChange={e => setPrdName(e.target.value)}
+                id="name"
+                placeholder="My Feature"
+                value={name}
+                onChange={e => setName(e.target.value)}
                 disabled={state._tag === 'loading'}
-                aria-invalid={!!validationError}
-                className="font-mono"
               />
-              {validationError && <p className="text-destructive text-xs">{validationError}</p>}
               <p className="text-muted-foreground text-xs">
-                Must be kebab-case. Used to locate .opencode/state/{'{prdName}'}/prd.json
+                Display name for this manifest. You can set the PRD name later after running /prd.
               </p>
             </div>
 

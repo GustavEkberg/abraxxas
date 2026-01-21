@@ -200,7 +200,8 @@ export const manifests = pgTable('manifests', {
   projectId: text('projectId')
     .notNull()
     .references(() => projects.id, { onDelete: 'cascade' }),
-  prdName: text('prdName').notNull(),
+  name: text('name').notNull(),
+  prdName: text('prdName'),
   status: manifestStatusEnum('status').notNull().default('pending'),
   spriteName: text('spriteName'),
   spriteUrl: text('spriteUrl'),

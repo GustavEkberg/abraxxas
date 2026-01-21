@@ -16,7 +16,6 @@ export interface SpawnManifestSpriteConfig {
   /** Manifest ID for logging/tracing */
   manifestId: string
   project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken'>
-  prdName: string
   /** User ID to fetch opencode auth for model access */
   userId: string
 }
@@ -63,7 +62,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     const sprites = yield* Sprites
     const db = yield* Db
 
-    const { manifestId, project, prdName, userId } = config
+    const { manifestId, project, userId } = config
 
     const spriteName = generateManifestSpriteName(project.id)
     const spritePassword = generateSpritePassword()
@@ -73,7 +72,6 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
 
     yield* Effect.annotateCurrentSpan({
       'sprite.name': spriteName,
-      'sprite.prdName': prdName,
       'project.id': project.id,
       'manifest.id': manifestId
     })

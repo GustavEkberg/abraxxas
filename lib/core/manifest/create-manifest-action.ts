@@ -14,7 +14,7 @@ import { spawnManifestSprite } from './spawn-manifest-sprite'
 
 type CreateManifestInput = {
   projectId: string
-  prdName: string
+  name: string
 }
 
 type CreateManifestSuccess = {
@@ -44,7 +44,7 @@ export const createManifestAction = async (
 
       yield* Effect.annotateCurrentSpan({
         'project.id': project.id,
-        'manifest.prdName': input.prdName
+        'manifest.name': input.name
       })
 
       // Check no active manifest exists for project
@@ -77,7 +77,7 @@ export const createManifestAction = async (
         .insert(schema.manifests)
         .values({
           projectId: input.projectId,
-          prdName: input.prdName,
+          name: input.name,
           status: 'pending',
           webhookSecret
         })
@@ -89,7 +89,6 @@ export const createManifestAction = async (
       const spriteResult = yield* spawnManifestSprite({
         manifestId: manifest.id,
         project,
-        prdName: input.prdName,
         userId: project.userId
       }).pipe(
         Effect.catchAll(error => {
