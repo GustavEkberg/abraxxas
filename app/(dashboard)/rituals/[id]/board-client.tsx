@@ -207,7 +207,7 @@ export function RitualBoardClient({
   )
   const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
   const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
-  const [showManifestHistory, setShowManifestHistory] = useState(false)
+  const [showManifestHistory, setShowManifestHistory] = useState(true)
 
   // Derive active and historical manifests
   const activeManifest = manifests.find(m => ['pending', 'active', 'running'].includes(m.status))

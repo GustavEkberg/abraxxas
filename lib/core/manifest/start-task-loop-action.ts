@@ -84,8 +84,14 @@ send_task_loop_started() {
     fi
 }
 
-# Function to send completed webhook
+# Function to send completed webhook (idempotent - uses flag file)
 send_completed() {
+    # Prevent duplicate completed webhooks
+    if [ -f "/tmp/completed_sent" ]; then
+        return
+    fi
+    touch "/tmp/completed_sent"
+    
     if [ -f "$PRD_JSON_PATH" ]; then
         local prd_content
         prd_content=$(cat "$PRD_JSON_PATH" | jq -c '.')
@@ -112,6 +118,8 @@ send_error() {
 monitor_log() {
     local last_iteration=0
     local max_iterations=25
+    local task_loop_started=false
+    local completed_sent=false
     
     # Wait for log file to exist
     while [ ! -f "$LOG_FILE" ]; do
@@ -126,7 +134,8 @@ monitor_log() {
             max_iterations="\${BASH_REMATCH[2]}"
             
             # Send task_loop_started on first iteration
-            if [ "$last_iteration" -eq 0 ]; then
+            if [ "$task_loop_started" = false ]; then
+                task_loop_started=true
                 send_task_loop_started
             fi
             
@@ -139,24 +148,22 @@ monitor_log() {
             fi
         fi
         
-        # Check for completion
-        if [[ "$line" == *"PRD complete"* ]]; then
-            sleep 2
-            send_completed
-            break
-        fi
-        
-        # Check for max iterations reached
-        if [[ "$line" == *"Max iterations"* ]]; then
-            sleep 2
-            send_completed
-            break
+        # Check for completion - must have seen task_loop_started first
+        # task-loop outputs "✅ PRD complete!" or "⚠️ Max iterations reached"
+        if [ "$task_loop_started" = true ] && [ "$completed_sent" = false ]; then
+            if [[ "$line" == *"PRD complete"* ]] || [[ "$line" == *"Max iterations"* ]]; then
+                completed_sent=true
+                sleep 2
+                send_completed
+                break
+            fi
         fi
     done
 }
 
-# Clean up any previous log file
+# Clean up any previous state files
 rm -f "$LOG_FILE"
+rm -f "/tmp/completed_sent"
 
 # Start the monitor in background
 monitor_log &
@@ -176,6 +183,10 @@ kill "$MONITOR_PID" 2>/dev/null || true
 # Send final webhook based on exit code
 if [ "$TASK_EXIT_CODE" -ne 0 ]; then
     send_error "task-loop exited with code $TASK_EXIT_CODE"
+else
+    # Ensure completed webhook is sent if task-loop succeeded
+    # This is a fallback in case the monitor missed the completion marker
+    send_completed
 fi
 
 exit "$TASK_EXIT_CODE"

@@ -207,7 +207,7 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - updates status to completed, stores prdJson, destroys sprite
+// Handler for 'completed' event - updates status to completed, marks all tasks passed, destroys sprite
 const handleCompleted = (
   manifestId: string,
   spriteName: string | null,
@@ -217,11 +217,26 @@ const handleCompleted = (
     const db = yield* Db
     const sprites = yield* Sprites
 
+    // Parse prdJson and mark all tasks as passed
+    let finalPrdJson = payload.prdJson
+    try {
+      const prdData = JSON.parse(payload.prdJson)
+      if (prdData.tasks && Array.isArray(prdData.tasks)) {
+        prdData.tasks = prdData.tasks.map((task: { passes?: boolean }) => ({
+          ...task,
+          passes: true
+        }))
+        finalPrdJson = JSON.stringify(prdData)
+      }
+    } catch {
+      yield* Effect.logWarning('Failed to parse prdJson for task completion', { manifestId })
+    }
+
     yield* db
       .update(schema.manifests)
       .set({
         status: 'completed',
-        prdJson: payload.prdJson,
+        prdJson: finalPrdJson,
         updatedAt: new Date(),
         completedAt: new Date()
       })
