@@ -5,7 +5,6 @@ import { eq } from 'drizzle-orm'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { AppLayer } from '@/lib/layers'
 import { Db } from '@/lib/services/db/live-layer'
-import { Sprites } from '@/lib/services/sprites/live-layer'
 import * as schema from '@/lib/services/db/schema'
 
 type RouteContext = {
@@ -124,9 +123,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       } else if (payload.type === 'progress') {
         yield* handleProgress(manifestId, payload)
       } else if (payload.type === 'completed') {
-        yield* handleCompleted(manifestId, manifest.spriteName, payload)
+        yield* handleCompleted(manifestId, payload)
       } else if (payload.type === 'error') {
-        yield* handleError(manifestId, manifest.spriteName, payload)
+        yield* handleError(manifestId, payload)
       }
 
       return NextResponse.json({ success: true })
@@ -207,15 +206,14 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - updates status to completed, marks all tasks passed, destroys sprite
+// Handler for 'completed' event - updates status to completed, marks all tasks passed
+// Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
 const handleCompleted = (
   manifestId: string,
-  spriteName: string | null,
   payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
 ) =>
   Effect.gen(function* () {
     const db = yield* Db
-    const sprites = yield* Sprites
 
     // Parse prdJson and mark all tasks as passed
     let finalPrdJson = payload.prdJson
@@ -242,31 +240,14 @@ const handleCompleted = (
       })
       .where(eq(schema.manifests.id, manifestId))
 
-    // Destroy the sprite if we have a sprite name
-    if (spriteName) {
-      yield* sprites.destroySprite(spriteName).pipe(
-        Effect.catchAll(error => {
-          // Log but don't fail if sprite destruction fails
-          return Effect.logWarning('Failed to destroy sprite', {
-            spriteName,
-            error
-          })
-        })
-      )
-    }
-
     yield* Effect.logInfo('Completed event handled', { manifestId })
   })
 
-// Handler for 'error' event - updates status to error with errorMessage, destroys sprite
-const handleError = (
-  manifestId: string,
-  spriteName: string | null,
-  payload: Schema.Schema.Type<typeof ErrorPayloadSchema>
-) =>
+// Handler for 'error' event - updates status to error with errorMessage
+// Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
+const handleError = (manifestId: string, payload: Schema.Schema.Type<typeof ErrorPayloadSchema>) =>
   Effect.gen(function* () {
     const db = yield* Db
-    const sprites = yield* Sprites
 
     yield* db
       .update(schema.manifests)
@@ -277,19 +258,6 @@ const handleError = (
         completedAt: new Date()
       })
       .where(eq(schema.manifests.id, manifestId))
-
-    // Destroy the sprite if we have a sprite name
-    if (spriteName) {
-      yield* sprites.destroySprite(spriteName).pipe(
-        Effect.catchAll(error => {
-          // Log but don't fail if sprite destruction fails
-          return Effect.logWarning('Failed to destroy sprite', {
-            spriteName,
-            error
-          })
-        })
-      )
-    }
 
     yield* Effect.logInfo('Error event handled', { manifestId })
   })

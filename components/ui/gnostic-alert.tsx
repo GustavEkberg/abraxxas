@@ -1,39 +1,39 @@
-'use client'
+'use client';
 
-import * as React from 'react'
-import { createContext, useCallback, useContext, useState } from 'react'
-import { AlertDialog as AlertDialogPrimitive } from '@base-ui/react/alert-dialog'
-import { AlertTriangleIcon, InfoIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import * as React from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
+import { AlertDialog as AlertDialogPrimitive } from '@base-ui/react/alert-dialog';
+import { AlertTriangleIcon, InfoIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-type AlertVariant = 'info' | 'warning' | 'error' | 'success'
+type AlertVariant = 'info' | 'warning' | 'error' | 'success';
 
 interface AlertOptions {
-  title?: string
-  message: string
-  variant?: AlertVariant
-  confirmText?: string
+  title?: string;
+  message: string;
+  variant?: AlertVariant;
+  confirmText?: string;
 }
 
 interface ConfirmOptions {
-  title?: string
-  message: string
-  variant?: AlertVariant
-  confirmText?: string
-  cancelText?: string
+  title?: string;
+  message: string;
+  variant?: AlertVariant;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 interface AlertContextValue {
-  alert: (options: AlertOptions | string) => Promise<void>
-  confirm: (options: ConfirmOptions | string) => Promise<boolean>
+  alert: (options: AlertOptions | string) => Promise<void>;
+  confirm: (options: ConfirmOptions | string) => Promise<boolean>;
 }
 
-const AlertContext = createContext<AlertContextValue | null>(null)
+const AlertContext = createContext<AlertContextValue | null>(null);
 
 const variantConfig: Record<
   AlertVariant,
-  { icon: React.ElementType; iconClass: string; borderClass: string; bgClass: string }
+  { icon: React.ElementType; iconClass: string; borderClass: string; bgClass: string; }
 > = {
   info: {
     icon: InfoIcon,
@@ -59,30 +59,30 @@ const variantConfig: Record<
     borderClass: 'border-emerald-500/30',
     bgClass: 'bg-emerald-500/10'
   }
-}
+};
 
-type DialogMode = 'alert' | 'confirm'
+type DialogMode = 'alert' | 'confirm';
 
 interface DialogState {
-  open: boolean
-  mode: DialogMode
-  options: AlertOptions | ConfirmOptions
-  resolveAlert: (() => void) | null
-  resolveConfirm: ((value: boolean) => void) | null
+  open: boolean;
+  mode: DialogMode;
+  options: AlertOptions | ConfirmOptions;
+  resolveAlert: (() => void) | null;
+  resolveConfirm: ((value: boolean) => void) | null;
 }
 
-export function AlertProvider({ children }: { children: React.ReactNode }) {
+export function AlertProvider({ children }: { children: React.ReactNode; }) {
   const [state, setState] = useState<DialogState>({
     open: false,
     mode: 'alert',
     options: { message: '' },
     resolveAlert: null,
     resolveConfirm: null
-  })
+  });
 
   const alert = useCallback((optionsOrMessage: AlertOptions | string): Promise<void> => {
     const options: AlertOptions =
-      typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage
+      typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage;
 
     return new Promise<void>(resolve => {
       setState({
@@ -91,13 +91,13 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
         options,
         resolveAlert: resolve,
         resolveConfirm: null
-      })
-    })
-  }, [])
+      });
+    });
+  }, []);
 
   const confirm = useCallback((optionsOrMessage: ConfirmOptions | string): Promise<boolean> => {
     const options: ConfirmOptions =
-      typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage
+      typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage;
 
     return new Promise<boolean>(resolve => {
       setState({
@@ -106,27 +106,27 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
         options,
         resolveAlert: null,
         resolveConfirm: resolve
-      })
-    })
-  }, [])
+      });
+    });
+  }, []);
 
   const handleClose = useCallback(
     (confirmed: boolean) => {
       if (state.mode === 'alert') {
-        state.resolveAlert?.()
+        state.resolveAlert?.();
       } else {
-        state.resolveConfirm?.(confirmed)
+        state.resolveConfirm?.(confirmed);
       }
-      setState(prev => ({ ...prev, open: false, resolveAlert: null, resolveConfirm: null }))
+      setState(prev => ({ ...prev, open: false, resolveAlert: null, resolveConfirm: null }));
     },
     [state]
-  )
+  );
 
-  const variant = state.options.variant ?? 'warning'
-  const config = variantConfig[variant]
-  const Icon = config.icon
-  const isConfirmMode = state.mode === 'confirm'
-  const cancelText = 'cancelText' in state.options ? state.options.cancelText : undefined
+  const variant = state.options.variant ?? 'warning';
+  const config = variantConfig[variant];
+  const Icon = config.icon;
+  const isConfirmMode = state.mode === 'confirm';
+  const cancelText = 'cancelText' in state.options ? state.options.cancelText : undefined;
 
   return (
     <AlertContext.Provider value={{ alert, confirm }}>
@@ -155,7 +155,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
             <div className="border-b border-dashed border-white/10 px-6 py-3">
               <div className="flex items-center gap-3 text-white/40 text-xs">
                 <span>{'>'}</span>
-                <span>TRANSMISSION RECEIVED</span>
+                <span>ECHOES FROM THE BEYOND</span>
                 <span className="ml-auto">{'<'}</span>
               </div>
             </div>
@@ -200,33 +200,33 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
             {/* Gnostic footer decoration */}
             <div className="border-t border-dashed border-white/10 px-6 py-2">
               <div className="text-center text-white/20 text-xs">
-                {':::'} END TRANSMISSION {':::'}
+                {':::'}ECHOES FROM THE BEYOND{':::'}
               </div>
             </div>
           </AlertDialogPrimitive.Popup>
         </AlertDialogPrimitive.Portal>
       </AlertDialogPrimitive.Root>
     </AlertContext.Provider>
-  )
+  );
 }
 
 function getDefaultTitle(variant: AlertVariant): string {
   switch (variant) {
     case 'info':
-      return 'Divine Message'
+      return 'Divine Message';
     case 'warning':
-      return 'Cosmic Warning'
+      return 'Cosmic Warning';
     case 'error':
-      return 'Ritual Failed'
+      return 'Ritual Failed';
     case 'success':
-      return 'Blessing Received'
+      return 'Blessing Received';
   }
 }
 
 export function useAlert(): AlertContextValue {
-  const context = useContext(AlertContext)
+  const context = useContext(AlertContext);
   if (!context) {
-    throw new Error('useAlert must be used within an AlertProvider')
+    throw new Error('useAlert must be used within an AlertProvider');
   }
-  return context
+  return context;
 }
