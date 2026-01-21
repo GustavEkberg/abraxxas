@@ -6,6 +6,7 @@ import { IBM_Plex_Mono } from 'next/font/google'
 import localFont from 'next/font/local'
 import { FireIntensityProvider } from '@/lib/contexts/fire-intensity-context'
 import { FireBackground } from '@/components/fire-background'
+import { AlertProvider } from '@/components/ui/gnostic-alert'
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-ibm-plex-mono',
@@ -32,9 +33,11 @@ export default function RootLayout({
     <html lang="en" className={`${ibmPlexMono.variable} ${ashborn.variable}`}>
       <body className="antialiased">
         <FireIntensityProvider>
-          <NuqsAdapter>{children}</NuqsAdapter>
-          <Toaster />
-          <FireBackground />
+          <AlertProvider>
+            <NuqsAdapter>{children}</NuqsAdapter>
+            <Toaster />
+            <FireBackground />
+          </AlertProvider>
         </FireIntensityProvider>
       </body>
     </html>
