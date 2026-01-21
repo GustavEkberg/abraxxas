@@ -170,6 +170,18 @@ cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/s
 cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop
 chmod +x /usr/local/bin/task-loop
 
+# Add opencode to PATH globally
+echo 'export PATH="/home/sprite/.opencode/bin:$PATH"' >> /etc/profile.d/opencode.sh
+echo 'export HOME=/home/sprite' >> /etc/profile.d/opencode.sh
+echo 'export XDG_CONFIG_HOME=/home/sprite/.config' >> /etc/profile.d/opencode.sh
+echo 'export XDG_DATA_HOME=/home/sprite/.local/share' >> /etc/profile.d/opencode.sh
+
+# Also add to bashrc for non-login shells
+echo 'export PATH="/home/sprite/.opencode/bin:$PATH"' >> /home/sprite/.bashrc
+echo 'export HOME=/home/sprite' >> /home/sprite/.bashrc
+echo 'export XDG_CONFIG_HOME=/home/sprite/.config' >> /home/sprite/.bashrc
+echo 'export XDG_DATA_HOME=/home/sprite/.local/share' >> /home/sprite/.bashrc
+
 # Create opencode config with default model
 cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
 {
