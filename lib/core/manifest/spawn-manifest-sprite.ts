@@ -228,7 +228,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'mkdir -p /home/sprite/.config/opencode/command && cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/command/'
+          'mkdir -p /home/sprite/.config/opencode/commands && cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/commands/'
         ])
         .pipe(
           Effect.mapError(
@@ -250,7 +250,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         .execCommand(spriteName, [
           'bash',
           '-c',
-          'mkdir -p /home/sprite/.config/opencode/skill && cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skill/'
+          'mkdir -p /home/sprite/.config/opencode/skills && cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skills/'
         ])
         .pipe(
           Effect.mapError(
