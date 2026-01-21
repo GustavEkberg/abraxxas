@@ -135,12 +135,13 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 
 **Required Environment Variables:**
 
-| Variable            | Type   | Purpose                                     |
-| ------------------- | ------ | ------------------------------------------- |
-| `SPRITES_TOKEN`     | secret | Sprites.dev API authentication token        |
-| `WEBHOOK_BASE_URL`  | string | Base URL for webhook callbacks from Sprites |
-| `ENCRYPTION_KEY`    | secret | AES-256-GCM key for GitHub token encryption |
-| `SPRITE_TIMEOUT_MS` | string | Optional timeout for sprite operations (ms) |
+| Variable                  | Type   | Purpose                                      |
+| ------------------------- | ------ | -------------------------------------------- |
+| `SPRITES_TOKEN`           | secret | Sprites.dev API authentication token         |
+| `WEBHOOK_BASE_URL`        | string | Base URL for webhook callbacks from Sprites  |
+| `ENCRYPTION_KEY`          | secret | AES-256-GCM key for GitHub token encryption  |
+| `SPRITE_TIMEOUT_MS`       | string | Optional timeout for sprite operations (ms)  |
+| `OPENCODE_SETUP_REPO_URL` | string | GitHub repo URL for opencode commands/skills |
 
 ### Observability
 

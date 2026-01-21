@@ -73,29 +73,30 @@ Tasks progress through mystical columns:
 
    ### Environment Variables
 
-   | Variable                  | Required | Description                                 |
-   | ------------------------- | -------- | ------------------------------------------- |
-   | `DATABASE_URL`            | Yes      | PostgreSQL connection string                |
-   | `DATABASE_SSL`            | No       | Enable SSL for database (default: false)    |
-   | `BETTER_AUTH_SECRET`      | Yes      | Secret for better-auth session encryption   |
-   | `NEXT_PUBLIC_PROJECT_URL` | Yes      | Public URL of the application               |
-   | `APP_NAME`                | No       | Application name (default: Init)            |
-   | `EMAIL_SENDER`            | Yes      | Email sender address for auth emails        |
-   | `RESEND_API_KEY`          | No       | Resend API key for sending emails           |
-   | `ENCRYPTION_KEY`          | Yes      | 32-byte hex key for AES-256-GCM encryption  |
-   | `SPRITES_TOKEN`           | Yes      | Sprites.dev API authentication token        |
-   | `WEBHOOK_BASE_URL`        | Yes      | Base URL for webhook callbacks from Sprites |
-   | `SPRITE_TIMEOUT_MS`       | No       | Timeout for sprite operations (ms)          |
-   | `AWS_ACCESS_KEY_ID`       | No       | AWS credentials for S3                      |
-   | `AWS_SECRET_ACCESS_KEY`   | No       | AWS credentials for S3                      |
-   | `AWS_REGION`              | No       | AWS region for S3                           |
-   | `AWS_S3_BUCKET`           | No       | S3 bucket name for file uploads             |
-   | `TELEGRAM_BOT_TOKEN`      | No       | Telegram bot token for notifications        |
-   | `TELEGRAM_CHAT_ID`        | No       | Telegram chat ID for notifications          |
-   | `SENTRY_PROJECT`          | No       | Sentry project slug                         |
-   | `SENTRY_AUTH_TOKEN`       | No       | Sentry auth token for source maps           |
-   | `NEXT_PUBLIC_SENTRY_DSN`  | No       | Sentry DSN for error reporting              |
-   | `NEXT_PUBLIC_POSTHOG_KEY` | No       | PostHog project API key for analytics       |
+   | Variable                  | Required | Description                                  |
+   | ------------------------- | -------- | -------------------------------------------- |
+   | `DATABASE_URL`            | Yes      | PostgreSQL connection string                 |
+   | `DATABASE_SSL`            | No       | Enable SSL for database (default: false)     |
+   | `BETTER_AUTH_SECRET`      | Yes      | Secret for better-auth session encryption    |
+   | `NEXT_PUBLIC_PROJECT_URL` | Yes      | Public URL of the application                |
+   | `APP_NAME`                | No       | Application name (default: Init)             |
+   | `EMAIL_SENDER`            | Yes      | Email sender address for auth emails         |
+   | `RESEND_API_KEY`          | No       | Resend API key for sending emails            |
+   | `ENCRYPTION_KEY`          | Yes      | 32-byte hex key for AES-256-GCM encryption   |
+   | `SPRITES_TOKEN`           | Yes      | Sprites.dev API authentication token         |
+   | `WEBHOOK_BASE_URL`        | Yes      | Base URL for webhook callbacks from Sprites  |
+   | `SPRITE_TIMEOUT_MS`       | No       | Timeout for sprite operations (ms)           |
+   | `OPENCODE_SETUP_REPO_URL` | Yes      | GitHub repo URL for opencode commands/skills |
+   | `AWS_ACCESS_KEY_ID`       | No       | AWS credentials for S3                       |
+   | `AWS_SECRET_ACCESS_KEY`   | No       | AWS credentials for S3                       |
+   | `AWS_REGION`              | No       | AWS region for S3                            |
+   | `AWS_S3_BUCKET`           | No       | S3 bucket name for file uploads              |
+   | `TELEGRAM_BOT_TOKEN`      | No       | Telegram bot token for notifications         |
+   | `TELEGRAM_CHAT_ID`        | No       | Telegram chat ID for notifications           |
+   | `SENTRY_PROJECT`          | No       | Sentry project slug                          |
+   | `SENTRY_AUTH_TOKEN`       | No       | Sentry auth token for source maps            |
+   | `NEXT_PUBLIC_SENTRY_DSN`  | No       | Sentry DSN for error reporting               |
+   | `NEXT_PUBLIC_POSTHOG_KEY` | No       | PostHog project API key for analytics        |
 
    **Auto-set by Vercel:** `VERCEL_URL`, `VERCEL_BRANCH_URL`
 
@@ -230,8 +231,6 @@ export const getSomething = (id: string) =>
   }).pipe(Effect.withSpan('example.get-something'))
 ```
 
-## Inspiration
+## Created from
 
-- [ghuntley/loom](https://github.com/ghuntley/loom) - Ralph
-- [dmmulroy/.dotfiles](https://github.com/dmmulroy/.dotfiles) - OpenCode skills and commands
-- [mikearnaldi/accountability](https://github.com/mikearnaldi/accountability) - Specs & Effect
+- [magoz/init](https://github.com/magoz/init) - Magoz init

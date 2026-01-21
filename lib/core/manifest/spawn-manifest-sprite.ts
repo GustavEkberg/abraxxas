@@ -118,6 +118,9 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       `https://${githubToken}@github.com/`
     )
 
+    // Extract repo name from URL for tarball folder (e.g. "abraxas-opencode-setup" from URL)
+    const opencodeSetupRepoName = sprites.opencodeSetupRepoUrl.split('/').pop() || 'opencode-setup'
+
     const setupScript = `#!/bin/bash
 set -e
 
@@ -142,20 +145,20 @@ chmod 600 /home/sprite/.local/share/opencode/auth.json
     : 'echo "No opencode auth configured"'
 }
 
-# Download and install abraxas-opencode-setup
-echo "Installing abraxas-opencode-setup..."
-curl -sL https://github.com/anomalyco/abraxas-opencode-setup/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp
+# Download and install opencode-setup
+echo "Installing opencode-setup..."
+curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp
 
 # Install commands
-mkdir -p /home/sprite/.config/opencode/commands
-cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/commands/
+mkdir -p /home/sprite/.config/opencode/command
+cp /tmp/${opencodeSetupRepoName}-main/command/*.md /home/sprite/.config/opencode/command/
 
 # Install skills
-mkdir -p /home/sprite/.config/opencode/skills
-cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skills/
+mkdir -p /home/sprite/.config/opencode/skill
+cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/skill/
 
 # Install task-loop
-cp /tmp/abraxas-opencode-setup-main/bin/task-loop.sh /usr/local/bin/task-loop
+cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop
 chmod +x /usr/local/bin/task-loop
 
 # Install opencode

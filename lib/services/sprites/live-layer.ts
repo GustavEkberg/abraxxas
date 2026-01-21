@@ -41,6 +41,7 @@ class SpritesConfig extends Context.Tag('@app/SpritesConfig')<
     readonly token: Redacted.Redacted<string>
     readonly webhookBaseUrl: string
     readonly timeoutMs: number
+    readonly opencodeSetupRepoUrl: string
   }
 >() {}
 
@@ -56,8 +57,13 @@ const SpritesConfigLive = Layer.effect(
     const timeoutMs = yield* Config.number('SPRITE_TIMEOUT_MS').pipe(
       Config.withDefault(3600000) // 1 hour
     )
+    const opencodeSetupRepoUrl = yield* Config.string('OPENCODE_SETUP_REPO_URL').pipe(
+      Effect.mapError(
+        () => new SpritesConfigError({ message: 'OPENCODE_SETUP_REPO_URL not found' })
+      )
+    )
 
-    return { token, webhookBaseUrl, timeoutMs }
+    return { token, webhookBaseUrl, timeoutMs, opencodeSetupRepoUrl }
   })
 )
 
@@ -303,7 +309,8 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
       destroySprite,
       execCommand,
       listSprites,
-      updateUrlSettings
+      updateUrlSettings,
+      opencodeSetupRepoUrl: config.opencodeSetupRepoUrl
     } as const
   })
 }) {
