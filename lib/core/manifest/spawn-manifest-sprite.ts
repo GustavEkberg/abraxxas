@@ -189,9 +189,13 @@ echo "=== Setup Complete ==="
         )
       )
 
-    // Run setup in background (fire and forget)
+    // Run setup in background using setsid to fully detach from terminal
     yield* sprites
-      .execCommand(spriteName, ['bash', '-c', 'nohup /tmp/setup.sh > /tmp/setup-runner.log 2>&1 &'])
+      .execCommand(spriteName, [
+        'bash',
+        '-c',
+        'setsid /tmp/setup.sh > /tmp/setup-runner.log 2>&1 < /dev/null &'
+      ])
       .pipe(
         Effect.mapError(
           error =>
