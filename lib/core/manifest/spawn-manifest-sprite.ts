@@ -127,16 +127,37 @@ set -e
 echo "=== Manifest Sprite Setup ===" > /tmp/setup.log
 exec >> /tmp/setup.log 2>&1
 
-# Clone repository
-echo "Cloning repository..."
-git clone "${authRepoUrl}" /home/sprite/repo
+# Create directories upfront
+mkdir -p /home/sprite/.local/share/opencode
+mkdir -p /home/sprite/.config/opencode/command
+mkdir -p /home/sprite/.config/opencode/skill
+
+# Run downloads in parallel: repo clone, opencode install, opencode-setup tarball
+echo "Starting parallel downloads..."
+
+git clone "${authRepoUrl}" /home/sprite/repo &
+PID_REPO=$!
+
+curl -fsSL https://opencode.ai/install | bash &
+PID_OPENCODE=$!
+
+curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp &
+PID_SETUP=$!
+
+# Wait for all downloads
+echo "Waiting for downloads to complete..."
+wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
+echo "Repo cloned"
+wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
+echo "Opencode installed"
+wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
+echo "Setup tarball extracted"
 
 # Setup opencode auth
 ${
   Option.isSome(opencodeAuth)
     ? `
 echo "Setting up opencode auth..."
-mkdir -p /home/sprite/.local/share/opencode
 cat > /home/sprite/.local/share/opencode/auth.json << 'AUTHEOF'
 ${opencodeAuth.value}
 AUTHEOF
@@ -145,25 +166,11 @@ chmod 600 /home/sprite/.local/share/opencode/auth.json
     : 'echo "No opencode auth configured"'
 }
 
-# Download and install opencode-setup
-echo "Installing opencode-setup..."
-curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp
-
-# Install commands
-mkdir -p /home/sprite/.config/opencode/command
+# Install commands and skills (fast local copies)
 cp /tmp/${opencodeSetupRepoName}-main/command/*.md /home/sprite/.config/opencode/command/
-
-# Install skills
-mkdir -p /home/sprite/.config/opencode/skill
 cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/skill/
-
-# Install task-loop
 cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop
 chmod +x /usr/local/bin/task-loop
-
-# Install opencode
-echo "Installing opencode..."
-[ -x "/home/sprite/.opencode/bin/opencode" ] || curl -fsSL https://opencode.ai/install | bash
 
 # Start opencode serve
 echo "Starting opencode serve..."
