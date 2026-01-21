@@ -25,7 +25,12 @@ const AuthDbLive = Layer.effect(
       const pool = new pg.Pool({ connectionString: url })
       return drizzlePg({ client: pool, schema })
     }
-    return drizzleNeon({ connection: url, schema })
+    // Use WHATWG URL API to add sslmode=verify-full (silences pg deprecation warnings)
+    const parsedUrl = new URL(url)
+    if (!parsedUrl.searchParams.has('sslmode')) {
+      parsedUrl.searchParams.set('sslmode', 'verify-full')
+    }
+    return drizzleNeon({ connection: parsedUrl.toString(), schema })
   })
 )
 
