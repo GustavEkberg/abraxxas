@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import {
   Check,
   ExternalLink,
@@ -33,6 +33,73 @@ import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action'
 
 const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
+interface Spark {
+  id: number
+  angle: number
+  distance: number
+  duration: number
+  delay: number
+  size: number
+}
+
+function SparkParticle({ angle, distance, duration, delay, size }: Spark) {
+  const rad = (angle * Math.PI) / 180
+  const tx = Math.cos(rad) * distance
+  const ty = Math.sin(rad) * distance
+
+  return (
+    <span
+      className="pointer-events-none absolute left-1/2 top-1/2 rounded-full bg-red-400"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        animation: `spark-fly-${Math.round(angle)}-${Math.round(distance)} ${duration}s ease-out ${delay}s forwards`
+      }}
+    >
+      <style>{`
+        @keyframes spark-fly-${Math.round(angle)}-${Math.round(distance)} {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+          100% { transform: translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.3); opacity: 0; }
+        }
+      `}</style>
+    </span>
+  )
+}
+
+function createSpark(id: number): Spark {
+  return {
+    id,
+    angle: Math.random() * 360,
+    distance: 40 + Math.random() * 60,
+    duration: 0.8 + Math.random() * 0.6,
+    delay: Math.random() * 0.2,
+    size: 2 + Math.random() * 3
+  }
+}
+
+function SparkBurst() {
+  const [sparks, setSparks] = useState<Spark[]>([])
+
+  useEffect(() => {
+    let idCounter = 0
+    const interval = setInterval(() => {
+      const count = 3 + Math.floor(Math.random() * 4)
+      const newSparks = Array.from({ length: count }, () => createSpark(idCounter++))
+      setSparks(prev => [...prev.slice(-30), ...newSparks])
+    }, 300)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {sparks.map(s => (
+        <SparkParticle key={s.id} {...s} />
+      ))}
+    </div>
+  )
+}
+
 function calcProgress(prdJson: string | null): { passed: number; total: number } | null {
   if (!prdJson) return null
   try {
@@ -50,7 +117,7 @@ function calcProgress(prdJson: string | null): { passed: number; total: number }
   }
 }
 
-function ManifestProgress({ prdJson }: { prdJson: string | null }) {
+function ManifestProgress({ prdJson, isRunning }: { prdJson: string | null; isRunning: boolean }) {
   const progress = calcProgress(prdJson)
   if (!progress) return null
   const { passed, total } = progress
@@ -63,11 +130,16 @@ function ManifestProgress({ prdJson }: { prdJson: string | null }) {
         </span>
         <span>{Math.round(percent)}%</span>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="relative h-1 w-full overflow-visible rounded-full bg-white/10">
         <div
           className="h-full rounded-full bg-red-500 transition-all duration-300"
           style={{ width: `${percent}%` }}
         />
+        {isRunning && (
+          <div className="absolute top-1/2 -translate-y-1/2" style={{ left: `${percent}%` }}>
+            <SparkBurst />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -285,7 +357,23 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
   }
 
   return (
-    <Card className={`w-fit p-4 font-mono transition-all duration-200 ${borderColor} ${bgColor}`}>
+    <Card
+      className={`relative w-fit p-4 font-mono transition-all duration-200 ${borderColor} ${bgColor} ${isRunning ? 'animate-[shake_0.3s_ease-in-out_infinite]' : ''}`}
+      style={
+        isRunning
+          ? {
+              animation: 'shake 0.15s ease-in-out infinite'
+            }
+          : undefined
+      }
+    >
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0) rotate(0deg); }
+          25% { transform: translateX(-1px) rotate(-0.5deg); }
+          75% { transform: translateX(1px) rotate(0.5deg); }
+        }
+      `}</style>
       {/* Header row: status + name + actions */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -412,7 +500,7 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
       )}
 
       {/* Progress bar based on prdJson tasks */}
-      {manifest.prdJson && <ManifestProgress prdJson={manifest.prdJson} />}
+      {manifest.prdJson && <ManifestProgress prdJson={manifest.prdJson} isRunning={isRunning} />}
     </Card>
   )
 }
