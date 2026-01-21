@@ -33,6 +33,46 @@ import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action'
 
 const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
+function calcProgress(prdJson: string | null): { passed: number; total: number } | null {
+  if (!prdJson) return null
+  try {
+    const prd: unknown = JSON.parse(prdJson)
+    if (typeof prd !== 'object' || prd === null) return null
+    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : []
+    const total = tasks.length
+    const passed = tasks.filter(
+      (t): t is { passes: true } =>
+        typeof t === 'object' && t !== null && 'passes' in t && t.passes === true
+    ).length
+    return total > 0 ? { passed, total } : null
+  } catch {
+    return null
+  }
+}
+
+function ManifestProgress({ prdJson }: { prdJson: string | null }) {
+  const progress = calcProgress(prdJson)
+  if (!progress) return null
+  const { passed, total } = progress
+  const percent = (passed / total) * 100
+  return (
+    <div className="mt-3">
+      <div className="mb-1 flex items-center justify-between text-xs text-white/40">
+        <span>
+          {passed}/{total} tasks
+        </span>
+        <span>{Math.round(percent)}%</span>
+      </div>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-red-500 transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function CopyButton({
   value,
   label,
@@ -371,14 +411,8 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
         <p className="mt-2 text-xs text-red-400">{error || manifest.errorMessage}</p>
       )}
 
-      {/* Progress placeholder - TODO: add actual progress later */}
-      {isRunning && (
-        <div className="mt-3">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-red-500/50" />
-          </div>
-        </div>
-      )}
+      {/* Progress bar based on prdJson tasks */}
+      {manifest.prdJson && <ManifestProgress prdJson={manifest.prdJson} />}
     </Card>
   )
 }
