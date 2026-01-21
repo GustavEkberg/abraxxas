@@ -109,230 +109,98 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
 
     yield* Effect.log(`Saved sprite details to manifest ${manifestId}`)
 
-    // Helper to clean up sprite on failure
-    const cleanupOnError = <E, A>(effect: Effect.Effect<A, E>) =>
-      effect.pipe(
-        Effect.catchAll(error => {
-          return sprites.destroySprite(spriteName).pipe(
-            Effect.catchAll(() => Effect.void),
-            Effect.flatMap(() => Effect.fail(error))
-          )
-        })
-      )
+    // Get opencode auth for the setup script
+    const opencodeAuth = yield* getOpencodeAuth(userId)
 
-    // Clone repository
-    yield* Effect.log('Cloning repository...')
+    // Build the setup script that runs in background
     const authRepoUrl = project.repositoryUrl.replace(
       'https://github.com/',
       `https://${githubToken}@github.com/`
     )
 
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, ['bash', '-c', `git clone "${authRepoUrl}" /home/sprite/repo`])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to clone repository: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
+    const setupScript = `#!/bin/bash
+set -e
+
+echo "=== Manifest Sprite Setup ===" > /tmp/setup.log
+exec >> /tmp/setup.log 2>&1
+
+# Clone repository
+echo "Cloning repository..."
+git clone "${authRepoUrl}" /home/sprite/repo
+
+# Setup opencode auth
+${
+  Option.isSome(opencodeAuth)
+    ? `
+echo "Setting up opencode auth..."
+mkdir -p /home/sprite/.local/share/opencode
+cat > /home/sprite/.local/share/opencode/auth.json << 'AUTHEOF'
+${opencodeAuth.value}
+AUTHEOF
+chmod 600 /home/sprite/.local/share/opencode/auth.json
+`
+    : 'echo "No opencode auth configured"'
+}
+
+# Download and install abraxas-opencode-setup
+echo "Installing abraxas-opencode-setup..."
+curl -sL https://github.com/anomalyco/abraxas-opencode-setup/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp
+
+# Install commands
+mkdir -p /home/sprite/.config/opencode/commands
+cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/commands/
+
+# Install skills
+mkdir -p /home/sprite/.config/opencode/skills
+cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skills/
+
+# Install task-loop
+cp /tmp/abraxas-opencode-setup-main/bin/task-loop.sh /usr/local/bin/task-loop
+chmod +x /usr/local/bin/task-loop
+
+# Install opencode
+echo "Installing opencode..."
+[ -x "/home/sprite/.opencode/bin/opencode" ] || curl -fsSL https://opencode.ai/install | bash
+
+# Start opencode serve
+echo "Starting opencode serve..."
+cd /home/sprite/repo
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
+
+echo "=== Setup Complete ==="
+`
+
+    // Write and execute setup script in background
+    yield* sprites
+      .execCommand(spriteName, ['bash', '-c', 'cat > /tmp/setup.sh && chmod +x /tmp/setup.sh'], {
+        stdin: setupScript
+      })
+      .pipe(
+        Effect.mapError(
+          error =>
+            new SpriteExecutionError({
+              message: `Failed to write setup script: ${error.message}`,
+              spriteName,
+              cause: error
+            })
         )
-    )
-
-    yield* Effect.log('Repository cloned')
-
-    // Upload opencode auth.json if user has one configured
-    const opencodeAuth = yield* getOpencodeAuth(userId)
-    if (Option.isSome(opencodeAuth)) {
-      yield* Effect.log('Uploading opencode auth.json...')
-
-      // Use /home/sprite explicitly since that's where the sprite user's home is
-      yield* cleanupOnError(
-        sprites
-          .execCommand(spriteName, [
-            'bash',
-            '-c',
-            'mkdir -p /home/sprite/.local/share/opencode /root/.local/share/opencode 2>/dev/null || true'
-          ])
-          .pipe(
-            Effect.mapError(
-              error =>
-                new SpriteExecutionError({
-                  message: `Failed to create opencode directory: ${error.message}`,
-                  spriteName,
-                  cause: error
-                })
-            )
-          )
       )
 
-      yield* cleanupOnError(
-        sprites
-          .execCommand(
-            spriteName,
-            [
-              'bash',
-              '-c',
-              'cat > /home/sprite/.local/share/opencode/auth.json && chmod 600 /home/sprite/.local/share/opencode/auth.json && cp /home/sprite/.local/share/opencode/auth.json /root/.local/share/opencode/auth.json 2>/dev/null && chmod 600 /root/.local/share/opencode/auth.json 2>/dev/null || true'
-            ],
-            { stdin: opencodeAuth.value }
-          )
-          .pipe(
-            Effect.mapError(
-              error =>
-                new SpriteExecutionError({
-                  message: `Failed to write opencode auth.json: ${error.message}`,
-                  spriteName,
-                  cause: error
-                })
-            )
-          )
+    // Run setup in background (fire and forget)
+    yield* sprites
+      .execCommand(spriteName, ['bash', '-c', 'nohup /tmp/setup.sh > /tmp/setup-runner.log 2>&1 &'])
+      .pipe(
+        Effect.mapError(
+          error =>
+            new SpriteExecutionError({
+              message: `Failed to start setup script: ${error.message}`,
+              spriteName,
+              cause: error
+            })
+        )
       )
 
-      yield* Effect.log('Uploaded opencode auth.json')
-    } else {
-      yield* Effect.log('No opencode auth configured, skipping')
-    }
-
-    // Download and install abraxas-opencode-setup
-    yield* Effect.log('Installing abraxas-opencode-setup...')
-
-    // Download the setup repo tarball
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          'curl -sL https://github.com/anomalyco/abraxas-opencode-setup/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to download abraxas-opencode-setup: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('Downloaded abraxas-opencode-setup')
-
-    // Copy command/*.md to ~/.config/opencode/command/
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          'mkdir -p /home/sprite/.config/opencode/commands && cp /tmp/abraxas-opencode-setup-main/command/*.md /home/sprite/.config/opencode/commands/'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to install commands: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('Installed commands')
-
-    // Copy skill/*/ to ~/.config/opencode/skill/
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          'mkdir -p /home/sprite/.config/opencode/skills && cp -r /tmp/abraxas-opencode-setup-main/skill/* /home/sprite/.config/opencode/skills/'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to install skills: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('Installed skills')
-
-    // Copy bin/task-loop.sh to /usr/local/bin/task-loop with chmod +x
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          'cp /tmp/abraxas-opencode-setup-main/bin/task-loop.sh /usr/local/bin/task-loop && chmod +x /usr/local/bin/task-loop'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to install task-loop: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('Installed task-loop')
-
-    // Install opencode if not present (installs to ~/.opencode/bin)
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          '[ -x "$HOME/.opencode/bin/opencode" ] || curl -fsSL https://opencode.ai/install | bash'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to install opencode: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('opencode installed')
-
-    // Start opencode serve in background (for browser access via sprite URL)
-    // Bind to 0.0.0.0 for external access, set password for security
-    yield* cleanupOnError(
-      sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          `cd /home/sprite/repo && HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &`
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to start opencode serve: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          )
-        )
-    )
-
-    yield* Effect.log('opencode serve started')
-    yield* Effect.log(`Manifest sprite setup complete: ${spriteName}`)
+    yield* Effect.log(`Setup script started in background for ${spriteName}`)
 
     return {
       spriteName,
