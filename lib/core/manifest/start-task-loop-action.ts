@@ -27,6 +27,9 @@ function generateTaskLoopWrapperScript(config: {
   return `#!/bin/bash
 set -euo pipefail
 
+# Source environment (not auto-sourced in detached sessions)
+source /etc/profile.d/opencode.sh
+
 PRD_NAME="${prdName}"
 WEBHOOK_URL="${webhookUrl}"
 WEBHOOK_SECRET="${webhookSecret}"
