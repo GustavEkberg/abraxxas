@@ -310,7 +310,8 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
       execCommand,
       listSprites,
       updateUrlSettings,
-      opencodeSetupRepoUrl: config.opencodeSetupRepoUrl
+      opencodeSetupRepoUrl: config.opencodeSetupRepoUrl,
+      webhookBaseUrl: config.webhookBaseUrl
     } as const
   })
 }) {

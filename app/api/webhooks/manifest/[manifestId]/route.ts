@@ -23,6 +23,13 @@ const TaskLoopStartedPayloadSchema = Schema.Struct({
   prdJson: Schema.String
 })
 
+const ProgressPayloadSchema = Schema.Struct({
+  type: Schema.Literal('progress'),
+  prdJson: Schema.String,
+  iteration: Schema.Number,
+  maxIterations: Schema.Number
+})
+
 const CompletedPayloadSchema = Schema.Struct({
   type: Schema.Literal('completed'),
   prdJson: Schema.String
@@ -36,6 +43,7 @@ const ErrorPayloadSchema = Schema.Struct({
 const WebhookPayloadSchema = Schema.Union(
   StartedPayloadSchema,
   TaskLoopStartedPayloadSchema,
+  ProgressPayloadSchema,
   CompletedPayloadSchema,
   ErrorPayloadSchema
 )
@@ -113,6 +121,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         yield* handleStarted(manifestId)
       } else if (payload.type === 'task_loop_started') {
         yield* handleTaskLoopStarted(manifestId, payload)
+      } else if (payload.type === 'progress') {
+        yield* handleProgress(manifestId, payload)
       } else if (payload.type === 'completed') {
         yield* handleCompleted(manifestId, manifest.spriteName, payload)
       } else if (payload.type === 'error') {
@@ -172,6 +182,29 @@ const handleTaskLoopStarted = (
       .where(eq(schema.manifests.id, manifestId))
 
     yield* Effect.logInfo('Task loop started event handled', { manifestId })
+  })
+
+// Handler for 'progress' event - updates prdJson during task loop execution
+const handleProgress = (
+  manifestId: string,
+  payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
+) =>
+  Effect.gen(function* () {
+    const db = yield* Db
+
+    yield* db
+      .update(schema.manifests)
+      .set({
+        prdJson: payload.prdJson,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.manifests.id, manifestId))
+
+    yield* Effect.logInfo('Progress event handled', {
+      manifestId,
+      iteration: payload.iteration,
+      maxIterations: payload.maxIterations
+    })
   })
 
 // Handler for 'completed' event - updates status to completed, stores prdJson, destroys sprite
