@@ -1,60 +1,60 @@
-import { randomBytes } from 'crypto';
-import { Effect, Option } from 'effect';
-import { Sprites } from '@/lib/services/sprites/live-layer';
+import { randomBytes } from 'crypto'
+import { Effect, Option } from 'effect'
+import { Sprites } from '@/lib/services/sprites/live-layer'
 import {
   generateCallbackScript,
   generateWebhookSecret,
   DEFAULT_SETUP_SCRIPT
-} from './callback-script';
-import { SpriteExecutionError } from '@/lib/services/sprites/errors';
-import { ValidationError } from '@/lib/core/errors';
-import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth';
-import type { Task, Project } from '@/lib/services/db/schema';
+} from './callback-script'
+import { SpriteExecutionError } from '@/lib/services/sprites/errors'
+import { ValidationError } from '@/lib/core/errors'
+import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
+import type { Task, Project } from '@/lib/services/db/schema'
 
 /**
  * Configuration for spawning a sprite for a task.
  */
 export interface SpawnSpriteConfig {
-  task: Pick<Task, 'id' | 'title' | 'description' | 'branchName' | 'model'>;
-  project: Pick<Project, 'id' | 'name' | 'repositoryUrl' | 'encryptedGithubToken'>;
-  prompt: string;
-  decryptedGithubToken: string;
+  task: Pick<Task, 'id' | 'title' | 'description' | 'branchName' | 'model'>
+  project: Pick<Project, 'id' | 'name' | 'repositoryUrl' | 'encryptedGithubToken'>
+  prompt: string
+  decryptedGithubToken: string
   /** User ID to fetch opencode auth for model access */
-  userId: string;
+  userId: string
   /** Opencode model string (provider/model format) */
-  opencodeModel: string;
+  opencodeModel: string
 }
 
 /**
  * Result of spawning a sprite.
  */
 export interface SpawnSpriteResult {
-  spriteName: string;
-  spriteUrl: string;
-  spritePassword: string;
-  webhookSecret: string;
-  branchName: string;
+  spriteName: string
+  spriteUrl: string
+  spritePassword: string
+  webhookSecret: string
+  branchName: string
 }
 
 /**
  * Generate a random 32-character alphanumeric password for sprite access.
  */
 export function generateSpritePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = randomBytes(32);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const bytes = randomBytes(32)
   return Array.from(bytes)
     .map(b => chars[b % chars.length])
-    .join('');
+    .join('')
 }
 
 /**
  * Generate a unique sprite name for a task.
  */
 export function generateSpriteName(taskId: string): string {
-  const timestamp = Date.now();
+  const timestamp = Date.now()
   // Sprite names must be alphanumeric with dashes, max 63 chars
-  const shortTaskId = taskId.replace(/-/g, '').slice(0, 12);
-  return `abraxas-${shortTaskId}-${timestamp}`;
+  const shortTaskId = taskId.replace(/-/g, '').slice(0, 12)
+  return `abraxas-${shortTaskId}-${timestamp}`
 }
 
 /**
@@ -65,10 +65,10 @@ export function generateBranchName(taskId: string, taskTitle: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 30);
+    .slice(0, 30)
 
-  const shortTaskId = taskId.replace(/-/g, '').slice(0, 8);
-  return `abraxas/${shortTaskId}-${slugifiedTitle}`;
+  const shortTaskId = taskId.replace(/-/g, '').slice(0, 8)
+  return `abraxas/${shortTaskId}-${slugifiedTitle}`
 }
 
 /**
@@ -79,9 +79,9 @@ export function generateBranchName(taskId: string, taskTitle: string): string {
  */
 export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
   Effect.gen(function* () {
-    const sprites = yield* Sprites;
+    const sprites = yield* Sprites
 
-    const { task, project, prompt, decryptedGithubToken, userId, opencodeModel } = config;
+    const { task, project, prompt, decryptedGithubToken, userId, opencodeModel } = config
 
     // Validate project has repository URL
     if (!project.repositoryUrl) {
@@ -90,17 +90,17 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
           message: 'Project does not have a repository URL configured',
           field: 'repositoryUrl'
         })
-      );
+      )
     }
 
-    const spriteName = generateSpriteName(task.id);
-    const spritePassword = generateSpritePassword();
-    const webhookSecret = generateWebhookSecret();
+    const spriteName = generateSpriteName(task.id)
+    const spritePassword = generateSpritePassword()
+    const webhookSecret = generateWebhookSecret()
     // Reuse existing branch if task already has one, otherwise generate new
-    const branchName = task.branchName || generateBranchName(task.id, task.title);
+    const branchName = task.branchName || generateBranchName(task.id, task.title)
     // Use VERCEL_BRANCH_URL if available, fallback to localhost (webhooks won't work locally)
-    const baseUrl = (sprites.webhookBaseUrl ?? 'http://localhost:3000').replace(/\/$/, '');
-    const webhookUrl = `${baseUrl}/api/webhooks/sprite/${task.id}`;
+    const baseUrl = (sprites.webhookBaseUrl ?? 'http://localhost:3000').replace(/\/$/, '')
+    const webhookUrl = `${baseUrl}/api/webhooks/sprite/${task.id}`
 
     yield* Effect.annotateCurrentSpan({
       'sprite.name': spriteName,
@@ -108,10 +108,10 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       'sprite.webhookUrl': webhookUrl,
       'task.id': task.id,
       'project.id': project.id
-    });
+    })
 
-    yield* Effect.log(`Creating sprite: ${spriteName}`);
-    yield* Effect.log(`Using branch: ${branchName}${task.branchName ? ' (existing)' : ' (new)'}`);
+    yield* Effect.log(`Creating sprite: ${spriteName}`)
+    yield* Effect.log(`Using branch: ${branchName}${task.branchName ? ' (existing)' : ' (new)'}`)
 
     // Create the sprite with public auth (to allow remote access)
     const sprite = yield* sprites.createSprite(spriteName, 'public').pipe(
@@ -123,14 +123,14 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
             cause: error
           })
       )
-    );
+    )
 
-    const spriteUrl = sprite.url;
+    const spriteUrl = sprite.url
 
     // Upload opencode auth.json if user has one configured
-    const opencodeAuth = yield* getOpencodeAuth(userId);
+    const opencodeAuth = yield* getOpencodeAuth(userId)
     if (Option.isSome(opencodeAuth)) {
-      yield* Effect.log('Uploading opencode auth.json to sprite');
+      yield* Effect.log('Uploading opencode auth.json to sprite')
 
       // Create directory structure using $HOME for portability
       // Also create in /root in case opencode runs as root
@@ -153,9 +153,9 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
             return sprites.destroySprite(spriteName).pipe(
               Effect.catchAll(() => Effect.void),
               Effect.flatMap(() => Effect.fail(error))
-            );
+            )
           })
-        );
+        )
 
       // Write auth.json to both locations to ensure opencode finds it
       // Set restrictive permissions (600) since this contains secrets
@@ -182,17 +182,17 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
             return sprites.destroySprite(spriteName).pipe(
               Effect.catchAll(() => Effect.void),
               Effect.flatMap(() => Effect.fail(error))
-            );
+            )
           })
-        );
+        )
 
-      yield* Effect.log('Uploaded opencode auth.json to sprite');
+      yield* Effect.log('Uploaded opencode auth.json to sprite')
     } else {
-      yield* Effect.log('No opencode auth configured for user, skipping auth upload');
+      yield* Effect.log('No opencode auth configured for user, skipping auth upload')
     }
 
     // Generate the execution script with setup phase
-    const setupScript = DEFAULT_SETUP_SCRIPT;
+    const setupScript = DEFAULT_SETUP_SCRIPT
 
     const script = generateCallbackScript({
       sessionId: task.id,
@@ -204,10 +204,11 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       githubToken: decryptedGithubToken,
       branchName,
       model: opencodeModel,
-      setupScript
-    });
+      setupScript,
+      spritePassword
+    })
 
-    yield* Effect.log('Created sprite, writing script');
+    yield* Effect.log('Created sprite, writing script')
 
     // Write script to sprite and execute
     yield* sprites
@@ -228,9 +229,9 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
           return sprites.destroySprite(spriteName).pipe(
             Effect.catchAll(() => Effect.void),
             Effect.flatMap(() => Effect.fail(error))
-          );
+          )
         })
-      );
+      )
 
     // Make it executable
     yield* sprites.execCommand(spriteName, ['chmod', '+x', '/tmp/abraxas-run.sh']).pipe(
@@ -246,9 +247,9 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
         return sprites.destroySprite(spriteName).pipe(
           Effect.catchAll(() => Effect.void),
           Effect.flatMap(() => Effect.fail(error))
-        );
+        )
       })
-    );
+    )
 
     // Execute the script in the background (fire and forget)
     yield* sprites
@@ -270,11 +271,11 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
           return sprites.destroySprite(spriteName).pipe(
             Effect.catchAll(() => Effect.void),
             Effect.flatMap(() => Effect.fail(error))
-          );
+          )
         })
-      );
+      )
 
-    yield* Effect.log(`Execution started for ${spriteName}`);
+    yield* Effect.log(`Execution started for ${spriteName}`)
 
     return {
       spriteName,
@@ -282,5 +283,5 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       spritePassword,
       webhookSecret,
       branchName
-    } satisfies SpawnSpriteResult;
+    } satisfies SpawnSpriteResult
   }).pipe(Effect.withSpan('Sprites.spawnSpriteForTask'))

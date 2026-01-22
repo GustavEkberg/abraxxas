@@ -14,7 +14,7 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ExternalLink, Link, Lock, Terminal, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Lock, Terminal, Trash2 } from 'lucide-react';
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal';
 import { ManifestCard } from '@/components/manifest/manifest-card';
 import { SummonMenu } from '@/components/summon-menu';
@@ -237,11 +237,6 @@ function DraggableCard({ task, onClick, stats, onDestroySprite }: DraggableCardP
           />
           {stats.spriteUrl && (
             <>
-              <CopyButton
-                value={stats.spriteUrl}
-                label="Copy URL"
-                icon={<Link className="size-3.5" />}
-              />
               {stats.spritePassword && (
                 <CopyButton
                   value={stats.spritePassword}

@@ -16,6 +16,8 @@ export interface CallbackScriptConfig {
   model: string
   /** Optional setup script to run before cloning (e.g., install opencode) */
   setupScript?: string
+  /** Password for opencode serve authentication */
+  spritePassword: string
 }
 
 /**
@@ -78,7 +80,8 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
     githubToken,
     branchName,
     model,
-    setupScript = DEFAULT_SETUP_SCRIPT
+    setupScript = DEFAULT_SETUP_SCRIPT,
+    spritePassword
   } = config
 
   // Escape special characters in the prompt for bash
@@ -273,6 +276,12 @@ if ! git checkout -b "$BRANCH_NAME" 2>&1; then
     exit 1
 fi
 set -e
+
+echo ""
+echo "Starting opencode serve..."
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
+sleep 2
+echo "opencode serve started on port 8080"
 
 echo ""
 echo "Running opencode..."
