@@ -10,7 +10,7 @@
         "opencodeSessions table has spritePassword text column",
         "Migration file exists and applies cleanly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "backend-1",

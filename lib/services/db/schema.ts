@@ -175,6 +175,8 @@ export const opencodeSessions = pgTable('opencodeSessions', {
   status: sessionStatusEnum('status').notNull().default('pending'),
   executionMode: executionModeEnum('executionMode').notNull(),
   spriteName: text('spriteName'),
+  spriteUrl: text('spriteUrl'),
+  spritePassword: text('spritePassword'),
   webhookSecret: text('webhookSecret'),
   branchName: text('branchName'),
   pullRequestUrl: text('pullRequestUrl'),

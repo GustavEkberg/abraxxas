@@ -1,0 +1,20 @@
+# Progress Log
+
+PRD: invocation-flow-migration
+Started: 2026-01-22
+
+## Codebase Patterns
+
+- **Drizzle migrations**: Run `pnpm db:generate --name <migration-name>` to create migration, then `pnpm drizzle-kit migrate` to apply
+- **Schema location**: `lib/services/db/schema.ts` - all tables defined here
+- **Optional text columns**: Use `text('columnName')` (nullable by default)
+
+---
+
+## Task - db-1
+
+- Added `spriteUrl` and `spritePassword` text columns to `opencodeSessions` table in schema.ts (after `spriteName`)
+- Files changed:
+  - `lib/services/db/schema.ts` - added two columns
+  - `lib/services/db/migrations/20260122110059_add-session-sprite-credentials/` - generated migration
+- **Learnings:** Pattern mirrors `manifests` table which already has these columns (line 211-212)
