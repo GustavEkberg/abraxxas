@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
 import { Db } from '@/lib/services/db/live-layer'
+import { Sprites } from '@/lib/services/sprites/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { getSession } from '@/lib/services/auth/get-session'
 import { NotFoundError, UnauthorizedError } from '@/lib/core/errors'
@@ -15,6 +16,7 @@ export const deleteTaskAction = async (taskId: string) => {
     Effect.gen(function* () {
       const { user } = yield* getSession()
       const db = yield* Db
+      const sprites = yield* Sprites
 
       // Fetch the task to verify it exists and get its projectId
       const existingTasks = yield* db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId))
@@ -62,6 +64,30 @@ export const deleteTaskAction = async (taskId: string) => {
         'task.title': task.title,
         'project.id': project.id
       })
+
+      // Fetch sessions with active sprites before deletion
+      const sessions = yield* db
+        .select({ spriteName: schema.opencodeSessions.spriteName })
+        .from(schema.opencodeSessions)
+        .where(eq(schema.opencodeSessions.taskId, taskId))
+
+      // Destroy all associated sprites
+      const spriteNames = sessions
+        .map(s => s.spriteName)
+        .filter((name): name is string => name !== null)
+
+      yield* Effect.forEach(
+        spriteNames,
+        spriteName =>
+          sprites.destroySprite(spriteName).pipe(
+            Effect.tap(() => Effect.log(`Destroyed sprite ${spriteName}`)),
+            Effect.catchAll(error =>
+              // Log but don't fail - sprite may already be gone
+              Effect.logWarning('Failed to destroy sprite', { spriteName, error })
+            )
+          ),
+        { concurrency: 'unbounded' }
+      )
 
       // Delete the task (cascade will delete comments and sessions)
       yield* db.delete(schema.tasks).where(eq(schema.tasks.id, taskId))
