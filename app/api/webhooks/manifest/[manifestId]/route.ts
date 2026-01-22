@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { createHmac, timingSafeEqual } from 'crypto'
+import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { Db } from '@/lib/services/db/live-layer'
 import * as schema from '@/lib/services/db/schema'
@@ -117,15 +118,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       // Handle different payload types based on discriminator
       if (payload.type === 'started') {
-        yield* handleStarted(manifestId)
+        yield* handleStarted(manifestId, manifest.projectId)
       } else if (payload.type === 'task_loop_started') {
-        yield* handleTaskLoopStarted(manifestId, payload)
+        yield* handleTaskLoopStarted(manifestId, manifest.projectId, payload)
       } else if (payload.type === 'progress') {
-        yield* handleProgress(manifestId, payload)
+        yield* handleProgress(manifestId, manifest.projectId, payload)
       } else if (payload.type === 'completed') {
-        yield* handleCompleted(manifestId, payload)
+        yield* handleCompleted(manifestId, manifest.projectId, payload)
       } else if (payload.type === 'error') {
-        yield* handleError(manifestId, payload)
+        yield* handleError(manifestId, manifest.projectId, payload)
       }
 
       return NextResponse.json({ success: true })
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 }
 
 // Handler for 'started' event - updates manifest status to active
-const handleStarted = (manifestId: string) =>
+const handleStarted = (manifestId: string, projectId: string) =>
   Effect.gen(function* () {
     const db = yield* Db
 
@@ -160,12 +161,14 @@ const handleStarted = (manifestId: string) =>
       })
       .where(eq(schema.manifests.id, manifestId))
 
+    revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Started event handled', { manifestId })
   })
 
 // Handler for 'task_loop_started' event - updates status to running, stores prdJson
 const handleTaskLoopStarted = (
   manifestId: string,
+  projectId: string,
   payload: Schema.Schema.Type<typeof TaskLoopStartedPayloadSchema>
 ) =>
   Effect.gen(function* () {
@@ -180,12 +183,14 @@ const handleTaskLoopStarted = (
       })
       .where(eq(schema.manifests.id, manifestId))
 
+    revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Task loop started event handled', { manifestId })
   })
 
 // Handler for 'progress' event - updates prdJson during task loop execution
 const handleProgress = (
   manifestId: string,
+  projectId: string,
   payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
 ) =>
   Effect.gen(function* () {
@@ -199,6 +204,7 @@ const handleProgress = (
       })
       .where(eq(schema.manifests.id, manifestId))
 
+    revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Progress event handled', {
       manifestId,
       iteration: payload.iteration,
@@ -211,6 +217,7 @@ const handleProgress = (
 // Note: prdJson reflects actual task status from repo - we don't override passes status
 const handleCompleted = (
   manifestId: string,
+  projectId: string,
   payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
 ) =>
   Effect.gen(function* () {
@@ -226,12 +233,17 @@ const handleCompleted = (
       })
       .where(eq(schema.manifests.id, manifestId))
 
+    revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Completed event handled', { manifestId })
   })
 
 // Handler for 'error' event - updates status to error with errorMessage
 // Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
-const handleError = (manifestId: string, payload: Schema.Schema.Type<typeof ErrorPayloadSchema>) =>
+const handleError = (
+  manifestId: string,
+  projectId: string,
+  payload: Schema.Schema.Type<typeof ErrorPayloadSchema>
+) =>
   Effect.gen(function* () {
     const db = yield* Db
 
@@ -245,5 +257,6 @@ const handleError = (manifestId: string, payload: Schema.Schema.Type<typeof Erro
       })
       .where(eq(schema.manifests.id, manifestId))
 
+    revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Error event handled', { manifestId })
   })
