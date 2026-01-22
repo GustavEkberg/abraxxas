@@ -11,43 +11,19 @@ import { getProject } from './get-project'
 
 /**
  * Default setup script that:
- * 1. Installs Docker
- * 2. Installs pnpm dependencies
- * 3. Starts docker compose services
- * 4. Parses docker-compose.yml to construct DATABASE_URL
- * 5. Creates .env.local with the DATABASE_URL
+ * 1. Installs pnpm dependencies
+ * 2. Parses docker-compose.yml to construct DATABASE_URL
+ * 3. Creates .env.local with the DATABASE_URL
+ *
+ * Note: Docker is installed at sprite setup time and started/stopped by the task loop wrapper.
  */
 const DEFAULT_SETUP_SCRIPT = `#!/bin/bash
 set -e
-
-# Install Docker
-echo "Installing Docker..."
-curl -fsSL https://get.docker.com | sh
-
-# Start docker daemon with sudo (suppress stream noise)
-echo "Starting Docker daemon..."
-sudo dockerd > /dev/null 2>&1 &
-
-# Wait for docker to be ready
-echo "Waiting for Docker to be ready..."
-for i in {1..30}; do
-  if sudo docker info > /dev/null 2>&1; then
-    echo "Docker is ready"
-    break
-  fi
-  sleep 1
-done
 
 cd /home/sprite/repo
 
 # Install dependencies
 pnpm install
-
-# Start docker services
-sudo docker compose up -d
-
-# Wait for containers to be ready
-sleep 5
 
 # Parse docker-compose.yml for postgres DATABASE_URL
 COMPOSE_FILE=""

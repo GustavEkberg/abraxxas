@@ -130,7 +130,7 @@ mkdir -p /home/sprite/.local/share/opencode
 mkdir -p /home/sprite/.config/opencode/command
 mkdir -p /home/sprite/.config/opencode/skill
 
-# Run downloads in parallel: repo clone, opencode install, opencode-setup tarball
+# Run downloads in parallel: repo clone, opencode install, opencode-setup tarball, docker
 echo "Starting parallel downloads..."
 
 git clone "${authRepoUrl}" /home/sprite/repo &
@@ -146,6 +146,10 @@ export SHELL=/bin/bash
 curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh - &
 PID_PNPM=$!
 
+# Install Docker (but don't start it - task loop will start/stop as needed)
+curl -fsSL https://get.docker.com | sh > /dev/null 2>&1 &
+PID_DOCKER=$!
+
 # Wait for all downloads
 echo "Waiting for downloads to complete..."
 wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
@@ -156,6 +160,8 @@ wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
 echo "Setup tarball extracted"
 wait $PID_PNPM || { echo "pnpm install failed"; exit 1; }
 echo "pnpm installed"
+wait $PID_DOCKER || { echo "Docker install failed (non-fatal)"; }
+echo "Docker installed"
 
 # Add pnpm to PATH permanently
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
