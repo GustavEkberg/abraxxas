@@ -85,6 +85,21 @@ function persistRunningTasks(ritualId: string, taskIds: string[]): void {
   }
 }
 
+function calcManifestProgress(prdJson: string | null): number {
+  if (!prdJson) return 0
+  try {
+    const prd: unknown = JSON.parse(prdJson)
+    if (typeof prd !== 'object' || prd === null) return 0
+    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : []
+    return tasks.filter(
+      (t): t is { passes: true } =>
+        typeof t === 'object' && t !== null && 'passes' in t && t.passes === true
+    ).length
+  } catch {
+    return 0
+  }
+}
+
 interface DroppableColumnProps {
   id: string
   color: string
@@ -205,6 +220,7 @@ export function RitualBoardClient({
     removeRunningTask,
     updateTaskMessages,
     addRunningManifest,
+    updateManifestProgress,
     removeRunningManifest
   } = useFireIntensity()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -264,14 +280,18 @@ export function RitualBoardClient({
 
   // Sync running manifests with fire intensity context (only 'running' status)
   useEffect(() => {
-    const runningManifestIds = manifests.filter(m => m.status === 'running').map(m => m.id)
+    const runningManifestList = manifests.filter(m => m.status === 'running')
 
-    // Add running manifests
-    runningManifestIds.forEach(id => addRunningManifest(id))
+    // Add/update running manifests with their completed task count
+    runningManifestList.forEach(m => {
+      const completedTasks = calcManifestProgress(m.prdJson)
+      addRunningManifest(m.id, completedTasks)
+      updateManifestProgress(m.id, completedTasks)
+    })
 
     // Remove non-running manifests
     manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
-  }, [manifests, addRunningManifest, removeRunningManifest])
+  }, [manifests, addRunningManifest, updateManifestProgress, removeRunningManifest])
 
   // Poll for running task/manifest status updates
   useEffect(() => {
