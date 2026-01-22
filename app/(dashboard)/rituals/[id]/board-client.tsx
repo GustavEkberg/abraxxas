@@ -199,7 +199,13 @@ export function RitualBoardClient({
   initialManifests
 }: RitualBoardClientProps) {
   const router = useRouter()
-  const { addRunningTask, removeRunningTask, updateTaskMessages } = useFireIntensity()
+  const {
+    addRunningTask,
+    removeRunningTask,
+    updateTaskMessages,
+    addRunningManifest,
+    removeRunningManifest
+  } = useFireIntensity()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [persistedRunningTasks, setPersistedRunningTasks] = useState<string[]>(() =>
@@ -259,6 +265,17 @@ export function RitualBoardClient({
         })
       })
   }, [tasks, taskStats, project.id, addRunningTask, removeRunningTask, updateTaskMessages])
+
+  // Sync running manifests with fire intensity context (only 'running' status)
+  useEffect(() => {
+    const runningManifestIds = manifests.filter(m => m.status === 'running').map(m => m.id)
+
+    // Add running manifests
+    runningManifestIds.forEach(id => addRunningManifest(id))
+
+    // Remove non-running manifests
+    manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
+  }, [manifests, addRunningManifest, removeRunningManifest])
 
   // Poll for running task status updates
   useEffect(() => {

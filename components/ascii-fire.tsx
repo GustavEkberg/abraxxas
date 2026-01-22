@@ -4,16 +4,19 @@ import { useEffect, useRef } from 'react'
 
 interface AsciiFireProps {
   intensity?: number // 0+, dynamic based on running tasks
+  inverted?: boolean // If true, render at top of screen (fire burns downward)
 }
 
 /**
  * ASCII fire background effect.
- * Renders a fire animation at the bottom of the screen.
+ * Renders a fire animation at the bottom (or top if inverted) of the screen.
  * Fire size caps at intensity 35, above which color shifts from white to red/yellow.
- * Intensity increases with active ritual tasks.
+ * Intensity increases with active ritual tasks and manifests.
  * Smoothly interpolates intensity changes for a gradual visual effect.
+ *
+ * When inverted=true, renders at top with fire burning downward ("as above, so below").
  */
-export function AsciiFire({ intensity = 0 }: AsciiFireProps) {
+export function AsciiFire({ intensity = 0, inverted = false }: AsciiFireProps) {
   const fireRef = useRef<HTMLPreElement>(null)
   const firePixelsRef = useRef<number[]>([])
   const widthRef = useRef(0)
@@ -104,24 +107,31 @@ export function AsciiFire({ intensity = 0 }: AsciiFireProps) {
     function render() {
       if (!fireRef.current) return
 
-      let output = ''
+      const lines: string[] = []
       const width = widthRef.current
       const firePixels = firePixelsRef.current
       const currentIntensity = currentIntensityRef.current
 
       for (let y = 0; y < height; y++) {
+        let line = ''
         for (let x = 0; x < width; x++) {
           const pixelIntensity = firePixels[y * width + x]
           if (pixelIntensity === 0) {
-            output += ' '
+            line += ' '
           } else {
             const charIdx = Math.floor((pixelIntensity / 35) * (charSet.length - 1))
-            output += charSet[charIdx]
+            line += charSet[charIdx]
           }
         }
-        output += '\n'
+        lines.push(line)
       }
-      fireRef.current.textContent = output
+
+      // If inverted, reverse the lines so fire appears to burn downward
+      if (inverted) {
+        lines.reverse()
+      }
+
+      fireRef.current.textContent = lines.join('\n')
 
       // Apply color based on intensity
       fireRef.current.style.color = getFireColor(currentIntensity)
@@ -144,12 +154,12 @@ export function AsciiFire({ intensity = 0 }: AsciiFireProps) {
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [])
+  }, [inverted])
 
   return (
     <pre
       ref={fireRef}
-      className="z-50 pointer-events-none fixed bottom-0 left-0 w-full whitespace-pre text-center font-mono text-[10px] leading-[8px] text-white/40"
+      className={`z-50 pointer-events-none fixed left-0 w-full whitespace-pre text-center font-mono text-[10px] leading-[8px] text-white/40 ${inverted ? 'top-0' : 'bottom-0'}`}
       aria-hidden="true"
     />
   )
