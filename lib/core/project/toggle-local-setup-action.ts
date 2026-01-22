@@ -11,14 +11,20 @@ import { getProject } from './get-project'
 
 /**
  * Default setup script that:
- * 1. Installs pnpm dependencies
- * 2. Parses docker-compose.yml to construct DATABASE_URL
- * 3. Creates .env.local with the DATABASE_URL
+ * 1. Installs Docker (for local dev services)
+ * 2. Installs pnpm dependencies
+ * 3. Parses docker-compose.yml to construct DATABASE_URL
+ * 4. Creates .env.local with the DATABASE_URL
  *
- * Note: Docker is installed at sprite setup time and started/stopped by the task loop wrapper.
+ * Note: Docker daemon is started/stopped by the task loop wrapper, not here.
  */
 const DEFAULT_SETUP_SCRIPT = `#!/bin/bash
 set -e
+
+# Install Docker (task loop will start/stop daemon as needed)
+echo "Installing Docker..."
+curl -fsSL https://get.docker.com | sh > /dev/null 2>&1
+echo "Docker installed"
 
 cd /home/sprite/repo
 
