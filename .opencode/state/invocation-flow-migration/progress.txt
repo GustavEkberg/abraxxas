@@ -48,3 +48,18 @@ Started: 2026-01-22
 - **Learnings:**
   - Comments are still created by agent (line 143) but no longer fed into the initial prompt
   - This is part of simplifying the invocation flow - comments UI will be removed in ui-4
+
+## Task - backend-4
+
+- Created `destroySpriteAction(sessionId)` server action
+- Files changed:
+  - `lib/core/task/destroy-sprite-action.ts` - new file
+- **Implementation details:**
+  - Looks up session by ID, then task, then project to verify ownership
+  - Uses `sprites.destroySprite(spriteName)` with catchAll (sprite may already be destroyed)
+  - Clears `spriteName`, `spriteUrl`, `spritePassword` from session record
+  - Returns `{ _tag: 'Success' }` or `{ _tag: 'Error', message: string }` 
+  - Follows exact pattern from `delete-manifest-action.ts` (line 49-60)
+- **Learnings:** 
+  - Ownership verification chain: session -> task -> project -> user.id check
+  - Pattern to catch sprite destruction errors (sprite may already be gone) is standard

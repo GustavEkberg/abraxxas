@@ -56,7 +56,7 @@
         "Clears spriteUrl, spritePassword, spriteName from session record",
         "Returns success/error result"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",
