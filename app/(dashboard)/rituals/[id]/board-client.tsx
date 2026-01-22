@@ -13,10 +13,9 @@ import {
 } from '@dnd-kit/core'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
-import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { ManifestCard } from '@/components/manifest/manifest-card'
-import { CreateManifestDialog } from '@/components/manifest/create-manifest-dialog'
+import { SummonMenu } from '@/components/summon-menu'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
@@ -215,11 +214,6 @@ export function RitualBoardClient({
   )
   const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
   const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
-  const [showManifestHistory, setShowManifestHistory] = useState(true)
-
-  // Derive active and historical manifests
-  const activeManifest = manifests.find(m => ['pending', 'active', 'running'].includes(m.status))
-  const historicalManifests = manifests.filter(m => ['completed', 'error'].includes(m.status))
 
   // Task detail modal state - store ID only to avoid stale data issues
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -421,64 +415,41 @@ export function RitualBoardClient({
       <div className="min-h-screen p-3 md:p-6">
         {/* Header */}
         <div className="mb-4 md:mb-6">
-          <button
-            onClick={() => router.push('/')}
-            className="mb-3 text-sm text-white/60 transition-colors hover:text-white/90 font-mono md:mb-4"
-          >
-            ← Return to Chamber
-          </button>
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-0">
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold text-white/90 md:text-3xl">
-                {project.name}
-              </h1>
-              {project.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-white/60 md:mt-2 md:text-base">
-                  {project.description}
-                </p>
-              )}
-              <p className="mt-1 truncate text-xs text-white/40 md:text-sm">
-                {project.repositoryUrl.replace('https://github.com/', '')}
+          <div className="mb-3 flex items-center justify-between md:mb-4">
+            <button
+              onClick={() => router.push('/')}
+              className="text-sm text-white/60 transition-colors hover:text-white/90 font-mono"
+            >
+              ← Return to Chamber
+            </button>
+            <SummonMenu ritualId={project.id} />
+          </div>
+          <div>
+            <h1 className="truncate text-xl font-bold text-white/90 md:text-3xl">{project.name}</h1>
+            {project.description && (
+              <p className="mt-1 line-clamp-2 text-sm text-white/60 md:mt-2 md:text-base">
+                {project.description}
               </p>
-            </div>
-            <div className="flex-shrink-0">
-              <CreateInvocationDialog ritualId={project.id} />
-            </div>
+            )}
+            <p className="mt-1 truncate text-xs text-white/40 md:text-sm">
+              {project.repositoryUrl.replace('https://github.com/', '')}
+            </p>
           </div>
         </div>
 
         {/* Manifest Section */}
         <div className="mb-6 space-y-3 md:mb-10 md:space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">
-              Manifests
-            </h2>
-            {!activeManifest && <CreateManifestDialog projectId={project.id} />}
-          </div>
+          <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">Manifests</h2>
 
-          {activeManifest ? (
-            <ManifestCard manifest={activeManifest} />
+          {manifests.length > 0 ? (
+            <div className="space-y-3">
+              {manifests.map(manifest => (
+                <ManifestCard key={manifest.id} manifest={manifest} />
+              ))}
+            </div>
           ) : (
             <div className="border border-dashed border-white/10 bg-zinc-950/50 p-4 text-center font-mono text-xs text-white/40 md:p-6 md:text-sm">
-              No active manifest. Create one to spawn an autonomous agent.
-            </div>
-          )}
-
-          {historicalManifests.length > 0 && (
-            <div>
-              <button
-                onClick={() => setShowManifestHistory(prev => !prev)}
-                className="font-mono text-sm text-white/60 transition-colors hover:text-white/90"
-              >
-                {showManifestHistory ? '▼' : '▶'} History ({historicalManifests.length})
-              </button>
-              {showManifestHistory && (
-                <div className="mt-3 space-y-3">
-                  {historicalManifests.map(manifest => (
-                    <ManifestCard key={manifest.id} manifest={manifest} />
-                  ))}
-                </div>
-              )}
+              No manifests yet. Conjure one to spawn an autonomous agent.
             </div>
           )}
         </div>

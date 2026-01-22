@@ -24,6 +24,8 @@ import { createManifestAction } from '@/lib/core/manifest/create-manifest-action
 interface CreateManifestDialogProps {
   projectId: string
   trigger?: React.ReactElement
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 function CopyableCredential({
@@ -77,10 +79,19 @@ type DialogState =
   | { _tag: 'success'; spriteUrl: string; spritePassword: string }
   | { _tag: 'error'; message: string }
 
-export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialogProps) {
-  const [open, setOpen] = useState(false)
+export function CreateManifestDialog({
+  projectId,
+  trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange
+}: CreateManifestDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const [name, setName] = useState('')
   const [state, setState] = useState<DialogState>({ _tag: 'form' })
+
+  // Support both controlled and uncontrolled modes
+  const open = controlledOpen ?? internalOpen
+  const setOpen = controlledOnOpenChange ?? setInternalOpen
 
   const canSubmit = name.length > 0 && state._tag === 'form'
 
@@ -117,9 +128,14 @@ export function CreateManifestDialog({ projectId, trigger }: CreateManifestDialo
     setState({ _tag: 'form' })
   }
 
+  // When controlled externally, don't render trigger
+  const isControlled = controlledOpen !== undefined
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger || <Button variant="outline">Create Manifest</Button>} />
+      {!isControlled && (
+        <DialogTrigger render={trigger || <Button variant="outline">Create Manifest</Button>} />
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Summon Manifest</DialogTitle>

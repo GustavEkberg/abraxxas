@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,25 +8,25 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@/components/ui/select';
-import { createTaskAction } from '@/lib/core/task/create-task-action';
+} from '@/components/ui/select'
+import { createTaskAction } from '@/lib/core/task/create-task-action'
 
-type TaskType = 'bug' | 'feature' | 'plan' | 'other';
-type TaskModel = 'grok-1' | 'claude-opus-4-5' | 'claude-sonnet-4-5' | 'claude-haiku-4-5';
+type TaskType = 'bug' | 'feature' | 'plan' | 'other'
+type TaskModel = 'grok-1' | 'claude-opus-4-5' | 'claude-sonnet-4-5' | 'claude-haiku-4-5'
 
 function isTaskType(value: string): value is TaskType {
-  return value === 'bug' || value === 'feature' || value === 'plan' || value === 'other';
+  return value === 'bug' || value === 'feature' || value === 'plan' || value === 'other'
 }
 
 function isTaskModel(value: string): value is TaskModel {
@@ -35,41 +35,52 @@ function isTaskModel(value: string): value is TaskModel {
     value === 'claude-opus-4-5' ||
     value === 'claude-sonnet-4-5' ||
     value === 'claude-haiku-4-5'
-  );
+  )
 }
 
 interface CreateInvocationDialogProps {
-  ritualId: string;
-  trigger?: React.ReactElement;
+  ritualId: string
+  trigger?: React.ReactElement
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 interface FormData {
-  title: string;
-  description: string;
-  type: TaskType;
-  model: TaskModel;
+  title: string
+  description: string
+  type: TaskType
+  model: TaskModel
 }
 
 /**
  * Dialog for creating a new invocation (task).
  * Uses mystical theming and language.
  */
-export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function CreateInvocationDialog({
+  ritualId,
+  trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange
+}: CreateInvocationDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Support both controlled and uncontrolled modes
+  const open = controlledOpen ?? internalOpen
+  const setOpen = controlledOnOpenChange ?? setInternalOpen
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     type: 'feature',
     model: 'claude-opus-4-5'
-  });
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
     const result = await createTaskAction({
       projectId: ritualId,
@@ -77,12 +88,12 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
       description: formData.description || undefined,
       type: formData.type,
       model: formData.model
-    });
+    })
 
     if (result._tag === 'Error') {
-      setError(result.message);
-      setLoading(false);
-      return;
+      setError(result.message)
+      setLoading(false)
+      return
     }
 
     // Reset form and close dialog
@@ -91,22 +102,27 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
       description: '',
       type: 'feature',
       model: 'claude-sonnet-4-5'
-    });
-    setOpen(false);
-    setLoading(false);
-  };
+    })
+    setOpen(false)
+    setLoading(false)
+  }
+
+  // When controlled externally, don't render trigger
+  const isControlled = controlledOpen !== undefined
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          trigger || (
-            <Button className="border border-dashed border-red-500 bg-red-600 hover:bg-red-700">
-              Cast New Invocation
-            </Button>
-          )
-        }
-      />
+      {!isControlled && (
+        <DialogTrigger
+          render={
+            trigger || (
+              <Button className="border border-dashed border-red-500 bg-red-600 hover:bg-red-700">
+                Cast New Invocation
+              </Button>
+            )
+          }
+        />
+      )}
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl text-white/90">Cast New Invocation</DialogTitle>
@@ -157,7 +173,7 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
               value={formData.type}
               onValueChange={value => {
                 if (value && isTaskType(value)) {
-                  setFormData(prev => ({ ...prev, type: value }));
+                  setFormData(prev => ({ ...prev, type: value }))
                 }
               }}
               disabled={loading}
@@ -186,7 +202,7 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
               value={formData.model}
               onValueChange={value => {
                 if (value && isTaskModel(value)) {
-                  setFormData(prev => ({ ...prev, model: value }));
+                  setFormData(prev => ({ ...prev, model: value }))
                 }
               }}
               disabled={loading}
@@ -236,5 +252,5 @@ export function CreateInvocationDialog({ ritualId, trigger }: CreateInvocationDi
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
