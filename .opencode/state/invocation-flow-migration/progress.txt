@@ -29,3 +29,12 @@ Started: 2026-01-22
 - **Learnings:** 
   - Sprites API returns `url` from `createSprite` response (see `lib/services/sprites/live-layer.ts:12-23`)
   - Changed sprite auth from 'sprite' to 'public' to allow external access (matches manifest pattern)
+
+## Task - backend-2
+
+- Removed automatic sprite destruction from webhook handlers on completion and error
+- Files changed:
+  - `app/api/webhooks/sprite/[taskId]/route.ts` - removed `destroySprite` calls from `handleCompleted` and `handleError`, removed unused `Sprites` import
+- **Learnings:**
+  - Task status transitions still work (trial/cursed) - these are independent of sprite lifecycle
+  - Sprite now persists after task completion/error, allowing user to manually inspect/debug via UI

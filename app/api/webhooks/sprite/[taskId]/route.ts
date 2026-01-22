@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { AppLayer } from '@/lib/layers'
 import { Db } from '@/lib/services/db/live-layer'
-import { Sprites } from '@/lib/services/sprites/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { getLatestSession } from '@/lib/core/session/get-latest-session'
 import { updateSession } from '@/lib/core/session/update-session'
@@ -198,7 +197,8 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - moves task to trial, posts summary, destroys sprite
+// Handler for 'completed' event - moves task to trial and posts summary
+// Note: Sprite is intentionally NOT destroyed here - user can destroy manually via UI
 const handleCompleted = (
   taskId: string,
   sessionId: string,
@@ -206,10 +206,9 @@ const handleCompleted = (
 ) =>
   Effect.gen(function* () {
     const db = yield* Db
-    const sprites = yield* Sprites
 
     // Update session to completed with stats if available
-    const session = yield* updateSession({
+    yield* updateSession({
       sessionId,
       status: 'completed',
       completedAt: new Date(),
@@ -243,23 +242,11 @@ const handleCompleted = (
       agentName: 'Abraxas'
     })
 
-    // Destroy the sprite if we have a sprite name
-    if (session.spriteName) {
-      yield* sprites.destroySprite(session.spriteName).pipe(
-        Effect.catchAll(error => {
-          // Log but don't fail if sprite destruction fails
-          return Effect.logWarning('Failed to destroy sprite', {
-            spriteName: session.spriteName,
-            error
-          })
-        })
-      )
-    }
-
     yield* Effect.logInfo('Completed event handled', { taskId, sessionId })
   })
 
-// Handler for 'error' event - moves task to cursed, posts error, destroys sprite
+// Handler for 'error' event - moves task to cursed and posts error
+// Note: Sprite is intentionally NOT destroyed here - user can inspect/debug via UI
 const handleError = (
   taskId: string,
   sessionId: string,
@@ -267,10 +254,9 @@ const handleError = (
 ) =>
   Effect.gen(function* () {
     const db = yield* Db
-    const sprites = yield* Sprites
 
     // Update session to error
-    const session = yield* updateSession({
+    yield* updateSession({
       sessionId,
       status: 'error',
       errorMessage: payload.error,
@@ -292,19 +278,6 @@ const handleError = (
       content: `✗ **Execution failed**\n\n**Error:** ${payload.error}\n\nPlease review the error and try again.`,
       agentName: 'Abraxas'
     })
-
-    // Destroy the sprite if we have a sprite name
-    if (session.spriteName) {
-      yield* sprites.destroySprite(session.spriteName).pipe(
-        Effect.catchAll(error => {
-          // Log but don't fail if sprite destruction fails
-          return Effect.logWarning('Failed to destroy sprite', {
-            spriteName: session.spriteName,
-            error
-          })
-        })
-      )
-    }
 
     yield* Effect.logInfo('Error event handled', { taskId, sessionId })
   })

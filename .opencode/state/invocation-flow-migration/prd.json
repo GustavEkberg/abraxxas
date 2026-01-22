@@ -33,7 +33,7 @@
         "Task status still transitions to vanquished on completion",
         "Task status still transitions to cursed on error"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "backend-3",
