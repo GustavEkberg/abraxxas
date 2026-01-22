@@ -99,3 +99,18 @@ Started: 2026-01-22
 - **Learnings:**
   - Manifest card uses `text-white/40` for muted secondary info (see ManifestProgress at line 128)
   - Task cards already had monospace via `font-mono` on parent containers
+
+## Task - ui-4
+
+- Removed all comments UI from task detail modal
+- Deleted unused comment-related components
+- Simplified `getTaskDetailsAction` to only return session data (not comments)
+- Files changed:
+  - `components/invocations/task-detail-modal.tsx` - removed Comment/AddCommentForm imports, removed comments prop/state/handlers, removed comments section UI
+  - `app/(dashboard)/rituals/[id]/board-client.tsx` - removed `comments` prop from TaskDetailModal
+  - `lib/core/task/get-task-details-action.ts` - removed comments from interface and fetch logic
+  - `components/invocations/add-comment-form.tsx` - deleted
+  - `components/invocations/comment.tsx` - deleted
+- **Learnings:**
+  - Comments were only used in task-detail-modal - no other consumers
+  - Server action cleanup required coordinating with client components that use the result type

@@ -105,7 +105,7 @@
         "add-comment-form.tsx deleted or unused",
         "comment-list.tsx deleted or unused (if exists)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-5",

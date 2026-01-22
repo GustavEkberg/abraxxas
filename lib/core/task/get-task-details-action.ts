@@ -3,18 +3,9 @@
 import { Effect, Option } from 'effect'
 import { NextEffect } from '@/lib/next-effect'
 import { AppLayer } from '@/lib/layers'
-import { getComments } from '@/lib/core/comment/get-comments'
 import { getLatestSession } from '@/lib/core/session/get-latest-session'
 
 export interface TaskDetailsResult {
-  comments: Array<{
-    id: string
-    content: string
-    isAgentComment: boolean
-    agentName: string | null
-    userId: string | null
-    createdAt: Date
-  }>
   session: {
     messageCount: string | null
     inputTokens: string | null
@@ -27,12 +18,9 @@ export const getTaskDetailsAction = async (
 ): Promise<{ _tag: 'Success'; data: TaskDetailsResult } | { _tag: 'Error'; message: string }> => {
   return await NextEffect.runPromise(
     Effect.gen(function* () {
-      const comments = yield* getComments(taskId)
-
       const session = yield* Effect.option(getLatestSession(taskId))
 
       return {
-        comments,
         session: Option.match(session, {
           onNone: () => null,
           onSome: s => ({

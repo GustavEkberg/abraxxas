@@ -10,11 +10,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Comment } from './comment'
-import { AddCommentForm } from './add-comment-form'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
-import { createCommentAction } from '@/lib/core/comment/create-comment-action'
 
 type TaskType = 'bug' | 'feature' | 'plan' | 'other'
 type TaskModel = 'grok-1' | 'claude-opus-4-5' | 'claude-sonnet-4-5' | 'claude-haiku-4-5'
@@ -55,18 +52,8 @@ interface TaskWithSession {
   createdAt: Date
 }
 
-interface CommentData {
-  id: string
-  content: string
-  isAgentComment: boolean
-  agentName: string | null
-  userId: string | null
-  createdAt: Date
-}
-
 interface TaskDetailModalProps {
   task: TaskWithSession | null
-  comments: CommentData[]
   ritualId: string
   repositoryUrl?: string
   session?: {
@@ -85,7 +72,6 @@ interface TaskDetailModalProps {
  */
 export function TaskDetailModal({
   task,
-  comments: initialComments,
   ritualId: _ritualId,
   repositoryUrl,
   session,
@@ -93,7 +79,6 @@ export function TaskDetailModal({
   onOpenChange,
   onUpdate
 }: TaskDetailModalProps) {
-  const [comments, setComments] = useState<CommentData[]>(initialComments)
   const [selectedType, setSelectedType] = useState<string>('')
   const [updatingType, setUpdatingType] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>('')
@@ -127,42 +112,9 @@ export function TaskDetailModal({
       setSelectedType(task.type)
       setSelectedModel(task.model)
       setSelectedExecutionState(task.executionState)
-      setComments(initialComments)
       setError(null)
     }
-  }, [task, open, initialComments])
-
-  const handleAddComment = useCallback(
-    async (content: string) => {
-      if (!task) return
-
-      const result = await createCommentAction({
-        taskId: task.id,
-        content
-      })
-
-      if (result._tag === 'Error') {
-        setError(result.message)
-        throw new Error(result.message)
-      }
-
-      // Add comment to local state optimistically
-      setComments(prev => [
-        ...prev,
-        {
-          id: result.data.id,
-          content: result.data.content,
-          isAgentComment: result.data.isAgentComment,
-          agentName: result.data.agentName,
-          userId: result.data.userId,
-          createdAt: result.data.createdAt
-        }
-      ])
-
-      onUpdate?.()
-    },
-    [task, onUpdate]
-  )
+  }, [task, open])
 
   const handleTypeChange = useCallback(
     async (value: string | null) => {
@@ -401,40 +353,11 @@ export function TaskDetailModal({
           )}
 
           {/* Description */}
-          <div className="mb-6 md:mb-8">
+          <div>
             <h3 className="mb-2 text-sm font-medium text-white/60">Description</h3>
             <div className="rounded-lg border border-white/10 bg-zinc-900/50 p-3 text-sm text-white/80 whitespace-pre-wrap md:p-4 md:text-base">
               {task.description || 'No description provided'}
             </div>
-          </div>
-
-          {/* Comments section */}
-          <div className="border-t border-white/10 pt-4 md:pt-6">
-            <h3 className="mb-3 text-base font-semibold text-white/90 md:mb-4 md:text-lg">
-              Comments
-            </h3>
-
-            {comments.length === 0 ? (
-              <div className="mb-4 py-6 text-center text-sm text-white/40 md:mb-6 md:py-8">
-                No comments yet
-              </div>
-            ) : (
-              <div className="mb-4 max-h-[300px] overflow-y-auto md:mb-6 md:max-h-[400px]">
-                {comments.map(comment => (
-                  <Comment
-                    key={comment.id}
-                    content={comment.content}
-                    isAgentComment={comment.isAgentComment}
-                    agentName={comment.agentName}
-                    userName={null}
-                    createdAt={comment.createdAt}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Add comment form */}
-            <AddCommentForm onSubmit={handleAddComment} />
           </div>
         </DialogContent>
       </Dialog>
