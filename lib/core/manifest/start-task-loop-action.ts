@@ -95,9 +95,9 @@ send_task_loop_started() {
 push_and_get_branch() {
     cd /home/sprite/repo
     
-    # Get current branch name
+    # Get current branch name first (before any push output)
     local branch_name
-    branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     
     if [ -z "$branch_name" ] || [ "$branch_name" = "HEAD" ]; then
         echo ""
@@ -108,12 +108,13 @@ push_and_get_branch() {
     if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
         # Stage and commit any remaining changes
         git add -A
-        git commit -m "chore: final manifest changes" 2>/dev/null || true
+        git commit -m "chore: final manifest changes" >/dev/null 2>&1 || true
     fi
     
-    # Push the branch (may already exist on remote)
-    git push -u origin "$branch_name" 2>/dev/null || git push origin "$branch_name" 2>/dev/null || true
+    # Push the branch (redirect all output to avoid capturing it)
+    git push -u origin "$branch_name" >/dev/null 2>&1 || git push origin "$branch_name" >/dev/null 2>&1 || true
     
+    # Return only the branch name
     echo "$branch_name"
 }
 
