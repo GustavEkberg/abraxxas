@@ -1,10 +1,6 @@
-# Abraxas
+# ἀβραξάς
 
-A mystical project management interface that summons the power of Claude Code to solve development tasks autonomously.
-
-## Overview
-
-Abraxas is a Trello-like project management tool with AI-powered task execution. Drag tasks to "The Ritual" column to spawn autonomous Claude Code sessions that execute work and create pull requests automatically.
+Harness the powers that came before us to build what will come after.
 
 ## Features
 

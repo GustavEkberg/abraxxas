@@ -14,7 +14,15 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Check, ExternalLink, GitCompareArrows, Lock, Terminal, Trash2 } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  GitCompareArrows,
+  Lock,
+  ScrollText,
+  Terminal,
+  Trash2
+} from 'lucide-react'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { ManifestCard } from '@/components/manifest/manifest-card'
 import { SummonMenu } from '@/components/summon-menu'
@@ -27,6 +35,7 @@ import {
   getTaskDetailsAction,
   type TaskDetailsResult
 } from '@/lib/core/task/get-task-details-action'
+import { tailLogAction } from '@/lib/core/sprite/tail-log-action'
 import type { Task, Project, Manifest } from '@/lib/services/db/schema'
 
 function CopyButton({
@@ -253,6 +262,7 @@ interface DraggableCardProps {
   stats?: TaskStats
   onDestroySprite?: (sessionId: string) => void
   repositoryUrl?: string
+  onTailLog?: (spriteName: string) => void
 }
 
 function buildCompareUrl(repositoryUrl: string, branchName: string): string {
@@ -266,7 +276,8 @@ function DraggableCard({
   onClick,
   stats,
   onDestroySprite,
-  repositoryUrl
+  repositoryUrl,
+  onTailLog
 }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id
@@ -361,6 +372,20 @@ function DraggableCard({
               </Button>
             </>
           )}
+          {onTailLog && stats.spriteName && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={e => {
+                e.stopPropagation()
+                if (stats.spriteName) onTailLog(stats.spriteName)
+              }}
+              className="h-7 px-2 text-white/40 hover:text-white/90"
+              title="View sprite log"
+            >
+              <ScrollText className="size-3.5" />
+            </Button>
+          )}
           {onDestroySprite && (
             <Button
               variant="ghost"
@@ -424,7 +449,7 @@ export function RitualBoardClient({
   initialManifests
 }: RitualBoardClientProps) {
   const router = useRouter()
-  const { confirm } = useAlert()
+  const { alert, confirm } = useAlert()
   const {
     addRunningTask,
     removeRunningTask,
@@ -546,7 +571,7 @@ export function RitualBoardClient({
       setTaskDetails(result.data)
     } else {
       console.error('Failed to fetch task details:', result.message)
-      setTaskDetails({ errorMessage: null })
+      setTaskDetails(null)
     }
   }, [])
 
@@ -591,6 +616,28 @@ export function RitualBoardClient({
       }
     },
     [confirm, router]
+  )
+
+  const handleTailLog = useCallback(
+    async (spriteName: string) => {
+      const result = await tailLogAction(spriteName)
+      if (result._tag === 'Success') {
+        await alert({
+          title: 'Sprite Log',
+          message: result.output || '(empty)',
+          variant: 'info',
+          confirmText: 'Close'
+        })
+      } else {
+        await alert({
+          title: 'Log Unavailable',
+          message: result.message,
+          variant: 'error',
+          confirmText: 'Dismiss'
+        })
+      }
+    },
+    [alert]
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -761,6 +808,7 @@ export function RitualBoardClient({
                         onDestroySprite={
                           taskStats[task.id]?.spriteName ? handleDestroySprite : undefined
                         }
+                        onTailLog={taskStats[task.id]?.spriteName ? handleTailLog : undefined}
                         repositoryUrl={project.repositoryUrl}
                       />
                     ))

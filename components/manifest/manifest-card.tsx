@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect } from 'react'
 import {
   Check,
   ExternalLink,
@@ -8,15 +8,16 @@ import {
   Lock,
   Pencil,
   Play,
+  ScrollText,
   Square,
   Terminal,
   Trash2
-} from 'lucide-react';
-import type { Manifest } from '@/lib/services/db/schema';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from 'lucide-react'
+import type { Manifest } from '@/lib/services/db/schema'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -24,28 +25,29 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog';
-import { useAlert } from '@/components/ui/gnostic-alert';
-import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action';
-import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action';
-import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action';
-import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action';
+} from '@/components/ui/dialog'
+import { useAlert } from '@/components/ui/gnostic-alert'
+import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action'
+import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action'
+import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
+import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action'
+import { tailLogAction } from '@/lib/core/sprite/tail-log-action'
 
-const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
 interface Spark {
-  id: number;
-  angle: number;
-  distance: number;
-  duration: number;
-  delay: number;
-  size: number;
+  id: number
+  angle: number
+  distance: number
+  duration: number
+  delay: number
+  size: number
 }
 
 function SparkParticle({ angle, distance, duration, delay, size }: Spark) {
-  const rad = (angle * Math.PI) / 180;
-  const tx = Math.cos(rad) * distance;
-  const ty = Math.sin(rad) * distance;
+  const rad = (angle * Math.PI) / 180
+  const tx = Math.cos(rad) * distance
+  const ty = Math.sin(rad) * distance
 
   return (
     <span
@@ -63,7 +65,7 @@ function SparkParticle({ angle, distance, duration, delay, size }: Spark) {
         }
       `}</style>
     </span>
-  );
+  )
 }
 
 function createSpark(id: number): Spark {
@@ -74,22 +76,22 @@ function createSpark(id: number): Spark {
     duration: 0.8 + Math.random() * 0.6,
     delay: Math.random() * 0.2,
     size: 2 + Math.random() * 3
-  };
+  }
 }
 
 function SparkBurst() {
-  const [sparks, setSparks] = useState<Spark[]>([]);
+  const [sparks, setSparks] = useState<Spark[]>([])
 
   useEffect(() => {
-    let idCounter = 0;
+    let idCounter = 0
     const interval = setInterval(() => {
-      const count = 3 + Math.floor(Math.random() * 4);
-      const newSparks = Array.from({ length: count }, () => createSpark(idCounter++));
-      setSparks(prev => [...prev.slice(-30), ...newSparks]);
-    }, 300);
+      const count = 3 + Math.floor(Math.random() * 4)
+      const newSparks = Array.from({ length: count }, () => createSpark(idCounter++))
+      setSparks(prev => [...prev.slice(-30), ...newSparks])
+    }, 300)
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -97,31 +99,31 @@ function SparkBurst() {
         <SparkParticle key={s.id} {...s} />
       ))}
     </div>
-  );
+  )
 }
 
-function calcProgress(prdJson: string | null): { passed: number; total: number; } | null {
-  if (!prdJson) return null;
+function calcProgress(prdJson: string | null): { passed: number; total: number } | null {
+  if (!prdJson) return null
   try {
-    const prd: unknown = JSON.parse(prdJson);
-    if (typeof prd !== 'object' || prd === null) return null;
-    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : [];
-    const total = tasks.length;
+    const prd: unknown = JSON.parse(prdJson)
+    if (typeof prd !== 'object' || prd === null) return null
+    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : []
+    const total = tasks.length
     const passed = tasks.filter(
-      (t): t is { passes: true; } =>
+      (t): t is { passes: true } =>
         typeof t === 'object' && t !== null && 'passes' in t && t.passes === true
-    ).length;
-    return total > 0 ? { passed, total } : null;
+    ).length
+    return total > 0 ? { passed, total } : null
   } catch {
-    return null;
+    return null
   }
 }
 
-function ManifestProgress({ prdJson, isRunning }: { prdJson: string | null; isRunning: boolean; }) {
-  const progress = calcProgress(prdJson);
-  if (!progress) return null;
-  const { passed, total } = progress;
-  const percent = (passed / total) * 100;
+function ManifestProgress({ prdJson, isRunning }: { prdJson: string | null; isRunning: boolean }) {
+  const progress = calcProgress(prdJson)
+  if (!progress) return null
+  const { passed, total } = progress
+  const percent = (passed / total) * 100
   return (
     <div className="mt-3">
       <div className="mb-1 flex items-center justify-between text-xs text-white/40">
@@ -142,7 +144,7 @@ function ManifestProgress({ prdJson, isRunning }: { prdJson: string | null; isRu
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function CopyButton({
@@ -150,17 +152,17 @@ function CopyButton({
   label,
   icon
 }: {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
+  value: string
+  label: string
+  icon: React.ReactNode
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <Button
@@ -172,7 +174,46 @@ function CopyButton({
     >
       {copied ? <Check className="size-3.5" /> : icon}
     </Button>
-  );
+  )
+}
+
+function TailLogButton({ spriteName }: { spriteName: string }) {
+  const { alert } = useAlert()
+  const [isPending, startTransition] = useTransition()
+
+  const handleTailLog = () => {
+    startTransition(async () => {
+      const result = await tailLogAction(spriteName)
+      if (result._tag === 'Success') {
+        await alert({
+          title: 'Sprite Log',
+          message: result.output || '(empty)',
+          variant: 'info',
+          confirmText: 'Close'
+        })
+      } else {
+        await alert({
+          title: 'Log Unavailable',
+          message: result.message,
+          variant: 'error',
+          confirmText: 'Dismiss'
+        })
+      }
+    })
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleTailLog}
+      disabled={isPending}
+      className="h-7 px-2 text-white/40 hover:text-white/90"
+      title="View sprite log"
+    >
+      <ScrollText className="size-3.5" />
+    </Button>
+  )
 }
 
 function EditPrdNameDialog({
@@ -181,45 +222,45 @@ function EditPrdNameDialog({
   disabled,
   highlight
 }: {
-  manifestId: string;
-  currentPrdName: string | null;
-  disabled?: boolean;
-  highlight?: boolean;
+  manifestId: string
+  currentPrdName: string | null
+  disabled?: boolean
+  highlight?: boolean
 }) {
-  const [open, setOpen] = useState(false);
-  const [prdName, setPrdName] = useState(currentPrdName ?? '');
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false)
+  const [prdName, setPrdName] = useState(currentPrdName ?? '')
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   const validationError =
     prdName.length > 0 && !KEBAB_CASE_REGEX.test(prdName)
       ? 'Must be kebab-case (e.g., my-feature)'
-      : null;
+      : null
 
-  const canSubmit = prdName.length > 0 && !validationError && prdName !== (currentPrdName ?? '');
+  const canSubmit = prdName.length > 0 && !validationError && prdName !== (currentPrdName ?? '')
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+    e.preventDefault()
+    if (!canSubmit) return
 
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      const result = await updatePrdNameAction(manifestId, prdName);
+      const result = await updatePrdNameAction(manifestId, prdName)
       if (result._tag === 'Error') {
-        setError(result.message);
+        setError(result.message)
       } else {
-        setOpen(false);
+        setOpen(false)
       }
-    });
-  };
+    })
+  }
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    setOpen(nextOpen)
     if (!nextOpen) {
-      setPrdName(currentPrdName ?? '');
-      setError(null);
+      setPrdName(currentPrdName ?? '')
+      setError(null)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -285,31 +326,31 @@ function EditPrdNameDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 interface ManifestCardProps {
-  manifest: Manifest;
-  repositoryUrl: string;
+  manifest: Manifest
+  repositoryUrl: string
 }
 
 function buildCompareUrl(repositoryUrl: string, branchName: string): string {
   // repositoryUrl is https://github.com/owner/repo or https://github.com/owner/repo.git
-  const cleanUrl = repositoryUrl.replace(/\.git$/, '');
-  return `${cleanUrl}/compare/main...${encodeURIComponent(branchName)}`;
+  const cleanUrl = repositoryUrl.replace(/\.git$/, '')
+  return `${cleanUrl}/compare/main...${encodeURIComponent(branchName)}`
 }
 
 export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const { confirm } = useAlert();
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const { confirm } = useAlert()
 
-  const isPendingStatus = manifest.status === 'pending';
-  const isActive = manifest.status === 'active';
-  const isRunning = manifest.status === 'running';
-  const isCompleted = manifest.status === 'completed';
-  const isError = manifest.status === 'error';
-  const hasSprite = !!manifest.spriteName;
+  const isPendingStatus = manifest.status === 'pending'
+  const isActive = manifest.status === 'active'
+  const isRunning = manifest.status === 'running'
+  const isCompleted = manifest.status === 'completed'
+  const isError = manifest.status === 'error'
+  const hasSprite = !!manifest.spriteName
 
   const borderColor = isRunning
     ? 'border-red-500/40 border-dashed'
@@ -319,7 +360,7 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
         ? 'border-red-500/40 border-dashed'
         : isCompleted
           ? 'border-green-500/40 border-dashed'
-          : 'border-white/20 border-dashed';
+          : 'border-white/20 border-dashed'
 
   const bgColor = isRunning
     ? 'bg-red-950/20'
@@ -327,28 +368,28 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
       ? 'bg-yellow-950/20'
       : isError
         ? 'bg-red-950/20'
-        : 'bg-zinc-900';
+        : 'bg-zinc-900'
 
   const handleStart = () => {
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      const result = await startTaskLoopAction(manifest.id);
+      const result = await startTaskLoopAction(manifest.id)
       if (result._tag === 'Error') {
-        setError(result.message);
+        setError(result.message)
       }
       // Polling handled by board-client when manifest status changes
-    });
-  };
+    })
+  }
 
   const handleStop = () => {
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      const result = await stopTaskLoopAction(manifest.id);
+      const result = await stopTaskLoopAction(manifest.id)
       if (result._tag === 'Error') {
-        setError(result.message);
+        setError(result.message)
       }
-    });
-  };
+    })
+  }
 
   const handleDelete = async () => {
     const confirmed = await confirm({
@@ -357,16 +398,16 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
       variant: 'warning',
       confirmText: 'Banish',
       cancelText: 'Spare'
-    });
-    if (!confirmed) return;
-    setError(null);
+    })
+    if (!confirmed) return
+    setError(null)
     startTransition(async () => {
-      const result = await deleteManifestAction(manifest.id);
+      const result = await deleteManifestAction(manifest.id)
       if (result._tag === 'Error') {
-        setError(result.message);
+        setError(result.message)
       }
-    });
-  };
+    })
+  }
 
   return (
     <Card
@@ -374,8 +415,8 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
       style={
         isRunning
           ? {
-            animation: 'shake 0.15s ease-in-out infinite'
-          }
+              animation: 'shake 0.15s ease-in-out infinite'
+            }
           : undefined
       }
     >
@@ -463,6 +504,7 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
               </Button>
             </>
           )}
+          {hasSprite && manifest.spriteName && <TailLogButton spriteName={manifest.spriteName} />}
 
           {/* Start/Stop controls - only show when prdName is set */}
           {isActive && manifest.prdName && (
@@ -530,5 +572,5 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
       {/* Progress bar based on prdJson tasks */}
       {manifest.prdJson && <ManifestProgress prdJson={manifest.prdJson} isRunning={isRunning} />}
     </Card>
-  );
+  )
 }
