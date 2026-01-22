@@ -21,8 +21,9 @@ function generateTaskLoopWrapperScript(config: {
   prdName: string
   webhookUrl: string
   webhookSecret: string
+  hasLocalSetup: boolean
 }): string {
-  const { prdName, webhookUrl, webhookSecret } = config
+  const { prdName, webhookUrl, webhookSecret, hasLocalSetup } = config
 
   return `#!/bin/bash
 set -euo pipefail
@@ -33,6 +34,35 @@ source /etc/profile.d/opencode.sh
 # Add pnpm to PATH
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
 export PATH="$PNPM_HOME:$PATH"
+
+${
+  hasLocalSetup
+    ? `
+# Start Docker daemon and compose services (local setup enabled)
+echo "Starting Docker daemon..."
+sudo dockerd > /dev/null 2>&1 &
+DOCKERD_PID=$!
+
+echo "Waiting for Docker to be ready..."
+for i in {1..30}; do
+  if sudo docker info > /dev/null 2>&1; then
+    echo "Docker is ready"
+    break
+  fi
+  sleep 1
+done
+
+# Start docker compose services
+cd /home/sprite/repo
+if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
+  echo "Starting docker compose services..."
+  sudo docker compose up -d
+  sleep 5
+  echo "Docker services started"
+fi
+`
+    : '# No local setup - skipping Docker'
+}
 
 PRD_NAME="${prdName}"
 WEBHOOK_URL="${webhookUrl}"
@@ -228,6 +258,21 @@ else
     send_completed
 fi
 
+${
+  hasLocalSetup
+    ? `
+# Stop Docker services to allow sprite to sleep
+echo "Stopping Docker services..."
+cd /home/sprite/repo
+if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
+  sudo docker compose down > /dev/null 2>&1 || true
+fi
+sudo kill $DOCKERD_PID 2>/dev/null || true
+echo "Docker stopped"
+`
+    : ''
+}
+
 exit "$TASK_EXIT_CODE"
 `
 }
@@ -297,12 +342,14 @@ export const startTaskLoopAction = async (manifestId: string): Promise<StartTask
         )
       }
 
-      // Verify user owns parent project
-      yield* getProject(manifest.projectId)
+      // Verify user owns parent project and get local setup config
+      const project = yield* getProject(manifest.projectId)
+      const hasLocalSetup = project.localSetupScript !== null
 
       yield* Effect.annotateCurrentSpan({
         'sprite.name': manifest.spriteName,
-        'manifest.prdName': manifest.prdName
+        'manifest.prdName': manifest.prdName,
+        'project.hasLocalSetup': hasLocalSetup
       })
 
       // Build webhook URL for this manifest
@@ -312,7 +359,8 @@ export const startTaskLoopAction = async (manifestId: string): Promise<StartTask
       const wrapperScript = generateTaskLoopWrapperScript({
         prdName: manifest.prdName,
         webhookUrl,
-        webhookSecret: manifest.webhookSecret
+        webhookSecret: manifest.webhookSecret,
+        hasLocalSetup
       })
 
       // Write wrapper script to sprite

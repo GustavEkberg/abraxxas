@@ -21,7 +21,7 @@ async function Content() {
 
       return (
         <div className="min-h-screen p-8">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-[1600px]">
             {/* Page Header */}
             <div className="mb-8 flex items-center justify-between">
               <div>
@@ -83,7 +83,7 @@ async function Content() {
             Match.orElse(() =>
               Effect.succeed(
                 <div className="min-h-screen p-8">
-                  <div className="mx-auto max-w-7xl">
+                  <div className="mx-auto max-w-[1600px]">
                     <p className="text-white/60">Something went wrong.</p>
                     <p className="text-red-500">
                       Error:{' '}

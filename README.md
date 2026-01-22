@@ -84,7 +84,6 @@ Tasks progress through mystical columns:
    | `RESEND_API_KEY`          | No       | Resend API key for sending emails            |
    | `ENCRYPTION_KEY`          | Yes      | 32-byte hex key for AES-256-GCM encryption   |
    | `SPRITES_TOKEN`           | Yes      | Sprites.dev API authentication token         |
-   | `WEBHOOK_BASE_URL`        | Yes      | Base URL for webhook callbacks from Sprites  |
    | `SPRITE_TIMEOUT_MS`       | No       | Timeout for sprite operations (ms)           |
    | `OPENCODE_SETUP_REPO_URL` | Yes      | GitHub repo URL for opencode commands/skills |
    | `AWS_ACCESS_KEY_ID`       | No       | AWS credentials for S3                       |

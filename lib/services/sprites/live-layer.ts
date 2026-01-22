@@ -39,7 +39,7 @@ class SpritesConfig extends Context.Tag('@app/SpritesConfig')<
   SpritesConfig,
   {
     readonly token: Redacted.Redacted<string>
-    readonly webhookBaseUrl: string
+    readonly webhookBaseUrl: string | undefined
     readonly timeoutMs: number
     readonly opencodeSetupRepoUrl: string
   }
@@ -51,8 +51,11 @@ const SpritesConfigLive = Layer.effect(
     const token = yield* Config.redacted('SPRITES_TOKEN').pipe(
       Effect.mapError(() => new SpritesConfigError({ message: 'SPRITES_TOKEN not found' }))
     )
-    const webhookBaseUrl = yield* Config.string('WEBHOOK_BASE_URL').pipe(
-      Effect.mapError(() => new SpritesConfigError({ message: 'WEBHOOK_BASE_URL not found' }))
+    // Use VERCEL_BRANCH_URL for webhook base URL (auto-set by Vercel)
+    // undefined locally - webhooks won't work in local dev anyway
+    const vercelBranchUrl = yield* Config.string('VERCEL_BRANCH_URL').pipe(
+      Effect.option,
+      Effect.map(opt => (opt._tag === 'Some' ? `https://${opt.value}` : undefined))
     )
     const timeoutMs = yield* Config.number('SPRITE_TIMEOUT_MS').pipe(
       Config.withDefault(3600000) // 1 hour
@@ -63,7 +66,7 @@ const SpritesConfigLive = Layer.effect(
       )
     )
 
-    return { token, webhookBaseUrl, timeoutMs, opencodeSetupRepoUrl }
+    return { token, webhookBaseUrl: vercelBranchUrl, timeoutMs, opencodeSetupRepoUrl }
   })
 )
 
@@ -311,6 +314,7 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
       listSprites,
       updateUrlSettings,
       opencodeSetupRepoUrl: config.opencodeSetupRepoUrl,
+      /** Webhook base URL (from VERCEL_BRANCH_URL). undefined locally. */
       webhookBaseUrl: config.webhookBaseUrl
     } as const
   })
