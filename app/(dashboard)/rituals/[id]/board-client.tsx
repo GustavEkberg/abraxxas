@@ -414,17 +414,8 @@ export function RitualBoardClient({
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="min-h-screen p-3 md:p-6">
         {/* Header */}
-        <div className="mb-4 md:mb-6">
-          <div className="mb-3 flex items-center justify-between md:mb-4">
-            <button
-              onClick={() => router.push('/')}
-              className="text-sm text-white/60 transition-colors hover:text-white/90 font-mono"
-            >
-              ← Return to Chamber
-            </button>
-            <SummonMenu ritualId={project.id} />
-          </div>
-          <div>
+        <div className="mb-4 flex items-start justify-between gap-3 md:mb-6">
+          <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-bold text-white/90 md:text-3xl">{project.name}</h1>
             {project.description && (
               <p className="mt-1 line-clamp-2 text-sm text-white/60 md:mt-2 md:text-base">
@@ -435,6 +426,7 @@ export function RitualBoardClient({
               {project.repositoryUrl.replace('https://github.com/', '')}
             </p>
           </div>
+          <SummonMenu ritualId={project.id} />
         </div>
 
         {/* Manifest Section */}
