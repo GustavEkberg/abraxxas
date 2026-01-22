@@ -24,9 +24,9 @@ set -e
 echo "Installing Docker..."
 curl -fsSL https://get.docker.com | sh
 
-# Start docker daemon with sudo
+# Start docker daemon with sudo (suppress stream noise)
 echo "Starting Docker daemon..."
-sudo dockerd &
+sudo dockerd > /dev/null 2>&1 &
 
 # Wait for docker to be ready
 echo "Waiting for Docker to be ready..."
