@@ -1,14 +1,14 @@
-'use client'
+'use client';
 
-import * as React from 'react'
-import { ChevronDownIcon, LogOutIcon, KeyIcon, AlertTriangleIcon } from 'lucide-react'
+import * as React from 'react';
+import { LogOutIcon, KeyIcon, AlertTriangleIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -16,80 +16,79 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
-import { saveOpencodeAuthAction } from '@/lib/core/opencode-auth/save-opencode-auth-action'
+} from '@/components/ui/dialog';
+import { saveOpencodeAuthAction } from '@/lib/core/opencode-auth/save-opencode-auth-action';
 import {
   getOpencodeAuthStatusAction,
   type OpencodeAuthStatus
-} from '@/lib/core/opencode-auth/get-opencode-auth-status-action'
+} from '@/lib/core/opencode-auth/get-opencode-auth-status-action';
 
 export function UserMenu() {
-  const [authDialogOpen, setAuthDialogOpen] = React.useState(false)
-  const [authContent, setAuthContent] = React.useState('')
-  const [saving, setSaving] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [success, setSuccess] = React.useState(false)
-  const [authStatus, setAuthStatus] = React.useState<OpencodeAuthStatus>({ _tag: 'None' })
+  const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
+  const [authContent, setAuthContent] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState(false);
+  const [authStatus, setAuthStatus] = React.useState<OpencodeAuthStatus>({ _tag: 'None' });
 
   // Check auth status on mount
   React.useEffect(() => {
-    getOpencodeAuthStatusAction().then(setAuthStatus)
-  }, [])
+    getOpencodeAuthStatusAction().then(setAuthStatus);
+  }, []);
 
   const handleSaveAuth = async () => {
     if (!authContent.trim()) {
-      setError('Please paste your auth.json content')
-      return
+      setError('Please paste your auth.json content');
+      return;
     }
 
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
 
     try {
-      const result = await saveOpencodeAuthAction(authContent)
+      const result = await saveOpencodeAuthAction(authContent);
       if (result._tag === 'Error') {
-        setError(result.message)
+        setError(result.message);
       } else {
-        setSuccess(true)
+        setSuccess(true);
         // Refresh auth status after save
-        getOpencodeAuthStatusAction().then(setAuthStatus)
+        getOpencodeAuthStatusAction().then(setAuthStatus);
         setTimeout(() => {
-          setAuthDialogOpen(false)
-          setAuthContent('')
-          setSuccess(false)
-        }, 1500)
+          setAuthDialogOpen(false);
+          setAuthContent('');
+          setSuccess(false);
+        }, 1500);
       }
     } catch {
-      setError('Failed to save auth')
+      setError('Failed to save auth');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = event => {
-      const content = event.target?.result
+      const content = event.target?.result;
       if (typeof content === 'string') {
-        setAuthContent(content)
-        setError(null)
+        setAuthContent(content);
+        setError(null);
       }
-    }
-    reader.readAsText(file)
-  }
+    };
+    reader.readAsText(file);
+  };
 
-  const isExpired = authStatus._tag === 'Expired'
+  const isExpired = authStatus._tag === 'Expired';
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 border border-dashed border-white/20 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/30 hover:text-white/90 font-mono outline-none">
-          Settings
           {isExpired && <AlertTriangleIcon className="size-4 text-amber-400" />}
-          <ChevronDownIcon className="size-4" />
+          ↯
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="font-mono">
           {isExpired && (
@@ -104,9 +103,9 @@ export function UserMenu() {
           <DropdownMenuItem
             className={`cursor-pointer ${isExpired ? 'text-amber-400 focus:text-amber-400' : ''}`}
             onClick={() => {
-              setAuthDialogOpen(true)
-              setError(null)
-              setSuccess(false)
+              setAuthDialogOpen(true);
+              setError(null);
+              setSuccess(false);
             }}
           >
             <KeyIcon className="size-4" />
@@ -116,11 +115,11 @@ export function UserMenu() {
           <DropdownMenuItem
             className="cursor-pointer text-red-400 focus:text-red-400"
             onClick={() => {
-              const form = document.createElement('form')
-              form.method = 'POST'
-              form.action = '/api/auth/sign-out'
-              document.body.appendChild(form)
-              form.submit()
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = '/api/auth/sign-out';
+              document.body.appendChild(form);
+              form.submit();
             }}
           >
             <LogOutIcon className="size-4" />
@@ -157,8 +156,8 @@ export function UserMenu() {
               <textarea
                 value={authContent}
                 onChange={e => {
-                  setAuthContent(e.target.value)
-                  setError(null)
+                  setAuthContent(e.target.value);
+                  setError(null);
                 }}
                 placeholder='{"anthropic": {"type": "oauth", ...}}'
                 rows={8}
@@ -190,5 +189,5 @@ export function UserMenu() {
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
