@@ -1,19 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem
 } from '@/components/ui/dropdown-menu'
 import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
 import { CreateManifestDialog } from '@/components/manifest/create-manifest-dialog'
 import { Button } from '@/components/ui/button'
+import { toggleLocalSetupAction } from '@/lib/core/project/toggle-local-setup-action'
 
 interface SummonMenuProps {
   ritualId: string
+  /** Whether local setup script is enabled for this project */
+  localSetupEnabled: boolean
 }
 
 /**
@@ -49,9 +53,23 @@ function SigilIcon({ className }: { className?: string }) {
  * Dropdown menu for summoning new invocations or manifests.
  * Combines both creation actions into a single esoteric-themed menu.
  */
-export function SummonMenu({ ritualId }: SummonMenuProps) {
+export function SummonMenu({ ritualId, localSetupEnabled }: SummonMenuProps) {
   const [invocationOpen, setInvocationOpen] = useState(false)
   const [manifestOpen, setManifestOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [optimisticEnabled, setOptimisticEnabled] = useState(localSetupEnabled)
+
+  const handleToggleLocalSetup = () => {
+    // Optimistic update
+    setOptimisticEnabled(!optimisticEnabled)
+    startTransition(async () => {
+      const result = await toggleLocalSetupAction(ritualId)
+      if (result._tag === 'Error') {
+        // Revert on error
+        setOptimisticEnabled(optimisticEnabled)
+      }
+    })
+  }
 
   return (
     <>
@@ -82,6 +100,18 @@ export function SummonMenu({ ritualId }: SummonMenuProps) {
               Conjure Manifest
             </span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={optimisticEnabled}
+            onCheckedChange={handleToggleLocalSetup}
+            disabled={isPending}
+            className="cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-amber-400">&#x26A1;</span>
+              Bind Local Vessels
+            </span>
+          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

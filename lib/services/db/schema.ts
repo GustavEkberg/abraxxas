@@ -97,6 +97,8 @@ export const projects = pgTable('projects', {
   repositoryUrl: text('repositoryUrl').notNull(),
   encryptedGithubToken: text('encryptedGithubToken').notNull(),
   agentsMdContent: text('agentsMdContent'),
+  /** Optional bash script to run after sprite setup (pnpm install, docker compose, .env.local) */
+  localSetupScript: text('localSetupScript'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt')
     .notNull()

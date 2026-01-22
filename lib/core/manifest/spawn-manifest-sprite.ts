@@ -15,7 +15,7 @@ import * as schema from '@/lib/services/db/schema'
 export interface SpawnManifestSpriteConfig {
   /** Manifest ID for logging/tracing */
   manifestId: string
-  project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken'>
+  project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>
   /** User ID to fetch opencode auth for model access */
   userId: string
 }
@@ -206,6 +206,22 @@ cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
   "model": "anthropic/claude-opus-4-5-20251101"
 }
 CONFIGEOF
+
+# Run local setup script if configured (non-blocking on failure)
+${
+  project.localSetupScript
+    ? `
+echo "Running local setup script..."
+cat > /tmp/local-setup.sh << 'LOCALSETUPEOF'
+${project.localSetupScript}
+LOCALSETUPEOF
+chmod +x /tmp/local-setup.sh
+cd /home/sprite/repo
+/tmp/local-setup.sh >> /tmp/setup.log 2>&1 || echo "WARNING: Local setup script failed (continuing anyway)"
+echo "Local setup script finished"
+`
+    : 'echo "No local setup script configured"'
+}
 
 # Start opencode serve
 echo "Starting opencode serve..."

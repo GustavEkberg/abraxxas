@@ -454,7 +454,7 @@ export function RitualBoardClient({
               {project.repositoryUrl.replace('https://github.com/', '')}
             </p>
           </div>
-          <SummonMenu ritualId={project.id} />
+          <SummonMenu ritualId={project.id} localSetupEnabled={project.localSetupScript !== null} />
         </div>
 
         {/* Manifest Section */}
