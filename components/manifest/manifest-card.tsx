@@ -358,7 +358,7 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
 
   return (
     <Card
-      className={`relative w-fit p-4 font-mono transition-all duration-200 ${borderColor} ${bgColor} ${isRunning ? 'animate-[shake_0.3s_ease-in-out_infinite]' : ''}`}
+      className={`relative max-w-full p-3 font-mono transition-all duration-200 md:w-fit md:p-4 ${borderColor} ${bgColor} ${isRunning ? 'animate-[shake_0.3s_ease-in-out_infinite]' : ''}`}
       style={
         isRunning
           ? {
@@ -375,8 +375,8 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
         }
       `}</style>
       {/* Header row: status + name + actions */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 md:gap-2">
           {/* Status indicator */}
           {isRunning && (
             <div className="flex shrink-0 items-center gap-1">
@@ -407,7 +407,9 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
           <span className="truncate text-sm font-medium text-white/90">{manifest.name}</span>
 
           {/* PRD name indicator */}
-          {manifest.prdName && <span className="text-xs text-white/40">({manifest.prdName})</span>}
+          {manifest.prdName && (
+            <span className="hidden text-xs text-white/40 md:inline">({manifest.prdName})</span>
+          )}
 
           {/* Edit PRD name - only when editable, highlighted if not set */}
           {(isPendingStatus || isActive) && (
@@ -421,7 +423,7 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
         </div>
 
         {/* Action buttons */}
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-wrap items-center gap-1">
           {hasSprite && manifest.spriteName && (
             <CopyButton
               value={manifest.spriteName}

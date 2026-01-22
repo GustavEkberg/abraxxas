@@ -294,15 +294,17 @@ export function TaskDetailModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl lg:max-w-6xl max-h-[80vh] overflow-y-auto border-white/10 bg-zinc-950 text-white">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle className="text-2xl font-bold text-white/90">{task.title}</DialogTitle>
+        <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto border-white/10 bg-zinc-950 text-white md:max-h-[80vh] lg:max-w-6xl">
+          <DialogHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <DialogTitle className="text-lg font-bold text-white/90 md:text-2xl">
+              {task.title}
+            </DialogTitle>
             <Button
               onClick={() => setDeleteConfirmOpen(true)}
               variant="destructive"
               size="sm"
               disabled={isDeleting}
-              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20"
+              className="w-fit bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20"
             >
               Delete
             </Button>
@@ -316,27 +318,27 @@ export function TaskDetailModal({
           )}
 
           {/* Task metadata */}
-          <div className="mb-6 flex items-center gap-4 flex-wrap">
+          <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 md:mb-6 md:flex md:flex-wrap md:gap-4">
             <span className="text-sm text-white/60">Status:</span>
-            <span className="rounded-full bg-red-500/20 px-3 py-1 text-red-400 text-sm">
+            <span className="w-fit rounded-full bg-red-500/20 px-3 py-1 text-red-400 text-sm">
               {task.status}
             </span>
             {task.branchName && repositoryUrl && (
               <>
-                <span className="text-sm text-white/60 ml-4">Branch:</span>
+                <span className="text-sm text-white/60">Branch:</span>
                 <a
                   href={`${repositoryUrl}/compare/main...${task.branchName}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded bg-purple-500/20 px-3 py-1 text-purple-400 text-sm hover:bg-purple-500/30 transition-colors duration-200"
+                  className="w-fit truncate rounded bg-purple-500/20 px-3 py-1 text-purple-400 text-sm hover:bg-purple-500/30 transition-colors duration-200"
                 >
                   {task.branchName}
                 </a>
               </>
             )}
-            <span className="text-sm text-white/60 ml-4">Type:</span>
+            <span className="text-sm text-white/60">Type:</span>
             <Select value={selectedType} onValueChange={handleTypeChange} disabled={updatingType}>
-              <SelectTrigger className="w-fit border-white/10 bg-zinc-900/50">
+              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-zinc-950">
@@ -347,13 +349,13 @@ export function TaskDetailModal({
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-sm text-white/60 ml-4">Model:</span>
+            <span className="text-sm text-white/60">Model:</span>
             <Select
               value={selectedModel}
               onValueChange={handleModelChange}
               disabled={updatingModel}
             >
-              <SelectTrigger className="w-fit border-white/10 bg-zinc-900/50">
+              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-zinc-950">
@@ -364,13 +366,13 @@ export function TaskDetailModal({
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-sm text-white/60 ml-4">State:</span>
+            <span className="text-sm text-white/60">State:</span>
             <Select
               value={selectedExecutionState}
               onValueChange={handleExecutionStateChange}
               disabled={updatingExecutionState}
             >
-              <SelectTrigger className="w-fit border-white/10 bg-zinc-900/50">
+              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
                 <SelectValue placeholder="Select state" />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-zinc-950">
@@ -385,7 +387,7 @@ export function TaskDetailModal({
 
           {/* Session stats */}
           {(messageCount > 0 || inputTokens + outputTokens > 0) && (
-            <div className="mb-6 flex items-center gap-4">
+            <div className="mb-4 flex flex-wrap items-center gap-2 md:mb-6 md:gap-4">
               <span className="text-sm text-white/60">Session Stats:</span>
               <span className="rounded bg-red-500/10 px-3 py-1 text-red-400 text-sm">
                 {messageCount} messages
@@ -399,21 +401,25 @@ export function TaskDetailModal({
           )}
 
           {/* Description */}
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <h3 className="mb-2 text-sm font-medium text-white/60">Description</h3>
-            <div className="rounded-lg border border-white/10 bg-zinc-900/50 p-4 text-white/80 whitespace-pre-wrap">
+            <div className="rounded-lg border border-white/10 bg-zinc-900/50 p-3 text-sm text-white/80 whitespace-pre-wrap md:p-4 md:text-base">
               {task.description || 'No description provided'}
             </div>
           </div>
 
           {/* Comments section */}
-          <div className="border-t border-white/10 pt-6">
-            <h3 className="mb-4 text-lg font-semibold text-white/90">Comments</h3>
+          <div className="border-t border-white/10 pt-4 md:pt-6">
+            <h3 className="mb-3 text-base font-semibold text-white/90 md:mb-4 md:text-lg">
+              Comments
+            </h3>
 
             {comments.length === 0 ? (
-              <div className="mb-6 py-8 text-center text-white/40">No comments yet</div>
+              <div className="mb-4 py-6 text-center text-sm text-white/40 md:mb-6 md:py-8">
+                No comments yet
+              </div>
             ) : (
-              <div className="mb-6 max-h-[400px] overflow-y-auto">
+              <div className="mb-4 max-h-[300px] overflow-y-auto md:mb-6 md:max-h-[400px]">
                 {comments.map(comment => (
                   <Comment
                     key={comment.id}

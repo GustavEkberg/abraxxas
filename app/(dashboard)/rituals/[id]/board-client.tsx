@@ -99,7 +99,7 @@ function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-w-[280px] flex-col border border-dashed bg-zinc-950/50 p-4 transition-colors font-mono ${
+      className={`flex min-w-0 flex-col border border-dashed bg-zinc-950/50 p-3 transition-colors font-mono md:min-w-[280px] md:p-4 ${
         isOver ? 'border-red-500/40 bg-zinc-900/50' : ''
       }`}
       style={{
@@ -156,23 +156,25 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className={`cursor-grab p-4 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono ${borderColor} ${bgColor} ${
+      className={`cursor-grab p-3 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-4 ${borderColor} ${bgColor} ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="font-medium text-white/90">{task.title}</h3>
+      <div className="mb-1.5 flex items-center justify-between gap-2 md:mb-2">
+        <h3 className="min-w-0 truncate text-sm font-medium text-white/90 md:text-base">
+          {task.title}
+        </h3>
         {isExecuting && (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-shrink-0 items-center gap-1">
             <div className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
-            <span className="text-xs text-red-400">Executing</span>
+            <span className="hidden text-xs text-red-400 md:inline">Executing</span>
           </div>
         )}
-        {isError && <span className="text-xs text-red-400">Error</span>}
-        {isCompleted && <span className="text-xs text-green-400">✓</span>}
+        {isError && <span className="flex-shrink-0 text-xs text-red-400">Error</span>}
+        {isCompleted && <span className="flex-shrink-0 text-xs text-green-400">✓</span>}
       </div>
-      <p className="line-clamp-2 text-sm text-white/60">{task.description}</p>
-      <div className="mt-2 flex items-center gap-2 text-xs text-white/40">
+      <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/40 md:mt-2 md:gap-2">
         <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
         <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>
         {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
@@ -416,38 +418,48 @@ export function RitualBoardClient({
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen p-3 md:p-6">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <button
             onClick={() => router.push('/')}
-            className="mb-4 text-sm text-white/60 transition-colors hover:text-white/90 font-mono"
+            className="mb-3 text-sm text-white/60 transition-colors hover:text-white/90 font-mono md:mb-4"
           >
             ← Return to Chamber
           </button>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white/90">{project.name}</h1>
-              {project.description && <p className="mt-2 text-white/60">{project.description}</p>}
-              <p className="mt-1 text-sm text-white/40">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-0">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-bold text-white/90 md:text-3xl">
+                {project.name}
+              </h1>
+              {project.description && (
+                <p className="mt-1 line-clamp-2 text-sm text-white/60 md:mt-2 md:text-base">
+                  {project.description}
+                </p>
+              )}
+              <p className="mt-1 truncate text-xs text-white/40 md:text-sm">
                 {project.repositoryUrl.replace('https://github.com/', '')}
               </p>
             </div>
-            <CreateInvocationDialog ritualId={project.id} />
+            <div className="flex-shrink-0">
+              <CreateInvocationDialog ritualId={project.id} />
+            </div>
           </div>
         </div>
 
         {/* Manifest Section */}
-        <div className="mb-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-mono text-lg font-semibold text-white/90">Manifests</h2>
+        <div className="mb-6 space-y-3 md:mb-10 md:space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">
+              Manifests
+            </h2>
             {!activeManifest && <CreateManifestDialog projectId={project.id} />}
           </div>
 
           {activeManifest ? (
             <ManifestCard manifest={activeManifest} />
           ) : (
-            <div className="border border-dashed border-white/10 bg-zinc-950/50 p-6 text-center font-mono text-sm text-white/40">
+            <div className="border border-dashed border-white/10 bg-zinc-950/50 p-4 text-center font-mono text-xs text-white/40 md:p-6 md:text-sm">
               No active manifest. Create one to spawn an autonomous agent.
             </div>
           )}
@@ -471,17 +483,17 @@ export function RitualBoardClient({
           )}
         </div>
 
-        {/* Board Columns */}
-        <div
-          className="grid gap-4 overflow-x-auto"
-          style={{
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gridTemplateRows: '1fr 1fr'
-          }}
-        >
+        {/* Invocations Section */}
+        <div className="mb-4 md:mb-6">
+          <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">
+            Invocations
+          </h2>
+        </div>
+        <div className="flex flex-col gap-3 md:grid md:gap-4 md:[grid-template-columns:repeat(5,1fr)] md:[grid-template-rows:1fr_1fr]">
           {COLUMNS.map(column => {
             const columnTasks = getTasksByStatus(column.id)
 
+            // Desktop grid positioning
             const gridStyles: Record<
               string,
               { gridColumn: number | string; gridRow: number | string }
@@ -502,9 +514,11 @@ export function RitualBoardClient({
                 style={gridStyles[column.id]}
               >
                 {/* Column Header */}
-                <div className="mb-4">
+                <div className="mb-3 md:mb-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-white/90">{column.title}</h2>
+                    <h2 className="text-base font-semibold text-white/90 md:text-lg">
+                      {column.title}
+                    </h2>
                     <span className="border border-dashed border-white/20 bg-white/5 px-2 py-1 text-xs text-white/60 font-mono">
                       {columnTasks.length}
                     </span>
@@ -513,9 +527,9 @@ export function RitualBoardClient({
                 </div>
 
                 {/* Tasks */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-2 md:space-y-3">
                   {columnTasks.length === 0 ? (
-                    <div className="border border-dashed border-white/20 p-8 text-center text-sm text-white/30 font-mono">
+                    <div className="border border-dashed border-white/20 p-4 text-center text-xs text-white/30 font-mono md:p-8 md:text-sm">
                       Empty
                     </div>
                   ) : (
