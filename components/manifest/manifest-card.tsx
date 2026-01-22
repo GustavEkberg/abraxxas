@@ -375,8 +375,8 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
         }
       `}</style>
       {/* Header row: status + name + actions */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 md:gap-2">
+      <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {/* Status indicator */}
           {isRunning && (
             <div className="flex shrink-0 items-center gap-1">
