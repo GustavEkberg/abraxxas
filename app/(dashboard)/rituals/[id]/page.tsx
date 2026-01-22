@@ -30,6 +30,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
       const statsByTask = new Map<
         string,
         {
+          sessionId: string
           messageCount: number
           inputTokens: number
           outputTokens: number
@@ -44,6 +45,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
           const inputTokens = session.inputTokens ? parseInt(session.inputTokens, 10) : 0
           const outputTokens = session.outputTokens ? parseInt(session.outputTokens, 10) : 0
           statsByTask.set(session.taskId, {
+            sessionId: session.id,
             messageCount,
             inputTokens,
             outputTokens,

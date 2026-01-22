@@ -76,3 +76,16 @@ Started: 2026-01-22
   - Task card data flows from page.tsx via props, not fetched per-card
   - Sessions already contain sprite credentials; just need to pass them through TaskStats
   - Button pattern: stopPropagation() on click handlers prevents card click interference
+
+## Task - ui-2
+
+- Added destroy sprite button (Trash2 icon) to task cards when spriteName exists
+- Button shows gnostic confirmation dialog with title "Banish this Invocation?"
+- On confirmation, calls destroySpriteAction and refreshes the UI
+- Files changed:
+  - `app/(dashboard)/rituals/[id]/board-client.tsx` - added Trash2 import, useAlert hook, handleDestroySprite callback, destroy button in DraggableCard
+  - `app/(dashboard)/rituals/[id]/page.tsx` - added sessionId to stats map (required for destroySpriteAction)
+- **Learnings:**
+  - useAlert hook provides imperative `confirm()` method that returns Promise<boolean>
+  - Pattern: pass onDestroySprite prop only when sprite exists (conditional prop)
+  - sessionId needed in TaskStats interface to call destroySpriteAction

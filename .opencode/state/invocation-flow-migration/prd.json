@@ -82,7 +82,7 @@
         "Confirming calls destroySpriteAction",
         "UI updates after destruction"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-3",

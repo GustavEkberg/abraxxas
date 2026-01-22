@@ -14,13 +14,15 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Check, ExternalLink, Link, Lock, Terminal } from 'lucide-react'
+import { Check, ExternalLink, Link, Lock, Terminal, Trash2 } from 'lucide-react'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { ManifestCard } from '@/components/manifest/manifest-card'
 import { SummonMenu } from '@/components/summon-menu'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
+import { useAlert } from '@/components/ui/gnostic-alert'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
+import { destroySpriteAction } from '@/lib/core/task/destroy-sprite-action'
 import {
   getTaskDetailsAction,
   type TaskDetailsResult
@@ -160,6 +162,7 @@ function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
 }
 
 interface TaskStats {
+  sessionId: string
   messageCount: number
   inputTokens: number
   outputTokens: number
@@ -172,9 +175,10 @@ interface DraggableCardProps {
   task: Task
   onClick: (task: Task) => void
   stats?: TaskStats
+  onDestroySprite?: (sessionId: string) => void
 }
 
-function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
+function DraggableCard({ task, onClick, stats, onDestroySprite }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id
   })
@@ -259,6 +263,20 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
               </Button>
             </>
           )}
+          {onDestroySprite && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={e => {
+                e.stopPropagation()
+                onDestroySprite(stats.sessionId)
+              }}
+              className="h-7 px-2 text-white/40 hover:text-red-400"
+              title="Banish invocation"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          )}
         </div>
       )}
 
@@ -289,6 +307,7 @@ export function RitualBoardClient({
   initialManifests
 }: RitualBoardClientProps) {
   const router = useRouter()
+  const { confirm } = useAlert()
   const {
     addRunningTask,
     removeRunningTask,
@@ -435,6 +454,27 @@ export function RitualBoardClient({
       fetchTaskDetails(selectedTask.id)
     }
   }, [router, selectedTask, fetchTaskDetails])
+
+  const handleDestroySprite = useCallback(
+    async (sessionId: string) => {
+      const confirmed = await confirm({
+        title: 'Banish this Invocation?',
+        message: 'This will destroy the sprite and banish it to the void. This cannot be undone.',
+        variant: 'warning',
+        confirmText: 'Banish',
+        cancelText: 'Spare'
+      })
+      if (!confirmed) return
+
+      const result = await destroySpriteAction(sessionId)
+      if (result._tag === 'Success') {
+        router.refresh()
+      } else {
+        console.error('Failed to destroy sprite:', result.message)
+      }
+    },
+    [confirm, router]
+  )
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -601,6 +641,9 @@ export function RitualBoardClient({
                         task={task}
                         onClick={handleTaskClick}
                         stats={taskStats[task.id]}
+                        onDestroySprite={
+                          taskStats[task.id]?.spriteName ? handleDestroySprite : undefined
+                        }
                       />
                     ))
                   )}
