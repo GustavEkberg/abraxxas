@@ -1,0 +1,143 @@
+{
+  "prdName": "invocation-flow-migration",
+  "tasks": [
+    {
+      "id": "db-1",
+      "category": "db",
+      "description": "Add spriteUrl and spritePassword columns to opencodeSessions table",
+      "steps": [
+        "opencodeSessions table has spriteUrl text column",
+        "opencodeSessions table has spritePassword text column",
+        "Migration file exists and applies cleanly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "backend-1",
+      "category": "backend",
+      "description": "spawnSpriteForTask stores sprite credentials in session",
+      "steps": [
+        "spawnSpriteForTask returns spriteUrl and spritePassword",
+        "executeTaskAction stores credentials in opencodeSessions record",
+        "Credentials retrievable after spawn completes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "backend-2",
+      "category": "backend",
+      "description": "Webhook handlers do NOT destroy sprites on completion or error",
+      "steps": [
+        "completed webhook does not call destroySprite",
+        "error webhook does not call destroySprite",
+        "Task status still transitions to vanquished on completion",
+        "Task status still transitions to cursed on error"
+      ],
+      "passes": false
+    },
+    {
+      "id": "backend-3",
+      "category": "backend",
+      "description": "Remove comments from prompt building",
+      "steps": [
+        "buildPrompt function does not include comments",
+        "Prompt contains only task title and description"
+      ],
+      "passes": false
+    },
+    {
+      "id": "backend-4",
+      "category": "backend",
+      "description": "Create destroySpriteAction server action",
+      "steps": [
+        "destroySpriteAction(sessionId) exists in lib/core/task/",
+        "Verifies user owns the task via session lookup",
+        "Calls sprites.destroySprite(spriteName)",
+        "Clears spriteUrl, spritePassword, spriteName from session record",
+        "Returns success/error result"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Task cards show sprite action buttons",
+      "steps": [
+        "Copy sprite name button (Terminal icon) visible when spriteName exists",
+        "Copy URL button (Link icon) visible when spriteUrl exists",
+        "Copy password button (Lock icon) visible when spritePassword exists",
+        "Open external button (ExternalLink icon) visible when spriteUrl exists",
+        "Buttons use manifest card styling (h-7 px-2, ghost variant, white/40 hover)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Task cards show destroy sprite button with gnostic confirmation",
+      "steps": [
+        "Destroy button (Trash2 icon) visible when sprite exists",
+        "Clicking shows gnostic confirmation dialog",
+        "Dialog title is 'Banish this Invocation?'",
+        "Confirming calls destroySpriteAction",
+        "UI updates after destruction"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Task cards display statistics with minimal styling",
+      "steps": [
+        "Message count displayed on card when available",
+        "Token count displayed on card when available",
+        "Styling matches manifest card aesthetic (monospace, muted colors)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "Remove comments UI from task cards and detail modal",
+      "steps": [
+        "No AddCommentForm component rendered",
+        "No comment list rendered",
+        "add-comment-form.tsx deleted or unused",
+        "comment-list.tsx deleted or unused (if exists)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-5",
+      "category": "ui",
+      "description": "Simplify task detail modal to minimal view",
+      "steps": [
+        "Modal shows task title",
+        "Modal shows initial prompt (title + description)",
+        "Modal shows branch link when branchName exists",
+        "Modal shows error message when in error state",
+        "No type/model/state selects rendered",
+        "No session stats section rendered",
+        "Delete task button still present"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Manifest card buttons: components/manifest/manifest-card.tsx:459-510",
+      "Manifest delete with gnostic dialog: components/manifest/manifest-card.tsx:115-125",
+      "Sprite destruction: lib/core/manifest/delete-manifest-action.ts",
+      "Sprite spawning: lib/core/sprites/spawn-sprite.ts"
+    ],
+    "keyFiles": [
+      "lib/services/db/schema.ts",
+      "lib/core/task/execute-task-action.ts",
+      "lib/core/sprites/spawn-sprite.ts",
+      "app/api/webhooks/sprite/[taskId]/route.ts",
+      "app/(dashboard)/rituals/[id]/board-client.tsx",
+      "components/invocations/task-detail-modal.tsx"
+    ],
+    "nonGoals": ["Auto-cleanup of old sprites", "Sprite sharing between tasks", "Comment migration"]
+  }
+}

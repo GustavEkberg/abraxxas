@@ -47,7 +47,7 @@ const COLUMNS = [
   {
     id: 'cursed',
     title: 'The Cursed',
-    description: 'Blocked with errors',
+    description: 'Rituals interrupted',
     color: 'border-red-500/20'
   },
   {
@@ -430,7 +430,6 @@ export function RitualBoardClient({
         {/* Manifest Section */}
         <div className="mb-6 space-y-3 md:mb-10 md:space-y-4">
           <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">Manifests</h2>
-
           <div className="space-y-3">
             {manifests.map(manifest => (
               <ManifestCard key={manifest.id} manifest={manifest} />
