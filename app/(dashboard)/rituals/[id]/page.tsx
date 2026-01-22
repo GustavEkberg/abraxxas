@@ -29,14 +29,28 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
       // Build stats map from latest session per task
       const statsByTask = new Map<
         string,
-        { messageCount: number; inputTokens: number; outputTokens: number }
+        {
+          messageCount: number
+          inputTokens: number
+          outputTokens: number
+          spriteName: string | null
+          spriteUrl: string | null
+          spritePassword: string | null
+        }
       >()
       sessions.forEach(session => {
         if (!statsByTask.has(session.taskId)) {
           const messageCount = session.messageCount ? parseInt(session.messageCount, 10) : 0
           const inputTokens = session.inputTokens ? parseInt(session.inputTokens, 10) : 0
           const outputTokens = session.outputTokens ? parseInt(session.outputTokens, 10) : 0
-          statsByTask.set(session.taskId, { messageCount, inputTokens, outputTokens })
+          statsByTask.set(session.taskId, {
+            messageCount,
+            inputTokens,
+            outputTokens,
+            spriteName: session.spriteName,
+            spriteUrl: session.spriteUrl,
+            spritePassword: session.spritePassword
+          })
         }
       })
 

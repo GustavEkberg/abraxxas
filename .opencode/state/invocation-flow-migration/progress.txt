@@ -63,3 +63,16 @@ Started: 2026-01-22
 - **Learnings:** 
   - Ownership verification chain: session -> task -> project -> user.id check
   - Pattern to catch sprite destruction errors (sprite may already be gone) is standard
+
+## Task - ui-1
+
+- Added sprite action buttons to task cards (copy sprite name, copy URL, copy password, open external)
+- Extended TaskStats interface to include `spriteName`, `spriteUrl`, `spritePassword`
+- Added CopyButton component to board-client.tsx (reused pattern from manifest-card.tsx)
+- Files changed:
+  - `app/(dashboard)/rituals/[id]/board-client.tsx` - added CopyButton, sprite buttons in DraggableCard, extended TaskStats
+  - `app/(dashboard)/rituals/[id]/page.tsx` - extended stats map to include sprite credentials from session
+- **Learnings:**
+  - Task card data flows from page.tsx via props, not fetched per-card
+  - Sessions already contain sprite credentials; just need to pass them through TaskStats
+  - Button pattern: stopPropagation() on click handlers prevents card click interference

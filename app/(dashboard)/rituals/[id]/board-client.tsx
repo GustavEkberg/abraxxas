@@ -13,6 +13,8 @@ import {
 } from '@dnd-kit/core'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Check, ExternalLink, Link, Lock, Terminal } from 'lucide-react'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { ManifestCard } from '@/components/manifest/manifest-card'
 import { SummonMenu } from '@/components/summon-menu'
@@ -24,6 +26,37 @@ import {
   type TaskDetailsResult
 } from '@/lib/core/task/get-task-details-action'
 import type { Task, Project, Manifest } from '@/lib/services/db/schema'
+
+function CopyButton({
+  value,
+  label,
+  icon
+}: {
+  value: string
+  label: string
+  icon: React.ReactNode
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCopy}
+      className="h-7 px-2 text-white/40 hover:text-white/90"
+      title={label}
+    >
+      {copied ? <Check className="size-3.5" /> : icon}
+    </Button>
+  )
+}
 
 const COLUMNS = [
   {
@@ -130,6 +163,9 @@ interface TaskStats {
   messageCount: number
   inputTokens: number
   outputTokens: number
+  spriteName: string | null
+  spriteUrl: string | null
+  spritePassword: string | null
 }
 
 interface DraggableCardProps {
@@ -188,6 +224,44 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
         {isCompleted && <span className="flex-shrink-0 text-xs text-green-400">✓</span>}
       </div>
       <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
+
+      {/* Sprite action buttons */}
+      {stats?.spriteName && (
+        <div className="mt-2 flex items-center gap-1">
+          <CopyButton
+            value={stats.spriteName}
+            label="Copy sprite name"
+            icon={<Terminal className="size-3.5" />}
+          />
+          {stats.spriteUrl && (
+            <>
+              <CopyButton
+                value={stats.spriteUrl}
+                label="Copy URL"
+                icon={<Link className="size-3.5" />}
+              />
+              {stats.spritePassword && (
+                <CopyButton
+                  value={stats.spritePassword}
+                  label="Copy password"
+                  icon={<Lock className="size-3.5" />}
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+                onClick={e => e.stopPropagation()}
+                className="h-7 px-2 text-white/40 hover:text-white/90"
+                title="Open in new tab"
+              >
+                <ExternalLink className="size-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/40 md:mt-2 md:gap-2">
         <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
         <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>

@@ -69,7 +69,7 @@
         "Open external button (ExternalLink icon) visible when spriteUrl exists",
         "Buttons use manifest card styling (h-7 px-2, ghost variant, white/40 hover)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",
