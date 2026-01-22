@@ -1,32 +1,35 @@
-import { Effect, Option } from 'effect'
-import { randomBytes } from 'crypto'
-import { eq } from 'drizzle-orm'
-import { Sprites } from '@/lib/services/sprites/live-layer'
-import { Db } from '@/lib/services/db/live-layer'
-import { SpriteExecutionError } from '@/lib/services/sprites/errors'
-import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
-import { decryptToken } from '@/lib/core/crypto/encrypt'
-import type { Project } from '@/lib/services/db/schema'
-import * as schema from '@/lib/services/db/schema'
+import { Effect, Option } from 'effect';
+import { randomBytes } from 'crypto';
+import { eq } from 'drizzle-orm';
+import { Sprites } from '@/lib/services/sprites/live-layer';
+import { Db } from '@/lib/services/db/live-layer';
+import { SpriteExecutionError } from '@/lib/services/sprites/errors';
+import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth';
+import { decryptToken } from '@/lib/core/crypto/encrypt';
+import type { Project } from '@/lib/services/db/schema';
+import * as schema from '@/lib/services/db/schema';
+
+/** Max time for setup script to run after HTTP disconnect (allows long git clones/installs) */
+const SETUP_MAX_RUN_DISCONNECT = '60s';
 
 /**
  * Configuration for spawning a manifest sprite.
  */
 export interface SpawnManifestSpriteConfig {
   /** Manifest ID for logging/tracing */
-  manifestId: string
-  project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>
+  manifestId: string;
+  project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>;
   /** User ID to fetch opencode auth for model access */
-  userId: string
+  userId: string;
 }
 
 /**
  * Result of spawning a manifest sprite.
  */
 export interface SpawnManifestSpriteResult {
-  spriteName: string
-  spriteUrl: string
-  spritePassword: string
+  spriteName: string;
+  spriteUrl: string;
+  spritePassword: string;
 }
 
 /**
@@ -34,20 +37,20 @@ export interface SpawnManifestSpriteResult {
  * Format: manifest-{projectId-short}-{timestamp}
  */
 export function generateManifestSpriteName(projectId: string): string {
-  const timestamp = Date.now()
-  const shortProjectId = projectId.replace(/-/g, '').slice(0, 8)
-  return `manifest-${shortProjectId}-${timestamp}`
+  const timestamp = Date.now();
+  const shortProjectId = projectId.replace(/-/g, '').slice(0, 8);
+  return `manifest-${shortProjectId}-${timestamp}`;
 }
 
 /**
  * Generate a random 32-character alphanumeric password.
  */
 export function generateSpritePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  const bytes = randomBytes(32)
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = randomBytes(32);
   return Array.from(bytes)
     .map(b => chars[b % chars.length])
-    .join('')
+    .join('');
 }
 
 /**
@@ -59,24 +62,24 @@ export function generateSpritePassword(): string {
  */
 export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
   Effect.gen(function* () {
-    const sprites = yield* Sprites
-    const db = yield* Db
+    const sprites = yield* Sprites;
+    const db = yield* Db;
 
-    const { manifestId, project, userId } = config
+    const { manifestId, project, userId } = config;
 
-    const spriteName = generateManifestSpriteName(project.id)
-    const spritePassword = generateSpritePassword()
+    const spriteName = generateManifestSpriteName(project.id);
+    const spritePassword = generateSpritePassword();
 
     // Decrypt GitHub token for repo cloning
-    const githubToken = yield* decryptToken(project.encryptedGithubToken)
+    const githubToken = yield* decryptToken(project.encryptedGithubToken);
 
     yield* Effect.annotateCurrentSpan({
       'sprite.name': spriteName,
       'project.id': project.id,
       'manifest.id': manifestId
-    })
+    });
 
-    yield* Effect.log(`Creating manifest sprite: ${spriteName}`)
+    yield* Effect.log(`Creating manifest sprite: ${spriteName}`);
 
     // Create the sprite with public auth
     const sprite = yield* sprites.createSprite(spriteName, 'public').pipe(
@@ -88,11 +91,11 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
             cause: error
           })
       )
-    )
+    );
 
-    const spriteUrl = sprite.url
+    const spriteUrl = sprite.url;
 
-    yield* Effect.log(`Sprite created: ${spriteUrl}`)
+    yield* Effect.log(`Sprite created: ${spriteUrl}`);
 
     // Save sprite details to DB immediately so we don't lose them on timeout
     yield* db
@@ -103,27 +106,27 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
         spriteUrl,
         spritePassword
       })
-      .where(eq(schema.manifests.id, manifestId))
+      .where(eq(schema.manifests.id, manifestId));
 
-    yield* Effect.log(`Saved sprite details to manifest ${manifestId}`)
+    yield* Effect.log(`Saved sprite details to manifest ${manifestId}`);
 
     // Get opencode auth for the setup script
-    const opencodeAuth = yield* getOpencodeAuth(userId)
+    const opencodeAuth = yield* getOpencodeAuth(userId);
 
     // Build the setup script that runs in background
     const authRepoUrl = project.repositoryUrl.replace(
       'https://github.com/',
       `https://${githubToken}@github.com/`
-    )
+    );
 
     // Extract repo name from URL for tarball folder (e.g. "abraxas-opencode-setup" from URL)
-    const opencodeSetupRepoName = sprites.opencodeSetupRepoUrl.split('/').pop() || 'opencode-setup'
+    const opencodeSetupRepoName = sprites.opencodeSetupRepoUrl.split('/').pop() || 'opencode-setup';
 
     const setupScript = `#!/bin/bash
 set -e
 
-echo "=== Manifest Sprite Setup ===" > /tmp/setup.log
-exec >> /tmp/setup.log 2>&1
+echo "=== Manifest Sprite Setup ===" > /tmp/abraxas.log
+exec >> /tmp/abraxas.log 2>&1
 
 # Create directories upfront
 mkdir -p /home/sprite/.local/share/opencode
@@ -169,17 +172,16 @@ echo 'set -gx PNPM_HOME "/home/sprite/.local/share/pnpm"' >> /home/sprite/.confi
 echo 'fish_add_path $PNPM_HOME' >> /home/sprite/.config/fish/config.fish
 
 # Setup opencode auth
-${
-  Option.isSome(opencodeAuth)
-    ? `
+${Option.isSome(opencodeAuth)
+        ? `
 echo "Setting up opencode auth..."
 cat > /home/sprite/.local/share/opencode/auth.json << 'AUTHEOF'
 ${opencodeAuth.value}
 AUTHEOF
 chmod 600 /home/sprite/.local/share/opencode/auth.json
 `
-    : 'echo "No opencode auth configured"'
-}
+        : 'echo "No opencode auth configured"'
+      }
 
 # Install commands and skills (fast local copies)
 cp /tmp/${opencodeSetupRepoName}-main/command/*.md /home/sprite/.config/opencode/command/
@@ -217,20 +219,19 @@ cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
 CONFIGEOF
 
 # Run local setup script if configured (non-blocking on failure)
-${
-  project.localSetupScript
-    ? `
+${project.localSetupScript
+        ? `
 echo "Running local setup script..."
 cat > /tmp/local-setup.sh << 'LOCALSETUPEOF'
 ${project.localSetupScript}
 LOCALSETUPEOF
 chmod +x /tmp/local-setup.sh
 cd /home/sprite/repo
-/tmp/local-setup.sh >> /tmp/setup.log 2>&1 || echo "WARNING: Local setup script failed (continuing anyway)"
+/tmp/local-setup.sh >> /tmp/abraxas.log 2>&1 || echo "WARNING: Local setup script failed (continuing anyway)"
 echo "Local setup script finished"
 `
-    : 'echo "No local setup script configured"'
-}
+        : 'echo "No local setup script configured"'
+      }
 
 # Start opencode serve
 echo "Starting opencode serve..."
@@ -238,12 +239,13 @@ cd /home/sprite/repo
 HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
 
 echo "=== Setup Complete ==="
-`
+`;
 
     // Write and execute setup script in background
     yield* sprites
       .execCommand(spriteName, ['bash', '-c', 'cat > /tmp/setup.sh && chmod +x /tmp/setup.sh'], {
-        stdin: setupScript
+        stdin: setupScript,
+        maxRunAfterDisconnect: SETUP_MAX_RUN_DISCONNECT
       })
       .pipe(
         Effect.mapError(
@@ -254,15 +256,15 @@ echo "=== Setup Complete ==="
               cause: error
             })
         )
-      )
+      );
 
     // Run setup in background using setsid to fully detach from terminal
     yield* sprites
-      .execCommand(spriteName, [
-        'bash',
-        '-c',
-        'setsid /tmp/setup.sh > /tmp/setup-runner.log 2>&1 < /dev/null &'
-      ])
+      .execCommand(
+        spriteName,
+        ['bash', '-c', 'setsid /tmp/setup.sh > /tmp/setup-runner.log 2>&1 < /dev/null &'],
+        { maxRunAfterDisconnect: SETUP_MAX_RUN_DISCONNECT }
+      )
       .pipe(
         Effect.mapError(
           error =>
@@ -272,13 +274,13 @@ echo "=== Setup Complete ==="
               cause: error
             })
         )
-      )
+      );
 
-    yield* Effect.log(`Setup script started in background for ${spriteName}`)
+    yield* Effect.log(`Setup script started in background for ${spriteName}`);
 
     return {
       spriteName,
       spriteUrl,
       spritePassword
-    } satisfies SpawnManifestSpriteResult
+    } satisfies SpawnManifestSpriteResult;
   }).pipe(Effect.withSpan('Manifest.spawnManifestSprite'))

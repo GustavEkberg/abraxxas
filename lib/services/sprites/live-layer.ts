@@ -196,6 +196,8 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
         env?: Record<string, string>
         dir?: string
         stdin?: string
+        /** Max time to run after disconnect (e.g. "30s", "1m"). Default: 10s for non-TTY. */
+        maxRunAfterDisconnect?: string
       }
     ) =>
       Effect.gen(function* () {
@@ -208,6 +210,8 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
         command.forEach(c => params.append('cmd', c))
         if (options?.stdin) params.set('stdin', 'true')
         if (options?.dir) params.set('dir', options.dir)
+        if (options?.maxRunAfterDisconnect)
+          params.set('max_run_after_disconnect', options.maxRunAfterDisconnect)
         if (options?.env) {
           Object.entries(options.env).forEach(([key, value]) => {
             params.append('env', `${key}=${value}`)
