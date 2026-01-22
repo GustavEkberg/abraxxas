@@ -1,4 +1,4 @@
-import { Effect, Config, Option } from 'effect'
+import { Effect, Option } from 'effect'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import {
   generateCallbackScript,
@@ -66,7 +66,6 @@ export function generateBranchName(taskId: string, taskTitle: string): string {
 export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
   Effect.gen(function* () {
     const sprites = yield* Sprites
-    const webhookBaseUrl = yield* Config.string('WEBHOOK_BASE_URL')
 
     const { task, project, prompt, decryptedGithubToken, userId, opencodeModel } = config
 
@@ -84,8 +83,8 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     const webhookSecret = generateWebhookSecret()
     // Reuse existing branch if task already has one, otherwise generate new
     const branchName = task.branchName || generateBranchName(task.id, task.title)
-    // Normalize webhook base URL - remove trailing slash if present
-    const baseUrl = webhookBaseUrl.replace(/\/$/, '')
+    // Use VERCEL_BRANCH_URL if available, fallback to localhost (webhooks won't work locally)
+    const baseUrl = (sprites.webhookBaseUrl ?? 'http://localhost:3000').replace(/\/$/, '')
     const webhookUrl = `${baseUrl}/api/webhooks/sprite/${task.id}`
 
     yield* Effect.annotateCurrentSpan({
