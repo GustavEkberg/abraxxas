@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -9,15 +9,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { createProjectAction } from '@/lib/core/project/create-project-action'
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { createProjectAction } from '@/lib/core/project/create-project-action';
 
 interface CreateRitualDialogProps {
-  trigger?: React.ReactElement
+  trigger?: React.ReactElement;
 }
 
 /**
@@ -25,10 +25,10 @@ interface CreateRitualDialogProps {
  * Uses mystical theming and language.
  */
 export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,12 +36,12 @@ export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
     repositoryUrl: '',
     githubToken: '',
     agentsMdContent: ''
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
     const result = await createProjectAction({
       name: formData.name,
@@ -49,12 +49,12 @@ export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
       repositoryUrl: formData.repositoryUrl,
       githubToken: formData.githubToken,
       agentsMdContent: formData.agentsMdContent || undefined
-    })
+    });
 
     if (result._tag === 'Error') {
-      setError(result.message)
-      setLoading(false)
-      return
+      setError(result.message);
+      setLoading(false);
+      return;
     }
 
     // Reset form and close dialog
@@ -64,14 +64,14 @@ export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
       repositoryUrl: '',
       githubToken: '',
       agentsMdContent: ''
-    })
-    setOpen(false)
-    setLoading(false)
+    });
+    setOpen(false);
+    setLoading(false);
 
     // Navigate to the ritual board
-    router.push(`/rituals/${result.data.id}`)
-    router.refresh()
-  }
+    router.push(`/rituals/${result.data.id}`);
+    router.refresh();
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -112,7 +112,7 @@ export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the purpose of this unholy ritual..."
+              placeholder="Describe the purpose of this ritual..."
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
@@ -206,5 +206,5 @@ export function CreateRitualDialog({ trigger }: CreateRitualDialogProps) {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
