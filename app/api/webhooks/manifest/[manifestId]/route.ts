@@ -206,8 +206,9 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - updates status to completed, marks all tasks passed
+// Handler for 'completed' event - updates status to completed, stores prdJson as-is
 // Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
+// Note: prdJson reflects actual task status from repo - we don't override passes status
 const handleCompleted = (
   manifestId: string,
   payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
@@ -215,26 +216,11 @@ const handleCompleted = (
   Effect.gen(function* () {
     const db = yield* Db
 
-    // Parse prdJson and mark all tasks as passed
-    let finalPrdJson = payload.prdJson
-    try {
-      const prdData = JSON.parse(payload.prdJson)
-      if (prdData.tasks && Array.isArray(prdData.tasks)) {
-        prdData.tasks = prdData.tasks.map((task: { passes?: boolean }) => ({
-          ...task,
-          passes: true
-        }))
-        finalPrdJson = JSON.stringify(prdData)
-      }
-    } catch {
-      yield* Effect.logWarning('Failed to parse prdJson for task completion', { manifestId })
-    }
-
     yield* db
       .update(schema.manifests)
       .set({
         status: 'completed',
-        prdJson: finalPrdJson,
+        prdJson: payload.prdJson,
         updatedAt: new Date(),
         completedAt: new Date()
       })
