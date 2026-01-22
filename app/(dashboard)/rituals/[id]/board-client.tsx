@@ -273,23 +273,29 @@ export function RitualBoardClient({
     manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
   }, [manifests, addRunningManifest, removeRunningManifest])
 
-  // Poll for running task status updates
+  // Poll for running task/manifest status updates
   useEffect(() => {
     const currentRunningTasks = tasks.filter(task => task.executionState === 'in_progress')
     const allRunningTaskIds = new Set([
       ...currentRunningTasks.map(t => t.id),
       ...persistedRunningTasks
     ])
+    const hasRunningManifests = manifests.some(
+      m => m.status === 'pending' || m.status === 'active' || m.status === 'running'
+    )
 
-    if (allRunningTaskIds.size === 0) return
+    // Poll if any tasks running OR any manifests in progress states
+    if (allRunningTaskIds.size === 0 && !hasRunningManifests) return
 
-    const pollInterval = setInterval(async () => {
-      // Refresh page to get updated task data
+    // Faster polling for manifests (3s) vs tasks (10s)
+    const pollMs = hasRunningManifests ? 3000 : 10000
+
+    const pollInterval = setInterval(() => {
       router.refresh()
-    }, 10000)
+    }, pollMs)
 
     return () => clearInterval(pollInterval)
-  }, [tasks, persistedRunningTasks, router])
+  }, [tasks, persistedRunningTasks, manifests, router])
 
   // Sync tasks, stats, and manifests when server data changes (from router.refresh)
   // This is acceptable because we're syncing with external system (server state)
