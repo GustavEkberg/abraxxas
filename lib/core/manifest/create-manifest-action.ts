@@ -47,28 +47,6 @@ export const createManifestAction = async (
         'manifest.name': input.name
       })
 
-      // Check no active manifest exists for project
-      const activeManifests = yield* db
-        .select()
-        .from(schema.manifests)
-        .where(
-          and(
-            eq(schema.manifests.projectId, input.projectId),
-            inArray(schema.manifests.status, ['pending', 'active', 'running'])
-          )
-        )
-        .limit(1)
-
-      if (activeManifests.length > 0) {
-        const activeManifest = activeManifests[0]
-        return yield* Effect.fail(
-          new ValidationError({
-            message: `An active manifest already exists for this project (status: ${activeManifest.status})`,
-            field: 'projectId'
-          })
-        )
-      }
-
       // Generate webhook secret upfront so it's in DB before sprite sends webhook
       const webhookSecret = generateWebhookSecret()
 
