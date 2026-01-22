@@ -93,7 +93,7 @@
         "Token count displayed on card when available",
         "Styling matches manifest card aesthetic (monospace, muted colors)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-4",

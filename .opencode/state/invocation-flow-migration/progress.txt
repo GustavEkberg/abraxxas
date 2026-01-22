@@ -89,3 +89,13 @@ Started: 2026-01-22
   - useAlert hook provides imperative `confirm()` method that returns Promise<boolean>
   - Pattern: pass onDestroySprite prop only when sprite exists (conditional prop)
   - sessionId needed in TaskStats interface to call destroySpriteAction
+
+## Task - ui-3
+
+- Updated task statistics styling to match manifest card muted aesthetic
+- Stats already displayed (messageCount + tokens) from prior work; adjusted colors
+- Files changed:
+  - `app/(dashboard)/rituals/[id]/board-client.tsx` - changed stats span from `bg-red-500/10 text-red-400` to `bg-white/5 text-white/40`
+- **Learnings:**
+  - Manifest card uses `text-white/40` for muted secondary info (see ManifestProgress at line 128)
+  - Task cards already had monospace via `font-mono` on parent containers

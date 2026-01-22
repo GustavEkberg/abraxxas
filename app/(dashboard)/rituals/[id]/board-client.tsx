@@ -284,7 +284,7 @@ function DraggableCard({ task, onClick, stats, onDestroySprite }: DraggableCardP
         <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
         <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>
         {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
-          <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">
+          <span className="rounded bg-white/5 px-1.5 py-0.5 text-white/40">
             {stats.messageCount}m · {Math.round((stats.inputTokens + stats.outputTokens) / 1000)}k
           </span>
         )}
