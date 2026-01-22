@@ -142,8 +142,9 @@ PID_OPENCODE=$!
 curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp &
 PID_SETUP=$!
 
-npm install -g pnpm drizzle-kit &
-PID_NPM=$!
+export SHELL=/bin/bash
+curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh - &
+PID_PNPM=$!
 
 # Wait for all downloads
 echo "Waiting for downloads to complete..."
@@ -153,8 +154,19 @@ wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
 echo "Opencode installed"
 wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
 echo "Setup tarball extracted"
-wait $PID_NPM || { echo "npm global install failed"; exit 1; }
-echo "pnpm and drizzle-kit installed"
+wait $PID_PNPM || { echo "pnpm install failed"; exit 1; }
+echo "pnpm installed"
+
+# Add pnpm to PATH permanently
+export PNPM_HOME="/home/sprite/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
+# Add to shell configs for future sessions
+echo 'export PNPM_HOME="/home/sprite/.local/share/pnpm"' >> /home/sprite/.bashrc
+echo 'export PATH="$PNPM_HOME:$PATH"' >> /home/sprite/.bashrc
+mkdir -p /home/sprite/.config/fish
+echo 'set -gx PNPM_HOME "/home/sprite/.local/share/pnpm"' >> /home/sprite/.config/fish/config.fish
+echo 'fish_add_path $PNPM_HOME' >> /home/sprite/.config/fish/config.fish
 
 # Setup opencode auth
 ${
