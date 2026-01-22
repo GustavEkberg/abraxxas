@@ -113,7 +113,7 @@ function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-w-0 flex-col border border-dashed bg-zinc-950/50 p-3 transition-colors font-mono md:min-w-[280px] md:p-4 ${
+      className={`flex min-w-0 flex-col border border-dashed bg-zinc-950/50 p-2 transition-colors font-mono md:min-w-[200px] md:p-3 ${
         isOver ? 'border-red-500/40 bg-zinc-900/50' : ''
       }`}
       style={{
@@ -170,12 +170,12 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className={`cursor-grab p-3 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-4 ${borderColor} ${bgColor} ${
+      className={`cursor-grab p-2 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-3 ${borderColor} ${bgColor} ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
-      <div className="mb-1.5 flex items-center justify-between gap-2 md:mb-2">
-        <h3 className="min-w-0 truncate text-sm font-medium text-white/90 md:text-base">
+      <div className="mb-1 flex items-center justify-between gap-2 md:mb-1.5">
+        <h3 className="min-w-0 truncate text-xs font-medium text-white/90 md:text-sm">
           {task.title}
         </h3>
         {isExecuting && (
@@ -187,8 +187,8 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
         {isError && <span className="flex-shrink-0 text-xs text-red-400">Error</span>}
         {isCompleted && <span className="flex-shrink-0 text-xs text-green-400">✓</span>}
       </div>
-      <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/40 md:mt-2 md:gap-2">
+      <p className="line-clamp-2 text-xs text-white/60">{task.description}</p>
+      <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-white/40 md:mt-1.5 md:gap-1.5">
         <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
         <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>
         {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
@@ -438,7 +438,7 @@ export function RitualBoardClient({
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="min-h-screen p-3 md:p-6">
+      <div className="mx-auto min-h-screen max-w-[1600px] p-3 md:p-6">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between gap-3 md:mb-6">
           <div className="min-w-0 flex-1">
@@ -477,7 +477,7 @@ export function RitualBoardClient({
             Invocations
           </h2>
         </div>
-        <div className="flex flex-col gap-3 md:grid md:gap-4 md:[grid-template-columns:repeat(5,1fr)] md:[grid-template-rows:1fr_1fr]">
+        <div className="flex flex-col gap-2 md:grid md:gap-3 md:[grid-template-columns:repeat(5,1fr)] md:[grid-template-rows:1fr_1fr]">
           {COLUMNS.map(column => {
             const columnTasks = getTasksByStatus(column.id)
 
@@ -502,20 +502,20 @@ export function RitualBoardClient({
                 style={gridStyles[column.id]}
               >
                 {/* Column Header */}
-                <div className="mb-3 md:mb-4">
+                <div className="mb-2 md:mb-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-white/90 md:text-lg">
+                    <h2 className="text-sm font-semibold text-white/90 md:text-base">
                       {column.title}
                     </h2>
-                    <span className="border border-dashed border-white/20 bg-white/5 px-2 py-1 text-xs text-white/60 font-mono">
+                    <span className="border border-dashed border-white/20 bg-white/5 px-1.5 py-0.5 text-xs text-white/60 font-mono">
                       {columnTasks.length}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-white/40">{column.description}</p>
+                  <p className="mt-0.5 text-xs text-white/40">{column.description}</p>
                 </div>
 
                 {/* Tasks */}
-                <div className="flex-1 space-y-2 md:space-y-3">
+                <div className="flex-1 space-y-1.5 md:space-y-2">
                   {columnTasks.length === 0 ? (
                     <div className="border border-dashed border-white/20 p-4 text-center text-xs text-white/30 font-mono md:p-8 md:text-sm">
                       Empty
