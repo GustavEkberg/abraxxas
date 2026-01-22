@@ -6,11 +6,7 @@ import { AppLayer } from '@/lib/layers'
 import { getLatestSession } from '@/lib/core/session/get-latest-session'
 
 export interface TaskDetailsResult {
-  session: {
-    messageCount: string | null
-    inputTokens: string | null
-    outputTokens: string | null
-  } | null
+  errorMessage: string | null
 }
 
 export const getTaskDetailsAction = async (
@@ -21,13 +17,9 @@ export const getTaskDetailsAction = async (
       const session = yield* Effect.option(getLatestSession(taskId))
 
       return {
-        session: Option.match(session, {
+        errorMessage: Option.match(session, {
           onNone: () => null,
-          onSome: s => ({
-            messageCount: s.messageCount,
-            inputTokens: s.inputTokens,
-            outputTokens: s.outputTokens
-          })
+          onSome: s => s.errorMessage
         })
       }
     }).pipe(

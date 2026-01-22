@@ -429,7 +429,7 @@ export function RitualBoardClient({
       setTaskDetails(result.data)
     } else {
       console.error('Failed to fetch task details:', result.message)
-      setTaskDetails({ session: null })
+      setTaskDetails({ errorMessage: null })
     }
   }, [])
 
@@ -658,7 +658,7 @@ export function RitualBoardClient({
           task={selectedTask}
           ritualId={project.id}
           repositoryUrl={project.repositoryUrl}
-          session={taskDetails?.session}
+          errorMessage={taskDetails?.errorMessage}
           open={showTaskDetail}
           onOpenChange={setShowTaskDetail}
           onUpdate={handleTaskUpdate}

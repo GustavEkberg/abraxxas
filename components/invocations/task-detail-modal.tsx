@@ -1,216 +1,44 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
-
-type TaskType = 'bug' | 'feature' | 'plan' | 'other'
-type TaskModel = 'grok-1' | 'claude-opus-4-5' | 'claude-sonnet-4-5' | 'claude-haiku-4-5'
-type TaskExecutionState = 'idle' | 'in_progress' | 'awaiting_review' | 'completed' | 'error'
-
-function isTaskType(value: string): value is TaskType {
-  return value === 'bug' || value === 'feature' || value === 'plan' || value === 'other'
-}
-
-function isTaskModel(value: string): value is TaskModel {
-  return (
-    value === 'grok-1' ||
-    value === 'claude-opus-4-5' ||
-    value === 'claude-sonnet-4-5' ||
-    value === 'claude-haiku-4-5'
-  )
-}
-
-function isTaskExecutionState(value: string): value is TaskExecutionState {
-  return (
-    value === 'idle' ||
-    value === 'in_progress' ||
-    value === 'awaiting_review' ||
-    value === 'completed' ||
-    value === 'error'
-  )
-}
 
 interface TaskWithSession {
   id: string
   title: string
   description: string | null
-  type: string
-  status: string
   executionState: string
-  model: string
   branchName: string | null
-  createdAt: Date
 }
 
 interface TaskDetailModalProps {
   task: TaskWithSession | null
   ritualId: string
   repositoryUrl?: string
-  session?: {
-    messageCount: string | null
-    inputTokens: string | null
-    outputTokens: string | null
-  } | null
+  errorMessage?: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdate?: () => void
 }
 
 /**
- * Task detail modal showing full task info and comments.
- * Uses server actions for all mutations.
+ * Task detail modal showing task title, prompt, branch link, and error message.
+ * Simplified view focused on essential information.
  */
 export function TaskDetailModal({
   task,
   ritualId: _ritualId,
   repositoryUrl,
-  session,
+  errorMessage,
   open,
   onOpenChange,
   onUpdate
 }: TaskDetailModalProps) {
-  const [selectedType, setSelectedType] = useState<string>('')
-  const [updatingType, setUpdatingType] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<string>('')
-  const [updatingModel, setUpdatingModel] = useState(false)
-  const [selectedExecutionState, setSelectedExecutionState] = useState<string>('')
-  const [updatingExecutionState, setUpdatingExecutionState] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const AVAILABLE_TYPES: TaskType[] = ['bug', 'feature', 'plan', 'other']
-
-  const AVAILABLE_MODELS: TaskModel[] = [
-    'grok-1',
-    'claude-sonnet-4-5',
-    'claude-opus-4-5',
-    'claude-haiku-4-5'
-  ]
-
-  const AVAILABLE_EXECUTION_STATES: TaskExecutionState[] = [
-    'idle',
-    'in_progress',
-    'awaiting_review',
-    'completed',
-    'error'
-  ]
-
-  // Sync state when task changes
-  useEffect(() => {
-    if (task && open) {
-      setSelectedType(task.type)
-      setSelectedModel(task.model)
-      setSelectedExecutionState(task.executionState)
-      setError(null)
-    }
-  }, [task, open])
-
-  const handleTypeChange = useCallback(
-    async (value: string | null) => {
-      if (!task || !value || !isTaskType(value)) return
-
-      setSelectedType(value)
-      setUpdatingType(true)
-      setError(null)
-
-      try {
-        const result = await updateTaskAction({
-          taskId: task.id,
-          type: value
-        })
-
-        if (result._tag === 'Error') {
-          setError(result.message)
-          setSelectedType(task.type)
-          return
-        }
-
-        onUpdate?.()
-      } catch (err) {
-        console.error('Failed to update type:', err)
-        setSelectedType(task.type)
-        setError('Failed to update task type')
-      } finally {
-        setUpdatingType(false)
-      }
-    },
-    [task, onUpdate]
-  )
-
-  const handleModelChange = useCallback(
-    async (value: string | null) => {
-      if (!task || !value || !isTaskModel(value)) return
-
-      setSelectedModel(value)
-      setUpdatingModel(true)
-      setError(null)
-
-      try {
-        const result = await updateTaskAction({
-          taskId: task.id,
-          model: value
-        })
-
-        if (result._tag === 'Error') {
-          setError(result.message)
-          setSelectedModel(task.model)
-          return
-        }
-
-        onUpdate?.()
-      } catch (err) {
-        console.error('Failed to update model:', err)
-        setSelectedModel(task.model)
-        setError('Failed to update task model')
-      } finally {
-        setUpdatingModel(false)
-      }
-    },
-    [task, onUpdate]
-  )
-
-  const handleExecutionStateChange = useCallback(
-    async (value: string | null) => {
-      if (!task || !value || !isTaskExecutionState(value)) return
-
-      setSelectedExecutionState(value)
-      setUpdatingExecutionState(true)
-      setError(null)
-
-      try {
-        const result = await updateTaskAction({
-          taskId: task.id,
-          executionState: value
-        })
-
-        if (result._tag === 'Error') {
-          setError(result.message)
-          setSelectedExecutionState(task.executionState)
-          return
-        }
-
-        onUpdate?.()
-      } catch (err) {
-        console.error('Failed to update execution state:', err)
-        setSelectedExecutionState(task.executionState)
-        setError('Failed to update execution state')
-      } finally {
-        setUpdatingExecutionState(false)
-      }
-    },
-    [task, onUpdate]
-  )
 
   const handleDelete = useCallback(async () => {
     if (!task) return
@@ -239,9 +67,7 @@ export function TaskDetailModal({
 
   if (!task) return null
 
-  const messageCount = session?.messageCount ? parseInt(session.messageCount, 10) : 0
-  const inputTokens = session?.inputTokens ? parseInt(session.inputTokens, 10) : 0
-  const outputTokens = session?.outputTokens ? parseInt(session.outputTokens, 10) : 0
+  const isError = task.executionState === 'error'
 
   return (
     <>
@@ -262,101 +88,42 @@ export function TaskDetailModal({
             </Button>
           </DialogHeader>
 
-          {/* Error Message */}
+          {/* Error Message (from action failures) */}
           {error && (
             <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
               {error}
             </div>
           )}
 
-          {/* Task metadata */}
-          <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 md:mb-6 md:flex md:flex-wrap md:gap-4">
-            <span className="text-sm text-white/60">Status:</span>
-            <span className="w-fit rounded-full bg-red-500/20 px-3 py-1 text-red-400 text-sm">
-              {task.status}
-            </span>
-            {task.branchName && repositoryUrl && (
-              <>
-                <span className="text-sm text-white/60">Branch:</span>
-                <a
-                  href={`${repositoryUrl}/compare/main...${task.branchName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-fit truncate rounded bg-purple-500/20 px-3 py-1 text-purple-400 text-sm hover:bg-purple-500/30 transition-colors duration-200"
-                >
-                  {task.branchName}
-                </a>
-              </>
-            )}
-            <span className="text-sm text-white/60">Type:</span>
-            <Select value={selectedType} onValueChange={handleTypeChange} disabled={updatingType}>
-              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-zinc-950">
-                {AVAILABLE_TYPES.map(type => (
-                  <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-white/60">Model:</span>
-            <Select
-              value={selectedModel}
-              onValueChange={handleModelChange}
-              disabled={updatingModel}
-            >
-              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-zinc-950">
-                {AVAILABLE_MODELS.map(model => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-white/60">State:</span>
-            <Select
-              value={selectedExecutionState}
-              onValueChange={handleExecutionStateChange}
-              disabled={updatingExecutionState}
-            >
-              <SelectTrigger className="w-fit min-w-0 max-w-full border-white/10 bg-zinc-900/50">
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-zinc-950">
-                {AVAILABLE_EXECUTION_STATES.map(state => (
-                  <SelectItem key={state} value={state}>
-                    {state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, ' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Session stats */}
-          {(messageCount > 0 || inputTokens + outputTokens > 0) && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 md:mb-6 md:gap-4">
-              <span className="text-sm text-white/60">Session Stats:</span>
-              <span className="rounded bg-red-500/10 px-3 py-1 text-red-400 text-sm">
-                {messageCount} messages
-              </span>
-              {inputTokens + outputTokens > 0 && (
-                <span className="rounded bg-red-500/10 px-3 py-1 text-red-400 text-sm">
-                  {Math.round((inputTokens + outputTokens) / 1000)}k tokens
-                </span>
-              )}
+          {/* Task Error State */}
+          {isError && errorMessage && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3">
+              <h3 className="mb-1 text-sm font-medium text-red-400">Execution Error</h3>
+              <p className="text-sm text-red-300 whitespace-pre-wrap">{errorMessage}</p>
             </div>
           )}
 
-          {/* Description */}
+          {/* Branch Link */}
+          {task.branchName && repositoryUrl && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/60">Branch:</span>
+              <a
+                href={`${repositoryUrl}/compare/main...${task.branchName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-fit truncate rounded bg-purple-500/20 px-3 py-1 text-purple-400 text-sm hover:bg-purple-500/30 transition-colors duration-200"
+              >
+                {task.branchName}
+              </a>
+            </div>
+          )}
+
+          {/* Initial Prompt (title + description) */}
           <div>
-            <h3 className="mb-2 text-sm font-medium text-white/60">Description</h3>
+            <h3 className="mb-2 text-sm font-medium text-white/60">Initial Prompt</h3>
             <div className="rounded-lg border border-white/10 bg-zinc-900/50 p-3 text-sm text-white/80 whitespace-pre-wrap md:p-4 md:text-base">
-              {task.description || 'No description provided'}
+              <div className="font-medium mb-2">{task.title}</div>
+              {task.description && <div className="text-white/70">{task.description}</div>}
             </div>
           </div>
         </DialogContent>

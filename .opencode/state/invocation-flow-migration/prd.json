@@ -120,7 +120,7 @@
         "No session stats section rendered",
         "Delete task button still present"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

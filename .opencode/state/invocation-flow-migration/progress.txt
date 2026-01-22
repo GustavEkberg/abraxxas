@@ -114,3 +114,19 @@ Started: 2026-01-22
 - **Learnings:**
   - Comments were only used in task-detail-modal - no other consumers
   - Server action cleanup required coordinating with client components that use the result type
+
+## Task - ui-5
+
+- Simplified task detail modal to show only essential information
+- Removed type/model/state Select dropdowns (and their handlers)
+- Removed session stats section (messageCount, tokens)
+- Added execution error display when task is in error state
+- Changed "Description" section header to "Initial Prompt" with title + description
+- Files changed:
+  - `components/invocations/task-detail-modal.tsx` - major simplification (398 -> 158 lines)
+  - `lib/core/task/get-task-details-action.ts` - now only returns `errorMessage` instead of full session stats
+  - `app/(dashboard)/rituals/[id]/board-client.tsx` - updated TaskDetailModal props (session -> errorMessage)
+- **Learnings:**
+  - Modal now focused: title, error (if any), branch link (if any), initial prompt, delete button
+  - Task type/model/state editing was not needed for the invocation flow
+  - Session stats (messages, tokens) are displayed on the card itself via TaskStats
