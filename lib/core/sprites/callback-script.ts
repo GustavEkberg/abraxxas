@@ -248,6 +248,22 @@ cd /home/sprite/repo
 git config user.email "${gitUserEmail}"
 git config user.name "${gitUserName}"
 
+# Create opencode config with permissions for .sprite/* files
+cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "build": {
+      "permission": {
+        "read": {
+          ".sprite/*": "allow"
+        }
+      }
+    }
+  }
+}
+CONFIGEOF
+
 # Create and checkout branch
 echo "Creating branch: $BRANCH_NAME"
 set +e

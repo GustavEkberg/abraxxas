@@ -199,11 +199,20 @@ echo 'export HOME=/home/sprite' >> /home/sprite/.bashrc
 echo 'export XDG_CONFIG_HOME=/home/sprite/.config' >> /home/sprite/.bashrc
 echo 'export XDG_DATA_HOME=/home/sprite/.local/share' >> /home/sprite/.bashrc
 
-# Create opencode config with default model
+# Create opencode config with default model and permissions
 cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-opus-4-5-20251101"
+  "model": "anthropic/claude-opus-4-5-20251101",
+  "agent": {
+    "build": {
+      "permission": {
+        "read": {
+          ".sprite/*": "allow"
+        }
+      }
+    }
+  }
 }
 CONFIGEOF
 
