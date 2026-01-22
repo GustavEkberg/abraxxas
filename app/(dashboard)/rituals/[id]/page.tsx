@@ -37,6 +37,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
           spriteName: string | null
           spriteUrl: string | null
           spritePassword: string | null
+          branchName: string | null
         }
       >()
       sessions.forEach(session => {
@@ -51,7 +52,8 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
             outputTokens,
             spriteName: session.spriteName,
             spriteUrl: session.spriteUrl,
-            spritePassword: session.spritePassword
+            spritePassword: session.spritePassword,
+            branchName: session.branchName
           })
         }
       })

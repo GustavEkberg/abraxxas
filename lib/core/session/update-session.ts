@@ -7,6 +7,7 @@ type UpdateSessionInput = {
   sessionId: string
   status?: 'pending' | 'in_progress' | 'completed' | 'error'
   pullRequestUrl?: string | null
+  branchName?: string | null
   errorMessage?: string | null
   logs?: string | null
   messageCount?: string | null
@@ -33,6 +34,10 @@ export const updateSession = (input: UpdateSessionInput) =>
 
     if (input.pullRequestUrl !== undefined) {
       updateData.pullRequestUrl = input.pullRequestUrl
+    }
+
+    if (input.branchName !== undefined) {
+      updateData.branchName = input.branchName
     }
 
     if (input.errorMessage !== undefined) {

@@ -42,6 +42,7 @@ const CompletedPayloadSchema = Schema.Struct({
   type: Schema.Literal('completed'),
   summary: Schema.optional(Schema.String),
   pullRequestUrl: Schema.optional(Schema.String),
+  branchName: Schema.optional(Schema.String),
   stats: Schema.optional(StatsSchema)
 })
 
@@ -207,12 +208,13 @@ const handleCompleted = (
   Effect.gen(function* () {
     const db = yield* Db
 
-    // Update session to completed with stats if available
+    // Update session to completed with stats and branchName if available
     yield* updateSession({
       sessionId,
       status: 'completed',
       completedAt: new Date(),
       pullRequestUrl: payload.pullRequestUrl || null,
+      branchName: payload.branchName || null,
       ...(payload.stats && {
         messageCount: String(payload.stats.messageCount),
         inputTokens: String(payload.stats.inputTokens),
@@ -220,13 +222,14 @@ const handleCompleted = (
       })
     })
 
-    // Move task to 'trial' status and set executionState to 'awaiting_review'
+    // Move task to 'trial' status, set executionState to 'awaiting_review', and update branchName
     yield* db
       .update(schema.tasks)
       .set({
         status: 'trial',
         executionState: 'awaiting_review',
-        completedAt: new Date()
+        completedAt: new Date(),
+        ...(payload.branchName && { branchName: payload.branchName })
       })
       .where(eq(schema.tasks.id, taskId))
 

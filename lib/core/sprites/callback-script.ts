@@ -108,6 +108,33 @@ SESSION_ID="${sessionId}"
 TASK_ID="${taskId}"
 BRANCH_NAME="${branchName}"
 
+# Function to push code and get the actual branch name
+push_and_get_branch() {
+    cd /home/sprite/repo
+    
+    # Get current branch name first (before any push output)
+    local branch_name
+    branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    
+    if [ -z "$branch_name" ] || [ "$branch_name" = "HEAD" ]; then
+        echo ""
+        return
+    fi
+    
+    # Check if there are any changes to commit
+    if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+        # Stage and commit any remaining changes
+        git add -A
+        git commit -m "chore: final invocation changes" >/dev/null 2>&1 || true
+    fi
+    
+    # Push the branch (redirect all output to avoid capturing it)
+    git push -u origin "$branch_name" >/dev/null 2>&1 || git push origin "$branch_name" >/dev/null 2>&1 || true
+    
+    # Return only the branch name
+    echo "$branch_name"
+}
+
 # Function to send webhook
 send_webhook() {
     local type="$1"
@@ -115,14 +142,19 @@ send_webhook() {
     local error="$3"
     local stats="$4"
     local progress_data="\${5:-}"
+    local branch_name="\${6:-}"
     
     echo "Sending webhook: type=$type"
     
     # Build JSON payload
     local payload
     if [ "$type" = "completed" ]; then
-        if [ -n "$stats" ]; then
+        if [ -n "$stats" ] && [ -n "$branch_name" ]; then
+            payload='{"type":"completed","sessionId":"'"$SESSION_ID"'","taskId":"'"$TASK_ID"'","summary":"'"$summary"'","branchName":"'"$branch_name"'","stats":'"$stats"'}'
+        elif [ -n "$stats" ]; then
             payload='{"type":"completed","sessionId":"'"$SESSION_ID"'","taskId":"'"$TASK_ID"'","summary":"'"$summary"'","stats":'"$stats"'}'
+        elif [ -n "$branch_name" ]; then
+            payload='{"type":"completed","sessionId":"'"$SESSION_ID"'","taskId":"'"$TASK_ID"'","summary":"'"$summary"'","branchName":"'"$branch_name"'"}'
         else
             payload='{"type":"completed","sessionId":"'"$SESSION_ID"'","taskId":"'"$TASK_ID"'","summary":"'"$summary"'"}'
         fi
@@ -329,10 +361,14 @@ set +e
 if [ $OPENCODE_EXIT_CODE -eq 0 ]; then
     echo "Execution completed successfully"
     
+    # Push code and get the actual branch name
+    ACTUAL_BRANCH=$(push_and_get_branch)
+    echo "Branch: $ACTUAL_BRANCH"
+    
     if [ -n "$SUMMARY" ]; then
-        send_webhook "completed" "$SUMMARY" "" "$STATS_JSON"
+        send_webhook "completed" "$SUMMARY" "" "$STATS_JSON" "" "$ACTUAL_BRANCH"
     else
-        send_webhook "completed" "Task executed successfully" "" "$STATS_JSON"
+        send_webhook "completed" "Task executed successfully" "" "$STATS_JSON" "" "$ACTUAL_BRANCH"
     fi
     
     WEBHOOK_EXIT=$?
