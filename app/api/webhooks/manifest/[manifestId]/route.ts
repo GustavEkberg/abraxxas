@@ -32,7 +32,8 @@ const ProgressPayloadSchema = Schema.Struct({
 
 const CompletedPayloadSchema = Schema.Struct({
   type: Schema.Literal('completed'),
-  prdJson: Schema.String
+  prdJson: Schema.String,
+  branchName: Schema.optional(Schema.String)
 })
 
 const ErrorPayloadSchema = Schema.Struct({
@@ -212,7 +213,7 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - updates status to completed, stores prdJson as-is
+// Handler for 'completed' event - updates status to completed, stores prdJson and branchName
 // Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
 // Note: prdJson reflects actual task status from repo - we don't override passes status
 const handleCompleted = (
@@ -228,13 +229,14 @@ const handleCompleted = (
       .set({
         status: 'completed',
         prdJson: payload.prdJson,
+        branchName: payload.branchName ?? null,
         updatedAt: new Date(),
         completedAt: new Date()
       })
       .where(eq(schema.manifests.id, manifestId))
 
     revalidatePath(`/rituals/${projectId}`)
-    yield* Effect.logInfo('Completed event handled', { manifestId })
+    yield* Effect.logInfo('Completed event handled', { manifestId, branchName: payload.branchName })
   })
 
 // Handler for 'error' event - updates status to error with errorMessage

@@ -1,0 +1,1 @@
+ALTER TABLE "manifests" ADD COLUMN "branchName" text;

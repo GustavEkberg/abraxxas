@@ -91,6 +91,32 @@ send_task_loop_started() {
     fi
 }
 
+# Function to push code and get branch name
+push_and_get_branch() {
+    cd /home/sprite/repo
+    
+    # Get current branch name
+    local branch_name
+    branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    
+    if [ -z "$branch_name" ] || [ "$branch_name" = "HEAD" ]; then
+        echo ""
+        return
+    fi
+    
+    # Check if there are any changes to commit
+    if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+        # Stage and commit any remaining changes
+        git add -A
+        git commit -m "chore: final manifest changes" 2>/dev/null || true
+    fi
+    
+    # Push the branch (may already exist on remote)
+    git push -u origin "$branch_name" 2>/dev/null || git push origin "$branch_name" 2>/dev/null || true
+    
+    echo "$branch_name"
+}
+
 # Function to send completed webhook (idempotent - uses flag file)
 send_completed() {
     # Prevent duplicate completed webhooks
@@ -98,6 +124,10 @@ send_completed() {
         return
     fi
     touch "/tmp/completed_sent"
+    
+    # Push code and capture branch name
+    local branch_name
+    branch_name=$(push_and_get_branch)
     
     if [ -f "$PRD_JSON_PATH" ]; then
         local prd_content
@@ -107,7 +137,8 @@ send_completed() {
         payload=$(jq -n \\
             --arg type "completed" \\
             --argjson prdJson "$prd_content" \\
-            '{type: $type, prdJson: ($prdJson | tostring)}')
+            --arg branchName "$branch_name" \\
+            '{type: $type, prdJson: ($prdJson | tostring), branchName: $branchName}')
         
         send_webhook "$payload"
     fi

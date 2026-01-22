@@ -462,7 +462,11 @@ export function RitualBoardClient({
           <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">Manifests</h2>
           <div className="space-y-3">
             {manifests.map(manifest => (
-              <ManifestCard key={manifest.id} manifest={manifest} />
+              <ManifestCard
+                key={manifest.id}
+                manifest={manifest}
+                repositoryUrl={project.repositoryUrl}
+              />
             ))}
           </div>
         </div>

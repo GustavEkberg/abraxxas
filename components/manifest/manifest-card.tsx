@@ -4,13 +4,14 @@ import { useState, useTransition, useEffect } from 'react'
 import {
   Check,
   ExternalLink,
+  GitCompareArrows,
   Link,
+  Lock,
+  Pencil,
   Play,
   Square,
-  Trash2,
   Terminal,
-  Lock,
-  Pencil
+  Trash2
 } from 'lucide-react'
 import type { Manifest } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
@@ -288,7 +289,18 @@ function EditPrdNameDialog({
   )
 }
 
-export function ManifestCard({ manifest }: { manifest: Manifest }) {
+interface ManifestCardProps {
+  manifest: Manifest
+  repositoryUrl: string
+}
+
+function buildCompareUrl(repositoryUrl: string, branchName: string): string {
+  // repositoryUrl is https://github.com/owner/repo or https://github.com/owner/repo.git
+  const cleanUrl = repositoryUrl.replace(/\.git$/, '')
+  return `${cleanUrl}/compare/main...${encodeURIComponent(branchName)}`
+}
+
+export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const { confirm } = useAlert()
@@ -480,6 +492,25 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
               title="Stop task loop"
             >
               <Square className="size-3.5" />
+            </Button>
+          )}
+
+          {/* Branch compare link - show when completed with branch */}
+          {isCompleted && manifest.branchName && (
+            <Button
+              variant="ghost"
+              size="sm"
+              render={
+                <a
+                  href={buildCompareUrl(repositoryUrl, manifest.branchName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+              className="h-7 px-2 text-green-400 hover:text-green-300"
+              title={`Compare ${manifest.branchName} to main`}
+            >
+              <GitCompareArrows className="size-3.5" />
             </Button>
           )}
 
