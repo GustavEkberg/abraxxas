@@ -20,25 +20,13 @@ type ExecuteTaskInput = {
 }
 
 /**
- * Build prompt from task title, description, and comments.
+ * Build prompt from task title and description only.
  */
-const buildPrompt = (
-  task: schema.Task,
-  comments: Array<{ content: string; isAgentComment: boolean; agentName: string | null }>
-): string => {
+const buildPrompt = (task: schema.Task): string => {
   let prompt = `Task: ${task.title}\n\n`
 
   if (task.description) {
     prompt += `Description:\n${task.description}\n\n`
-  }
-
-  if (comments.length > 0) {
-    prompt += `Comments:\n`
-    comments.forEach(comment => {
-      const author = comment.isAgentComment ? `Agent (${comment.agentName || 'unknown'})` : 'User'
-      prompt += `- ${author}: ${comment.content}\n`
-    })
-    prompt += `\n`
   }
 
   return prompt
@@ -83,19 +71,8 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
         )
       }
 
-      // Fetch comments for the task
-      const comments = yield* db
-        .select({
-          content: schema.comments.content,
-          isAgentComment: schema.comments.isAgentComment,
-          agentName: schema.comments.agentName
-        })
-        .from(schema.comments)
-        .where(eq(schema.comments.taskId, input.taskId))
-        .orderBy(schema.comments.createdAt)
-
-      // Build prompt from task + comments
-      const prompt = buildPrompt(task, comments)
+      // Build prompt from task title + description only
+      const prompt = buildPrompt(task)
 
       yield* Effect.log(`Built prompt for task ${task.id}: ${prompt.slice(0, 100)}...`)
 

@@ -38,3 +38,13 @@ Started: 2026-01-22
 - **Learnings:**
   - Task status transitions still work (trial/cursed) - these are independent of sprite lifecycle
   - Sprite now persists after task completion/error, allowing user to manually inspect/debug via UI
+
+## Task - backend-3
+
+- Simplified `buildPrompt` to only include task title and description
+- Removed comments fetching from `executeTaskAction`
+- Files changed:
+  - `lib/core/task/execute-task-action.ts` - simplified `buildPrompt` signature, removed comments query
+- **Learnings:**
+  - Comments are still created by agent (line 143) but no longer fed into the initial prompt
+  - This is part of simplifying the invocation flow - comments UI will be removed in ui-4
