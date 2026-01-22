@@ -101,6 +101,81 @@ const COLUMNS = [
 
 const RUNNING_TASKS_STORAGE_KEY = 'abraxas_running_tasks'
 
+// Spark effect for running invocations
+interface Spark {
+  id: number
+  x: number // percentage position in element
+  y: number // percentage position in element
+  angle: number
+  distance: number
+  duration: number
+  delay: number
+  size: number
+}
+
+function createInvocationSpark(id: number): Spark {
+  return {
+    id,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    angle: Math.random() * 360,
+    distance: 20 + Math.random() * 40,
+    duration: 0.6 + Math.random() * 0.4,
+    delay: Math.random() * 0.15,
+    size: 1.5 + Math.random() * 2
+  }
+}
+
+function InvocationSparkParticle({ x, y, angle, distance, duration, delay, size }: Spark) {
+  const rad = (angle * Math.PI) / 180
+  const tx = Math.cos(rad) * distance
+  const ty = Math.sin(rad) * distance
+  const keyframeName = `inv-spark-${Math.round(angle)}-${Math.round(distance)}-${Math.round(x)}`
+
+  return (
+    <span
+      className="pointer-events-none absolute rounded-full bg-red-400"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        left: `${x}%`,
+        top: `${y}%`,
+        animation: `${keyframeName} ${duration}s ease-out ${delay}s forwards`
+      }}
+    >
+      <style>{`
+        @keyframes ${keyframeName} {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+          100% { transform: translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.3); opacity: 0; }
+        }
+      `}</style>
+    </span>
+  )
+}
+
+function InvocationSparkBurst() {
+  const [sparks, setSparks] = useState<Spark[]>([])
+
+  useEffect(() => {
+    let idCounter = 0
+    const interval = setInterval(() => {
+      const count = 2 + Math.floor(Math.random() * 3)
+      const newSparks = Array.from({ length: count }, () => createInvocationSpark(idCounter++))
+      setSparks(prev => [...prev.slice(-20), ...newSparks])
+    }, 400)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-visible">
+      {sparks.map(s => (
+        <InvocationSparkParticle key={s.id} {...s} />
+      ))}
+    </div>
+  )
+}
+
 function getPersistedRunningTasks(ritualId: string): string[] {
   if (typeof window === 'undefined') return []
   try {
@@ -220,14 +295,28 @@ function DraggableCard({
   return (
     <Card
       ref={setNodeRef}
-      style={style}
+      style={
+        isExecuting ? { ...style, animation: 'invocation-shake 0.15s ease-in-out infinite' } : style
+      }
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className={`cursor-grab p-2 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-3 ${borderColor} ${bgColor} ${
+      className={`relative cursor-grab p-2 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-3 ${borderColor} ${bgColor} ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
+      {isExecuting && (
+        <>
+          <style>{`
+            @keyframes invocation-shake {
+              0%, 100% { transform: translateX(0) rotate(0deg); }
+              25% { transform: translateX(-1px) rotate(-0.5deg); }
+              75% { transform: translateX(1px) rotate(0.5deg); }
+            }
+          `}</style>
+          <InvocationSparkBurst />
+        </>
+      )}
       <div className="mb-1 flex items-center justify-between gap-2 md:mb-1.5">
         <h3 className="min-w-0 truncate text-xs font-medium text-white/90 md:text-sm">
           {task.title}
