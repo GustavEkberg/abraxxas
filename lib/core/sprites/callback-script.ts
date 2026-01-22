@@ -102,6 +102,9 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
   return `#!/bin/bash
 set -euo pipefail
 
+# Redirect all output to /tmp/abraxas.log for log viewing
+exec > >(tee /tmp/abraxas.log) 2>&1
+
 WEBHOOK_URL="${webhookUrl}"
 WEBHOOK_SECRET="${webhookSecret}"
 SESSION_ID="${sessionId}"

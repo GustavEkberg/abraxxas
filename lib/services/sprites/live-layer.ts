@@ -1,4 +1,5 @@
 import { Config, Context, Effect, Layer, Redacted } from 'effect'
+import { SpritesClient } from '@fly/sprites'
 import {
   SpritesApiError,
   SpritesConfigError,
@@ -310,11 +311,92 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
         Effect.tapError(error => Effect.logError('Update URL settings failed', { name, error }))
       )
 
+    /**
+     * Execute a command via WebSocket with TTY mode enabled.
+     * TTY mode has max_run_after_disconnect=0 (forever) by default,
+     * so the command continues running after we disconnect.
+     *
+     * Use this for long-running setup scripts that need to survive HTTP timeouts.
+     */
+    const execDetached = (
+      spriteName: string,
+      command: string,
+      args: string[] = [],
+      options?: {
+        env?: Record<string, string>
+        cwd?: string
+        stdin?: string
+        /** Timeout in ms to wait for command to start before disconnecting (default: 5000) */
+        startTimeout?: number
+      }
+    ) =>
+      Effect.gen(function* () {
+        yield* Effect.annotateCurrentSpan({
+          'sprites.name': spriteName,
+          'sprites.command': `${command} ${args.join(' ')}`.trim()
+        })
+
+        yield* Effect.tryPromise({
+          try: async () => {
+            const client = new SpritesClient(Redacted.value(config.token))
+            const sprite = client.sprite(spriteName)
+
+            // Use TTY mode - it has max_run_after_disconnect=0 (forever) by default
+            const cmd = sprite.spawn(command, args, {
+              tty: true,
+              env: options?.env,
+              cwd: options?.cwd
+            })
+
+            // If we have stdin content, write it after command starts
+            if (options?.stdin) {
+              cmd.once('spawn', () => {
+                cmd.stdin.write(options.stdin)
+                cmd.stdin.end()
+              })
+            }
+
+            // Wait for 'spawn' event (command started) then disconnect
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                cmd.kill()
+                reject(new Error('Timeout waiting for command to start'))
+              }, options?.startTimeout ?? 5000)
+
+              cmd.once('spawn', () => {
+                clearTimeout(timeout)
+                // Small delay to ensure command is fully initialized
+                setTimeout(() => {
+                  cmd.kill() // Disconnect (command keeps running due to TTY mode)
+                  resolve()
+                }, 100)
+              })
+
+              cmd.once('error', err => {
+                clearTimeout(timeout)
+                reject(err)
+              })
+            })
+          },
+          catch: error => {
+            return new SpriteExecutionError({
+              message: error instanceof Error ? error.message : 'Failed to start detached command',
+              spriteName,
+              cause: error
+            })
+          }
+        })
+      }).pipe(
+        Effect.withSpan('Sprites.execDetached'),
+        Effect.tapError(error => Effect.logError('Exec detached failed', { spriteName, error }))
+      )
+
     return {
       createSprite,
       getSprite,
       destroySprite,
       execCommand,
+      execDetached,
       listSprites,
       updateUrlSettings,
       opencodeSetupRepoUrl: config.opencodeSetupRepoUrl,
