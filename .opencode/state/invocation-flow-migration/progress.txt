@@ -18,3 +18,14 @@ Started: 2026-01-22
   - `lib/services/db/schema.ts` - added two columns
   - `lib/services/db/migrations/20260122110059_add-session-sprite-credentials/` - generated migration
 - **Learnings:** Pattern mirrors `manifests` table which already has these columns (line 211-212)
+
+## Task - backend-1
+
+- Updated `spawnSpriteForTask` to return `spriteUrl` and `spritePassword`
+- Updated `executeTaskAction` to store credentials in `opencodeSessions` record
+- Files changed:
+  - `lib/core/sprites/spawn-sprite.ts` - added `generateSpritePassword()`, capture `sprite.url`, updated interface and return
+  - `lib/core/task/execute-task-action.ts` - destructure new fields, store in session insert
+- **Learnings:** 
+  - Sprites API returns `url` from `createSprite` response (see `lib/services/sprites/live-layer.ts:12-23`)
+  - Changed sprite auth from 'sprite' to 'public' to allow external access (matches manifest pattern)

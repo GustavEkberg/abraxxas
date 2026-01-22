@@ -1,4 +1,5 @@
 import { Effect, Config, Option } from 'effect'
+import { randomBytes } from 'crypto'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import {
   generateCallbackScript,
@@ -29,8 +30,21 @@ export interface SpawnSpriteConfig {
  */
 export interface SpawnSpriteResult {
   spriteName: string
+  spriteUrl: string
+  spritePassword: string
   webhookSecret: string
   branchName: string
+}
+
+/**
+ * Generate a random 32-character alphanumeric password for sprite access.
+ */
+export function generateSpritePassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const bytes = randomBytes(32)
+  return Array.from(bytes)
+    .map(b => chars[b % chars.length])
+    .join('')
 }
 
 /**
@@ -81,6 +95,7 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     }
 
     const spriteName = generateSpriteName(task.id)
+    const spritePassword = generateSpritePassword()
     const webhookSecret = generateWebhookSecret()
     // Reuse existing branch if task already has one, otherwise generate new
     const branchName = task.branchName || generateBranchName(task.id, task.title)
@@ -99,8 +114,8 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     yield* Effect.log(`Creating sprite: ${spriteName}`)
     yield* Effect.log(`Using branch: ${branchName}${task.branchName ? ' (existing)' : ' (new)'}`)
 
-    // Create the sprite
-    yield* sprites.createSprite(spriteName, 'sprite').pipe(
+    // Create the sprite with public auth (to allow remote access)
+    const sprite = yield* sprites.createSprite(spriteName, 'public').pipe(
       Effect.mapError(
         error =>
           new SpriteExecutionError({
@@ -110,6 +125,8 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
           })
       )
     )
+
+    const spriteUrl = sprite.url
 
     // Upload opencode auth.json if user has one configured
     const opencodeAuth = yield* getOpencodeAuth(userId)
@@ -262,6 +279,8 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
 
     return {
       spriteName,
+      spriteUrl,
+      spritePassword,
       webhookSecret,
       branchName
     } satisfies SpawnSpriteResult

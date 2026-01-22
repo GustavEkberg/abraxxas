@@ -103,29 +103,30 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
       const decryptedToken = yield* decryptToken(project.encryptedGithubToken)
 
       // Spawn sprite
-      const { spriteName, webhookSecret, branchName } = yield* spawnSpriteForTask({
-        task: {
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          branchName: task.branchName,
-          model: task.model
-        },
-        project: {
-          id: project.id,
-          name: project.name,
-          repositoryUrl: project.repositoryUrl,
-          encryptedGithubToken: project.encryptedGithubToken
-        },
-        prompt,
-        decryptedGithubToken: decryptedToken,
-        userId: user.id,
-        opencodeModel: getOpencodeModel(task.model)
-      })
+      const { spriteName, spriteUrl, spritePassword, webhookSecret, branchName } =
+        yield* spawnSpriteForTask({
+          task: {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            branchName: task.branchName,
+            model: task.model
+          },
+          project: {
+            id: project.id,
+            name: project.name,
+            repositoryUrl: project.repositoryUrl,
+            encryptedGithubToken: project.encryptedGithubToken
+          },
+          prompt,
+          decryptedGithubToken: decryptedToken,
+          userId: user.id,
+          opencodeModel: getOpencodeModel(task.model)
+        })
 
       yield* Effect.log(`Spawned sprite ${spriteName} for task ${task.id}`)
 
-      // Create opencode session record
+      // Create opencode session record with sprite credentials
       const sessionId = createId()
       yield* db.insert(schema.opencodeSessions).values({
         id: sessionId,
@@ -134,6 +135,8 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
         status: 'pending',
         executionMode: 'sprite',
         spriteName,
+        spriteUrl,
+        spritePassword,
         webhookSecret,
         branchName
       })

@@ -21,7 +21,7 @@
         "executeTaskAction stores credentials in opencodeSessions record",
         "Credentials retrievable after spawn completes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "backend-2",
