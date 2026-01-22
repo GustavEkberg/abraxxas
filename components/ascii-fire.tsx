@@ -26,8 +26,10 @@ export function AsciiFire({ intensity = 0, inverted = false }: AsciiFireProps) {
   const targetIntensityRef = useRef(0)
 
   // Update target intensity when prop changes (without restarting animation)
+  // Halve intensity on mobile (<768px) to reduce visual noise
   useEffect(() => {
-    targetIntensityRef.current = intensity
+    const isMobile = window.innerWidth < 768
+    targetIntensityRef.current = isMobile ? intensity * 0.5 : intensity
   }, [intensity])
 
   useEffect(() => {
