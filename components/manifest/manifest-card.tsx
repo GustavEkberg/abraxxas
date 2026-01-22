@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Check,
   ExternalLink,
@@ -291,7 +292,35 @@ function EditPrdNameDialog({
 export function ManifestCard({ manifest }: { manifest: Manifest }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [isPolling, setIsPolling] = useState(false)
   const { confirm } = useAlert()
+  const router = useRouter()
+
+  // Poll for status updates after starting task loop
+  const pollForUpdate = useCallback(() => {
+    setIsPolling(true)
+    let attempts = 0
+    const maxAttempts = 10
+    const interval = setInterval(() => {
+      attempts++
+      router.refresh()
+      if (attempts >= maxAttempts) {
+        clearInterval(interval)
+        setIsPolling(false)
+      }
+    }, 2000)
+    return () => {
+      clearInterval(interval)
+      setIsPolling(false)
+    }
+  }, [router])
+
+  // Stop polling when status changes to running
+  useEffect(() => {
+    if (manifest.status === 'running' && isPolling) {
+      setIsPolling(false)
+    }
+  }, [manifest.status, isPolling])
 
   const isPendingStatus = manifest.status === 'pending'
   const isActive = manifest.status === 'active'
@@ -324,6 +353,9 @@ export function ManifestCard({ manifest }: { manifest: Manifest }) {
       const result = await startTaskLoopAction(manifest.id)
       if (result._tag === 'Error') {
         setError(result.message)
+      } else {
+        // Poll for status update (webhook will change status to 'running')
+        pollForUpdate()
       }
     })
   }
