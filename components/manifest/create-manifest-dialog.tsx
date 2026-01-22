@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,23 +9,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton
-} from '@/components/ui/input-group'
-import { createManifestAction } from '@/lib/core/manifest/create-manifest-action'
+} from '@/components/ui/input-group';
+import { createManifestAction } from '@/lib/core/manifest/create-manifest-action';
 
 interface CreateManifestDialogProps {
-  projectId: string
-  trigger?: React.ReactElement
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  projectId: string;
+  trigger?: React.ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 function CopyableCredential({
@@ -33,18 +33,18 @@ function CopyableCredential({
   value,
   masked = false
 }: {
-  label: string
-  value: string
-  masked?: boolean
+  label: string;
+  value: string;
+  masked?: boolean;
 }) {
-  const [copied, setCopied] = useState(false)
-  const [revealed, setRevealed] = useState(!masked)
+  const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(!masked);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-1">
@@ -70,14 +70,14 @@ function CopyableCredential({
         </InputGroupAddon>
       </InputGroup>
     </div>
-  )
+  );
 }
 
 type DialogState =
-  | { _tag: 'form' }
-  | { _tag: 'loading' }
-  | { _tag: 'success'; spriteUrl: string; spritePassword: string }
-  | { _tag: 'error'; message: string }
+  | { _tag: 'form'; }
+  | { _tag: 'loading'; }
+  | { _tag: 'success'; spriteUrl: string; spritePassword: string; }
+  | { _tag: 'error'; message: string; };
 
 export function CreateManifestDialog({
   projectId,
@@ -85,51 +85,51 @@ export function CreateManifestDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange
 }: CreateManifestDialogProps) {
-  const [internalOpen, setInternalOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [state, setState] = useState<DialogState>({ _tag: 'form' })
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [state, setState] = useState<DialogState>({ _tag: 'form' });
 
   // Support both controlled and uncontrolled modes
-  const open = controlledOpen ?? internalOpen
-  const setOpen = controlledOnOpenChange ?? setInternalOpen
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
-  const canSubmit = name.length > 0 && state._tag === 'form'
+  const canSubmit = name.length > 0 && state._tag === 'form';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canSubmit) return
+    e.preventDefault();
+    if (!canSubmit) return;
 
-    setState({ _tag: 'loading' })
+    setState({ _tag: 'loading' });
 
-    const result = await createManifestAction({ projectId, name })
+    const result = await createManifestAction({ projectId, name });
 
     if (result._tag === 'Error') {
-      setState({ _tag: 'error', message: result.message })
-      return
+      setState({ _tag: 'error', message: result.message });
+      return;
     }
 
     setState({
       _tag: 'success',
       spriteUrl: result.data.spriteUrl,
       spritePassword: result.data.spritePassword
-    })
-  }
+    });
+  };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
+    setOpen(nextOpen);
     if (!nextOpen) {
       // Reset state when closing
-      setName('')
-      setState({ _tag: 'form' })
+      setName('');
+      setState({ _tag: 'form' });
     }
-  }
+  };
 
   const handleRetry = () => {
-    setState({ _tag: 'form' })
-  }
+    setState({ _tag: 'form' });
+  };
 
   // When controlled externally, don't render trigger
-  const isControlled = controlledOpen !== undefined
+  const isControlled = controlledOpen !== undefined;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -140,13 +140,13 @@ export function CreateManifestDialog({
         <DialogHeader>
           <DialogTitle>Summon Manifest</DialogTitle>
           <DialogDescription>
-            Create a manifest sprite to autonomously complete PRD tasks.
+            Create a manifest to call upon the powers from beyond to complete complex tasks.
           </DialogDescription>
         </DialogHeader>
 
         {state._tag === 'success' ? (
           <div className="space-y-4">
-            <p className="text-sm text-green-400">Manifest sprite summoned successfully.</p>
+            <p className="text-sm text-green-400">Manifest created successfully.</p>
             <div className="space-y-3">
               <CopyableCredential label="Sprite URL" value={state.spriteUrl} />
               <CopyableCredential label="Password" value={state.spritePassword} masked />
@@ -161,17 +161,14 @@ export function CreateManifestDialog({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Manifest Name</Label>
+              <Label htmlFor="name">How should the manifest be known?</Label>
               <Input
                 id="name"
-                placeholder="My Feature"
+                placeholder="Σοφία"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 disabled={state._tag === 'loading'}
               />
-              <p className="text-muted-foreground text-xs">
-                Display name for this manifest. You can set the PRD name later after running /prd.
-              </p>
             </div>
 
             {state._tag === 'error' && (
@@ -210,5 +207,5 @@ export function CreateManifestDialog({
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

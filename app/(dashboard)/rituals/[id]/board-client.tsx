@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DndContext,
   DragOverlay,
@@ -10,20 +10,20 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent
-} from '@dnd-kit/core'
-import { useDraggable, useDroppable } from '@dnd-kit/core'
-import { Card } from '@/components/ui/card'
-import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
-import { ManifestCard } from '@/components/manifest/manifest-card'
-import { SummonMenu } from '@/components/summon-menu'
-import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
-import { updateTaskAction } from '@/lib/core/task/update-task-action'
-import { executeTaskAction } from '@/lib/core/task/execute-task-action'
+} from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { Card } from '@/components/ui/card';
+import { TaskDetailModal } from '@/components/invocations/task-detail-modal';
+import { ManifestCard } from '@/components/manifest/manifest-card';
+import { SummonMenu } from '@/components/summon-menu';
+import { useFireIntensity } from '@/lib/contexts/fire-intensity-context';
+import { updateTaskAction } from '@/lib/core/task/update-task-action';
+import { executeTaskAction } from '@/lib/core/task/execute-task-action';
 import {
   getTaskDetailsAction,
   type TaskDetailsResult
-} from '@/lib/core/task/get-task-details-action'
-import type { Task, Project, Manifest } from '@/lib/services/db/schema'
+} from '@/lib/core/task/get-task-details-action';
+import type { Task, Project, Manifest } from '@/lib/services/db/schema';
 
 const COLUMNS = [
   {
@@ -62,45 +62,44 @@ const COLUMNS = [
     description: 'Returned to the Void',
     color: 'border-green-500/20'
   }
-] as const
+] as const;
 
-const RUNNING_TASKS_STORAGE_KEY = 'abraxas_running_tasks'
+const RUNNING_TASKS_STORAGE_KEY = 'abraxas_running_tasks';
 
 function getPersistedRunningTasks(ritualId: string): string[] {
-  if (typeof window === 'undefined') return []
+  if (typeof window === 'undefined') return [];
   try {
-    const stored = localStorage.getItem(`${RUNNING_TASKS_STORAGE_KEY}_${ritualId}`)
-    return stored ? JSON.parse(stored) : []
+    const stored = localStorage.getItem(`${RUNNING_TASKS_STORAGE_KEY}_${ritualId}`);
+    return stored ? JSON.parse(stored) : [];
   } catch {
-    return []
+    return [];
   }
 }
 
 function persistRunningTasks(ritualId: string, taskIds: string[]): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(`${RUNNING_TASKS_STORAGE_KEY}_${ritualId}`, JSON.stringify(taskIds))
+    localStorage.setItem(`${RUNNING_TASKS_STORAGE_KEY}_${ritualId}`, JSON.stringify(taskIds));
   } catch (error) {
-    console.warn('Failed to persist running tasks:', error)
+    console.warn('Failed to persist running tasks:', error);
   }
 }
 
 interface DroppableColumnProps {
-  id: string
-  color: string
-  children: React.ReactNode
-  style?: React.CSSProperties
+  id: string;
+  color: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id })
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-w-0 flex-col border border-dashed bg-zinc-950/50 p-3 transition-colors font-mono md:min-w-[280px] md:p-4 ${
-        isOver ? 'border-red-500/40 bg-zinc-900/50' : ''
-      }`}
+      className={`flex min-w-0 flex-col border border-dashed bg-zinc-950/50 p-3 transition-colors font-mono md:min-w-[280px] md:p-4 ${isOver ? 'border-red-500/40 bg-zinc-900/50' : ''
+        }`}
       style={{
         borderColor: isOver ? undefined : color.replace('border-', '').replace('/', ' / '),
         ...style
@@ -108,35 +107,35 @@ function DroppableColumn({ id, color, children, style }: DroppableColumnProps) {
     >
       {children}
     </div>
-  )
+  );
 }
 
 interface TaskStats {
-  messageCount: number
-  inputTokens: number
-  outputTokens: number
+  messageCount: number;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 interface DraggableCardProps {
-  task: Task
-  onClick: (task: Task) => void
-  stats?: TaskStats
+  task: Task;
+  onClick: (task: Task) => void;
+  stats?: TaskStats;
 }
 
 function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id
-  })
+  });
 
   const style = transform
     ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      }
-    : undefined
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
+    }
+    : undefined;
 
-  const isExecuting = task.executionState === 'in_progress'
-  const isError = task.executionState === 'error'
-  const isCompleted = task.executionState === 'completed'
+  const isExecuting = task.executionState === 'in_progress';
+  const isError = task.executionState === 'error';
+  const isCompleted = task.executionState === 'completed';
 
   const borderColor = isExecuting
     ? 'border-red-500/40 border-dashed'
@@ -144,9 +143,9 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
       ? 'border-red-500/40 border-dashed'
       : isCompleted
         ? 'border-green-500/40 border-dashed'
-        : 'border-white/20 border-dashed'
+        : 'border-white/20 border-dashed';
 
-  const bgColor = isExecuting ? 'bg-red-950/20' : isError ? 'bg-red-950/20' : 'bg-zinc-900'
+  const bgColor = isExecuting ? 'bg-red-950/20' : isError ? 'bg-red-950/20' : 'bg-zinc-900';
 
   return (
     <Card
@@ -155,9 +154,8 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className={`cursor-grab p-3 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-4 ${borderColor} ${bgColor} ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`cursor-grab p-3 transition-all duration-200 hover:border-white/30 hover:bg-zinc-800 font-mono md:p-4 ${borderColor} ${bgColor} ${isDragging ? 'opacity-50' : ''
+        }`}
     >
       <div className="mb-1.5 flex items-center justify-between gap-2 md:mb-2">
         <h3 className="min-w-0 truncate text-sm font-medium text-white/90 md:text-base">
@@ -183,14 +181,14 @@ function DraggableCard({ task, onClick, stats }: DraggableCardProps) {
         )}
       </div>
     </Card>
-  )
+  );
 }
 
 interface RitualBoardClientProps {
-  project: Project
-  initialTasks: Task[]
-  initialStats: Record<string, TaskStats>
-  initialManifests: Manifest[]
+  project: Project;
+  initialTasks: Task[];
+  initialStats: Record<string, TaskStats>;
+  initialManifests: Manifest[];
 }
 
 export function RitualBoardClient({
@@ -199,29 +197,29 @@ export function RitualBoardClient({
   initialStats,
   initialManifests
 }: RitualBoardClientProps) {
-  const router = useRouter()
+  const router = useRouter();
   const {
     addRunningTask,
     removeRunningTask,
     updateTaskMessages,
     addRunningManifest,
     removeRunningManifest
-  } = useFireIntensity()
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
-  const [activeTask, setActiveTask] = useState<Task | null>(null)
+  } = useFireIntensity();
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [persistedRunningTasks, setPersistedRunningTasks] = useState<string[]>(() =>
     getPersistedRunningTasks(project.id)
-  )
-  const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
-  const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
+  );
+  const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats);
+  const [manifests, setManifests] = useState<Manifest[]>(initialManifests);
 
   // Task detail modal state - store ID only to avoid stale data issues
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [showTaskDetail, setShowTaskDetail] = useState(false)
-  const [taskDetails, setTaskDetails] = useState<TaskDetailsResult | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [taskDetails, setTaskDetails] = useState<TaskDetailsResult | null>(null);
 
   // Derive selectedTask from tasks array to always have fresh data
-  const selectedTask = selectedTaskId ? (tasks.find(t => t.id === selectedTaskId) ?? null) : null
+  const selectedTask = selectedTaskId ? (tasks.find(t => t.id === selectedTaskId) ?? null) : null;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -229,186 +227,186 @@ export function RitualBoardClient({
         distance: 8
       }
     })
-  )
+  );
 
   // Sync running tasks with fire intensity context
   useEffect(() => {
-    const runningTasks = tasks.filter(task => task.executionState === 'in_progress')
+    const runningTasks = tasks.filter(task => task.executionState === 'in_progress');
 
     // Add any new running tasks to fire intensity with message count
     runningTasks.forEach(task => {
-      const messageCount = taskStats[task.id]?.messageCount ?? 0
-      addRunningTask(task.id, messageCount)
-    })
+      const messageCount = taskStats[task.id]?.messageCount ?? 0;
+      addRunningTask(task.id, messageCount);
+    });
 
     // Update message counts for existing running tasks
     runningTasks.forEach(task => {
-      const stats = taskStats[task.id]
+      const stats = taskStats[task.id];
       if (stats) {
-        updateTaskMessages(task.id, stats.messageCount)
+        updateTaskMessages(task.id, stats.messageCount);
       }
-    })
+    });
 
     // Remove completed tasks from fire intensity and localStorage
     tasks
       .filter(task => task.executionState !== 'in_progress')
       .forEach(task => {
-        removeRunningTask(task.id)
+        removeRunningTask(task.id);
         setPersistedRunningTasks(prev => {
-          const updated = prev.filter(id => id !== task.id)
-          persistRunningTasks(project.id, updated)
-          return updated
-        })
-      })
-  }, [tasks, taskStats, project.id, addRunningTask, removeRunningTask, updateTaskMessages])
+          const updated = prev.filter(id => id !== task.id);
+          persistRunningTasks(project.id, updated);
+          return updated;
+        });
+      });
+  }, [tasks, taskStats, project.id, addRunningTask, removeRunningTask, updateTaskMessages]);
 
   // Sync running manifests with fire intensity context (only 'running' status)
   useEffect(() => {
-    const runningManifestIds = manifests.filter(m => m.status === 'running').map(m => m.id)
+    const runningManifestIds = manifests.filter(m => m.status === 'running').map(m => m.id);
 
     // Add running manifests
-    runningManifestIds.forEach(id => addRunningManifest(id))
+    runningManifestIds.forEach(id => addRunningManifest(id));
 
     // Remove non-running manifests
-    manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
-  }, [manifests, addRunningManifest, removeRunningManifest])
+    manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id));
+  }, [manifests, addRunningManifest, removeRunningManifest]);
 
   // Poll for running task status updates
   useEffect(() => {
-    const currentRunningTasks = tasks.filter(task => task.executionState === 'in_progress')
+    const currentRunningTasks = tasks.filter(task => task.executionState === 'in_progress');
     const allRunningTaskIds = new Set([
       ...currentRunningTasks.map(t => t.id),
       ...persistedRunningTasks
-    ])
+    ]);
 
-    if (allRunningTaskIds.size === 0) return
+    if (allRunningTaskIds.size === 0) return;
 
     const pollInterval = setInterval(async () => {
       // Refresh page to get updated task data
-      router.refresh()
-    }, 10000)
+      router.refresh();
+    }, 10000);
 
-    return () => clearInterval(pollInterval)
-  }, [tasks, persistedRunningTasks, router])
+    return () => clearInterval(pollInterval);
+  }, [tasks, persistedRunningTasks, router]);
 
   // Sync tasks, stats, and manifests when server data changes (from router.refresh)
   // This is acceptable because we're syncing with external system (server state)
   if (tasks !== initialTasks) {
-    setTasks(initialTasks)
+    setTasks(initialTasks);
   }
   if (taskStats !== initialStats) {
-    setTaskStats(initialStats)
+    setTaskStats(initialStats);
   }
   if (manifests !== initialManifests) {
-    setManifests(initialManifests)
+    setManifests(initialManifests);
   }
 
   // Fetch task details when modal opens
   const fetchTaskDetails = useCallback(async (taskId: string) => {
-    const result = await getTaskDetailsAction(taskId)
+    const result = await getTaskDetailsAction(taskId);
     if (result._tag === 'Success') {
-      setTaskDetails(result.data)
+      setTaskDetails(result.data);
     } else {
-      console.error('Failed to fetch task details:', result.message)
-      setTaskDetails({ comments: [], session: null })
+      console.error('Failed to fetch task details:', result.message);
+      setTaskDetails({ comments: [], session: null });
     }
-  }, [])
+  }, []);
 
   const getTasksByStatus = (status: string) => {
-    return tasks.filter(task => task.status === status)
-  }
+    return tasks.filter(task => task.status === status);
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = tasks.find(t => t.id === event.active.id)
-    setActiveTask(task || null)
-  }
+    const task = tasks.find(t => t.id === event.active.id);
+    setActiveTask(task || null);
+  };
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTaskId(task.id)
-    setShowTaskDetail(true)
-    fetchTaskDetails(task.id)
-  }
+    setSelectedTaskId(task.id);
+    setShowTaskDetail(true);
+    fetchTaskDetails(task.id);
+  };
 
   const handleTaskUpdate = useCallback(() => {
-    router.refresh()
+    router.refresh();
     if (selectedTask) {
-      fetchTaskDetails(selectedTask.id)
+      fetchTaskDetails(selectedTask.id);
     }
-  }, [router, selectedTask, fetchTaskDetails])
+  }, [router, selectedTask, fetchTaskDetails]);
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveTask(null)
+    const { active, over } = event;
+    setActiveTask(null);
 
-    if (!over) return
+    if (!over) return;
 
-    type TaskStatus = 'abyss' | 'altar' | 'ritual' | 'cursed' | 'trial' | 'vanquished'
-    type ExecutionState = 'idle' | 'in_progress' | 'awaiting_review' | 'completed' | 'error'
+    type TaskStatus = 'abyss' | 'altar' | 'ritual' | 'cursed' | 'trial' | 'vanquished';
+    type ExecutionState = 'idle' | 'in_progress' | 'awaiting_review' | 'completed' | 'error';
 
-    const taskId = typeof active.id === 'string' ? active.id : String(active.id)
-    const newStatus = typeof over.id === 'string' ? over.id : String(over.id)
+    const taskId = typeof active.id === 'string' ? active.id : String(active.id);
+    const newStatus = typeof over.id === 'string' ? over.id : String(over.id);
 
     const isTaskStatus = (value: string): value is TaskStatus =>
-      ['abyss', 'altar', 'ritual', 'cursed', 'trial', 'vanquished'].includes(value)
+      ['abyss', 'altar', 'ritual', 'cursed', 'trial', 'vanquished'].includes(value);
 
-    if (!isTaskStatus(newStatus)) return
+    if (!isTaskStatus(newStatus)) return;
 
-    const task = tasks.find(t => t.id === taskId)
-    if (!task || task.status === newStatus) return
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.status === newStatus) return;
 
-    const originalStatus = task.status
+    const originalStatus = task.status;
 
     // Optimistically update UI immediately - drag lands instantly
-    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)))
+    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)));
 
     // Fire server action async - don't await
     updateTaskAction({ taskId, status: newStatus }).then(result => {
       if (result._tag === 'Error') {
         // Revert on error
-        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: originalStatus } : t)))
-        console.error('Failed to update task status:', result.message)
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: originalStatus } : t)));
+        console.error('Failed to update task status:', result.message);
       }
-    })
+    });
 
     // If moved to "ritual" column, trigger execution async
     if (newStatus === 'ritual') {
-      const inProgressState: ExecutionState = 'in_progress'
+      const inProgressState: ExecutionState = 'in_progress';
 
       // Optimistically set in_progress immediately
       setTasks(prev =>
         prev.map(t => (t.id === taskId ? { ...t, executionState: inProgressState } : t))
-      )
-      addRunningTask(taskId)
+      );
+      addRunningTask(taskId);
 
       // Persist running task to localStorage immediately
       setPersistedRunningTasks(prev => {
-        const updated = [...prev, taskId]
-        persistRunningTasks(project.id, updated)
-        return updated
-      })
+        const updated = [...prev, taskId];
+        persistRunningTasks(project.id, updated);
+        return updated;
+      });
 
       // Fire execution async - move to cursed on failure
       executeTaskAction({ taskId }).then(executeResult => {
         if (executeResult._tag === 'Success') {
           // Refresh to get updated comments
-          router.refresh()
+          router.refresh();
         } else {
-          console.error('Failed to execute task:', executeResult.message)
-          const cursedStatus: TaskStatus = 'cursed'
-          const errorState: ExecutionState = 'error'
+          console.error('Failed to execute task:', executeResult.message);
+          const cursedStatus: TaskStatus = 'cursed';
+          const errorState: ExecutionState = 'error';
           // Move to cursed on execution error
           setTasks(prev =>
             prev.map(t =>
               t.id === taskId ? { ...t, status: cursedStatus, executionState: errorState } : t
             )
-          )
+          );
 
           // Also update server with cursed status
-          updateTaskAction({ taskId, status: cursedStatus, executionState: errorState })
+          updateTaskAction({ taskId, status: cursedStatus, executionState: errorState });
         }
-      })
+      });
     }
-  }
+  };
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -433,17 +431,11 @@ export function RitualBoardClient({
         <div className="mb-6 space-y-3 md:mb-10 md:space-y-4">
           <h2 className="font-mono text-base font-semibold text-white/90 md:text-lg">Manifests</h2>
 
-          {manifests.length > 0 ? (
-            <div className="space-y-3">
-              {manifests.map(manifest => (
-                <ManifestCard key={manifest.id} manifest={manifest} />
-              ))}
-            </div>
-          ) : (
-            <div className="border border-dashed border-white/10 bg-zinc-950/50 p-4 text-center font-mono text-xs text-white/40 md:p-6 md:text-sm">
-              No manifests yet. Conjure one to spawn an autonomous agent.
-            </div>
-          )}
+          <div className="space-y-3">
+            {manifests.map(manifest => (
+              <ManifestCard key={manifest.id} manifest={manifest} />
+            ))}
+          </div>
         </div>
 
         {/* Invocations Section */}
@@ -454,12 +446,12 @@ export function RitualBoardClient({
         </div>
         <div className="flex flex-col gap-3 md:grid md:gap-4 md:[grid-template-columns:repeat(5,1fr)] md:[grid-template-rows:1fr_1fr]">
           {COLUMNS.map(column => {
-            const columnTasks = getTasksByStatus(column.id)
+            const columnTasks = getTasksByStatus(column.id);
 
             // Desktop grid positioning
             const gridStyles: Record<
               string,
-              { gridColumn: number | string; gridRow: number | string }
+              { gridColumn: number | string; gridRow: number | string; }
             > = {
               abyss: { gridColumn: 1, gridRow: '1 / 3' },
               altar: { gridColumn: 2, gridRow: '1 / 3' },
@@ -467,7 +459,7 @@ export function RitualBoardClient({
               trial: { gridColumn: 4, gridRow: 1 },
               cursed: { gridColumn: 4, gridRow: 2 },
               vanquished: { gridColumn: 5, gridRow: '1 / 3' }
-            }
+            };
 
             return (
               <DroppableColumn
@@ -507,7 +499,7 @@ export function RitualBoardClient({
                   )}
                 </div>
               </DroppableColumn>
-            )
+            );
           })}
         </div>
 
@@ -534,5 +526,5 @@ export function RitualBoardClient({
         ) : null}
       </DragOverlay>
     </DndContext>
-  )
+  );
 }
