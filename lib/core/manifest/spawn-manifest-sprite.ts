@@ -142,6 +142,9 @@ PID_OPENCODE=$!
 curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp &
 PID_SETUP=$!
 
+npm install -g pnpm drizzle-kit &
+PID_NPM=$!
+
 # Wait for all downloads
 echo "Waiting for downloads to complete..."
 wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
@@ -150,6 +153,8 @@ wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
 echo "Opencode installed"
 wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
 echo "Setup tarball extracted"
+wait $PID_NPM || { echo "npm global install failed"; exit 1; }
+echo "pnpm and drizzle-kit installed"
 
 # Setup opencode auth
 ${
