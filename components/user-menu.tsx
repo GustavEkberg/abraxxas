@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronDownIcon, LogOutIcon, KeyIcon } from 'lucide-react'
+import { ChevronDownIcon, LogOutIcon, KeyIcon, AlertTriangleIcon } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,10 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { saveOpencodeAuthAction } from '@/lib/core/opencode-auth/save-opencode-auth-action'
+import {
+  getOpencodeAuthStatusAction,
+  type OpencodeAuthStatus
+} from '@/lib/core/opencode-auth/get-opencode-auth-status-action'
 
 export function UserMenu() {
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false)
@@ -25,6 +29,12 @@ export function UserMenu() {
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState(false)
+  const [authStatus, setAuthStatus] = React.useState<OpencodeAuthStatus>({ _tag: 'None' })
+
+  // Check auth status on mount
+  React.useEffect(() => {
+    getOpencodeAuthStatusAction().then(setAuthStatus)
+  }, [])
 
   const handleSaveAuth = async () => {
     if (!authContent.trim()) {
@@ -41,6 +51,8 @@ export function UserMenu() {
         setError(result.message)
       } else {
         setSuccess(true)
+        // Refresh auth status after save
+        getOpencodeAuthStatusAction().then(setAuthStatus)
         setTimeout(() => {
           setAuthDialogOpen(false)
           setAuthContent('')
@@ -69,16 +81,28 @@ export function UserMenu() {
     reader.readAsText(file)
   }
 
+  const isExpired = authStatus._tag === 'Expired'
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 border border-dashed border-white/20 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/30 hover:text-white/90 font-mono outline-none">
           Settings
+          {isExpired && <AlertTriangleIcon className="size-4 text-amber-400" />}
           <ChevronDownIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="font-mono">
+          {isExpired && (
+            <>
+              <div className="px-2 py-1.5 text-xs text-amber-400 flex items-center gap-2">
+                <AlertTriangleIcon className="size-3" />
+                Anthropic OAuth expired
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem
-            className="cursor-pointer"
+            className={`cursor-pointer ${isExpired ? 'text-amber-400 focus:text-amber-400' : ''}`}
             onClick={() => {
               setAuthDialogOpen(true)
               setError(null)

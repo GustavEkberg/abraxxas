@@ -70,6 +70,8 @@ export const user = pgTable('user', {
 
   // Encrypted opencode auth.json for sprite execution
   encryptedOpencodeAuth: text('encryptedOpencodeAuth'),
+  // Track Anthropic OAuth expiry (epoch ms) for UI warnings
+  anthropicOauthExpiresAt: timestamp('anthropicOauthExpiresAt'),
 
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt')

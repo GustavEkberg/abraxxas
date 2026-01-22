@@ -27,6 +27,20 @@ const OpencodeAuthSchema = Schema.Record({
   value: OpencodeAuthEntry
 })
 
+type OpencodeAuth = typeof OpencodeAuthSchema.Type
+
+/**
+ * Extract Anthropic OAuth expiry from parsed auth.json
+ * Returns Date if found, undefined otherwise
+ */
+const extractAnthropicExpiry = (auth: OpencodeAuth): Date | undefined => {
+  const anthropic = auth['anthropic']
+  if (anthropic?.type === 'oauth' && anthropic.expires !== undefined) {
+    return new Date(anthropic.expires)
+  }
+  return undefined
+}
+
 /**
  * Save the user's opencode auth.json content (encrypted)
  * This allows sprites to use the user's model subscriptions
@@ -58,13 +72,19 @@ export const saveOpencodeAuthAction = async (authJsonContent: string) => {
       // Re-stringify to ensure consistent format
       const normalizedContent = JSON.stringify(parseResult)
 
+      // Extract Anthropic OAuth expiry if present
+      const anthropicOauthExpiresAt = extractAnthropicExpiry(parseResult)
+
       // Encrypt the entire auth.json content
       const encryptedAuth = yield* encryptToken(normalizedContent)
 
-      // Update user with encrypted auth
+      // Update user with encrypted auth and expiry timestamp
       yield* db
         .update(schema.user)
-        .set({ encryptedOpencodeAuth: encryptedAuth })
+        .set({
+          encryptedOpencodeAuth: encryptedAuth,
+          anthropicOauthExpiresAt
+        })
         .where(eq(schema.user.id, user.id))
 
       return { saved: true }
