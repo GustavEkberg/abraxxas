@@ -521,37 +521,12 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
           )}
           {hasSprite && manifest.spriteName && <TailLogButton spriteName={manifest.spriteName} />}
 
-          {/* Start/Stop controls - only show when prdName is set */}
-          {isActive && manifest.prdName && (
-            <Button
-              onClick={handleStart}
-              disabled={isPending}
-              size="sm"
-              className="h-7 bg-red-600 px-2 hover:bg-red-700"
-              title="Start task loop"
-            >
-              <Play className="size-3.5" />
-            </Button>
-          )}
-          {isRunning && (
-            <Button
-              onClick={handleStop}
-              disabled={isPending}
-              variant="destructive"
-              size="sm"
-              className="h-7 px-2"
-              title="Stop task loop"
-            >
-              <Square className="size-3.5" />
-            </Button>
-          )}
-
           {/* Branch compare link - show when prdName set */}
           {manifest.prdName && (
             <BranchCompareButton
               branchName={getManifestBranchName(manifest.prdName)}
               compareUrl={buildCompareUrl(repositoryUrl, getManifestBranchName(manifest.prdName))}
-              className="h-7 px-2 text-green-400 hover:text-green-300"
+              className="h-7 px-2"
             />
           )}
 
@@ -566,6 +541,31 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
           >
             <Trash2 className="size-3.5" />
           </Button>
+          {/* Start/Stop controls - only show when prdName is set */}
+          {isActive && manifest.prdName && (
+            <Button
+              onClick={handleStart}
+              disabled={isPending}
+              size="sm"
+              className="h-7 bg-red-600 px-2 hover:bg-red-700"
+              title="Start task loop"
+            >
+              <Play className="size-3.5" />
+            </Button>
+          )}
+
+          {isRunning && (
+            <Button
+              onClick={handleStop}
+              disabled={isPending}
+              variant="destructive"
+              size="sm"
+              className="h-7 px-2"
+              title="Stop task loop"
+            >
+              <Square className="size-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
