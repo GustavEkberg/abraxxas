@@ -7,6 +7,7 @@ import {
   Check,
   ExternalLink,
   GitBranch,
+  GitCompareArrows,
   Terminal,
   AlertCircle,
   CheckCircle2,
@@ -216,22 +217,24 @@ export function InvocationClient({ task, project, session }: InvocationClientPro
               {/* Branch */}
               {session.branchName && (
                 <Card className="border-dashed border-white/10 bg-transparent p-3">
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="size-3.5 text-white/30" />
-                    <code className="truncate font-mono text-xs text-white/50">
-                      {session.branchName}
-                    </code>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <GitBranch className="size-3.5 shrink-0 text-white/30" />
+                      <code className="truncate font-mono text-xs text-white/50">
+                        {session.branchName}
+                      </code>
+                    </div>
+                    {project.repositoryUrl && (
+                      <a
+                        href={`${project.repositoryUrl.replace(/\.git$/, '')}/compare/main...${encodeURIComponent(session.branchName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-white/30 hover:text-white/60"
+                      >
+                        <GitCompareArrows className="size-3.5" />
+                      </a>
+                    )}
                   </div>
-                  {project.repositoryUrl && (
-                    <a
-                      href={`${project.repositoryUrl.replace(/\.git$/, '')}/compare/main...${encodeURIComponent(session.branchName)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-white/30 hover:text-white/60"
-                    >
-                      diff <ExternalLink className="size-2.5" />
-                    </a>
-                  )}
                 </Card>
               )}
 
