@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   DndContext,
   DragOverlay,
@@ -390,10 +391,10 @@ function DraggableCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+                  render={<Link href={`/invocation/${task.id}`} />}
                   onClick={e => e.stopPropagation()}
                   className="h-7 px-2 text-white/40 hover:text-white/90"
-                  title="Open in new tab"
+                  title="Open invocation"
                 >
                   <ExternalLink className="size-3.5" />
                 </Button>
