@@ -28,9 +28,9 @@ function generateTaskLoopWrapperScript(config: {
   return `#!/bin/bash
 set -euo pipefail
 
-# Add pnpm to PATH
+# Add required paths (not auto-sourced in detached sessions)
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
+export PATH="/usr/local/bin:$PNPM_HOME:$PATH"
 
 ${
   hasLocalSetup
