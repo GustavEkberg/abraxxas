@@ -232,6 +232,12 @@ echo "Local setup script finished"
     : 'echo "No local setup script configured"'
 }
 
+# Start opencode serve in background for MCP access
+echo "Starting opencode serve..."
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
+sleep 2
+echo "opencode serve started on port 8080"
+
 echo "=== Base Setup Complete ==="
 `
 }
