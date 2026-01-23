@@ -341,9 +341,10 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
             const client = new SpritesClient(Redacted.value(config.token))
             const sprite = client.sprite(spriteName)
 
-            // Use TTY mode - it has max_run_after_disconnect=0 (forever) by default
+            // Use detachable TTY mode - creates tmux session that survives disconnect
             const cmd = sprite.spawn(command, args, {
               tty: true,
+              detachable: true,
               env: options?.env,
               cwd: options?.cwd
             })
