@@ -35,7 +35,7 @@ import {
   getTaskDetailsAction,
   type TaskDetailsResult
 } from '@/lib/core/task/get-task-details-action'
-import { tailLogAction } from '@/lib/core/sprite/tail-log-action'
+
 import type { Task, Project, Manifest } from '@/lib/services/db/schema'
 
 function CopyButton({
@@ -254,6 +254,7 @@ interface TaskStats {
   spriteUrl: string | null
   spritePassword: string | null
   branchName: string | null
+  logs: string | null
 }
 
 interface DraggableCardProps {
@@ -262,7 +263,7 @@ interface DraggableCardProps {
   stats?: TaskStats
   onDeleteTask?: (taskId: string) => void
   repositoryUrl?: string
-  onTailLog?: (spriteName: string) => void
+  onViewLogs?: (logs: string) => void
 }
 
 function buildCompareUrl(repositoryUrl: string, branchName: string): string {
@@ -277,7 +278,7 @@ function DraggableCard({
   stats,
   onDeleteTask,
   repositoryUrl,
-  onTailLog
+  onViewLogs
 }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id
@@ -343,45 +344,51 @@ function DraggableCard({
       </div>
       <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
 
-      {/* Sprite action buttons */}
-      {stats?.spriteName && (
+      {/* Action buttons */}
+      {(stats?.spriteName || stats?.logs || stats?.branchName || onDeleteTask) && (
         <div className="mt-2 flex items-center gap-1">
-          <CopyButton
-            value={stats.spriteName}
-            label="Copy sprite name"
-            icon={<Terminal className="size-3.5" />}
-          />
-          {stats.spriteUrl && (
+          {/* Sprite controls - only when sprite is active */}
+          {stats?.spriteName && (
             <>
-              {stats.spritePassword && (
-                <CopyButton
-                  value={stats.spritePassword}
-                  label="Copy password"
-                  icon={<Lock className="size-3.5" />}
-                />
+              <CopyButton
+                value={stats.spriteName}
+                label="Copy sprite name"
+                icon={<Terminal className="size-3.5" />}
+              />
+              {stats.spriteUrl && (
+                <>
+                  {stats.spritePassword && (
+                    <CopyButton
+                      value={stats.spritePassword}
+                      label="Copy password"
+                      icon={<Lock className="size-3.5" />}
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+                    onClick={e => e.stopPropagation()}
+                    className="h-7 px-2 text-white/40 hover:text-white/90"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </Button>
+                </>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
-                onClick={e => e.stopPropagation()}
-                className="h-7 px-2 text-white/40 hover:text-white/90"
-                title="Open in new tab"
-              >
-                <ExternalLink className="size-3.5" />
-              </Button>
             </>
           )}
-          {onTailLog && stats.spriteName && (
+          {/* Logs button - shows stored error logs */}
+          {stats?.logs && onViewLogs && (
             <Button
               variant="ghost"
               size="sm"
               onClick={e => {
                 e.stopPropagation()
-                if (stats.spriteName) onTailLog(stats.spriteName)
+                onViewLogs(stats.logs!)
               }}
               className="h-7 px-2 text-white/40 hover:text-white/90"
-              title="View sprite log"
+              title="View error logs"
             >
               <ScrollText className="size-3.5" />
             </Button>
@@ -401,7 +408,7 @@ function DraggableCard({
             </Button>
           )}
           {/* Branch compare link */}
-          {stats.branchName && repositoryUrl && (
+          {stats?.branchName && repositoryUrl && (
             <Button
               variant="ghost"
               size="sm"
@@ -413,7 +420,7 @@ function DraggableCard({
                 />
               }
               onClick={e => e.stopPropagation()}
-              className="h-7 px-2 text-green-400 hover:text-green-300"
+              className="h-7 px-2 text-white/40 hover:text-white/90"
               title={`Compare ${stats.branchName} to main`}
             >
               <GitCompareArrows className="size-3.5" />
@@ -619,24 +626,14 @@ export function RitualBoardClient({
     [confirm, router]
   )
 
-  const handleTailLog = useCallback(
-    async (spriteName: string) => {
-      const result = await tailLogAction(spriteName)
-      if (result._tag === 'Success') {
-        await alert({
-          title: 'Sprite Log',
-          message: result.output || '(empty)',
-          variant: 'info',
-          confirmText: 'Close'
-        })
-      } else {
-        await alert({
-          title: 'Log Unavailable',
-          message: result.message,
-          variant: 'error',
-          confirmText: 'Dismiss'
-        })
-      }
+  const handleViewLogs = useCallback(
+    async (logs: string) => {
+      await alert({
+        title: 'Error Logs',
+        message: logs,
+        variant: 'error',
+        confirmText: 'Close'
+      })
     },
     [alert]
   )
@@ -806,8 +803,8 @@ export function RitualBoardClient({
                         task={task}
                         onClick={handleTaskClick}
                         stats={taskStats[task.id]}
-                        onDeleteTask={taskStats[task.id]?.spriteName ? handleDeleteTask : undefined}
-                        onTailLog={taskStats[task.id]?.spriteName ? handleTailLog : undefined}
+                        onDeleteTask={handleDeleteTask}
+                        onViewLogs={taskStats[task.id]?.logs ? handleViewLogs : undefined}
                         repositoryUrl={project.repositoryUrl}
                       />
                     ))

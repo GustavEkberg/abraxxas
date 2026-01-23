@@ -302,13 +302,25 @@ cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
 }
 CONFIGEOF
 
-# Create and checkout branch
-echo "Creating branch: $BRANCH_NAME"
+# Fetch and checkout branch (or create if it doesn't exist)
+echo "Checking out branch: $BRANCH_NAME"
 set +e
-if ! git checkout -b "$BRANCH_NAME" 2>&1; then
-    echo "ERROR: Failed to create branch: $BRANCH_NAME"
-    send_webhook "error" "" "Failed to create branch: $BRANCH_NAME" "" ""
-    exit 1
+git fetch origin "$BRANCH_NAME" 2>/dev/null
+if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH_NAME"; then
+    echo "Branch exists on remote, checking out..."
+    if ! git checkout "$BRANCH_NAME" 2>&1; then
+        echo "ERROR: Failed to checkout branch: $BRANCH_NAME"
+        send_webhook "error" "" "Failed to checkout branch: $BRANCH_NAME" "" ""
+        exit 1
+    fi
+    git pull origin "$BRANCH_NAME" 2>&1 || true
+else
+    echo "Creating new branch: $BRANCH_NAME"
+    if ! git checkout -b "$BRANCH_NAME" 2>&1; then
+        echo "ERROR: Failed to create branch: $BRANCH_NAME"
+        send_webhook "error" "" "Failed to create branch: $BRANCH_NAME" "" ""
+        exit 1
+    fi
 fi
 set -e
 
