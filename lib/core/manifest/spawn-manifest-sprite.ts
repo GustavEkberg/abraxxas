@@ -61,7 +61,7 @@ if [ ! -f /home/sprite/.opencode/bin/opencode ]; then
 fi
 
 echo "opencode binary found, starting serve..."
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 /home/sprite/repo > /tmp/opencode.log 2>&1 &
 SERVE_PID=$!
 sleep 2
 

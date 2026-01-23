@@ -80,7 +80,8 @@ export function InvocationClient({ task, project, session }: InvocationClientPro
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const opencodeUrl = session?.spriteUrl ?? null
+  // Append cwd to opencode web URL so it opens in the repo directory
+  const opencodeUrl = session?.spriteUrl ? `${session.spriteUrl}?cwd=/home/sprite/repo` : null
 
   const handleDelete = () => {
     if (!confirm('Banish this invocation?')) return
