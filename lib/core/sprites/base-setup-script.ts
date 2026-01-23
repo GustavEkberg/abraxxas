@@ -86,11 +86,11 @@ export SHELL=/bin/bash
 curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh - &
 PID_PNPM=$!
 
-# Install Docker
-curl -fsSL https://get.docker.com | sh &
-PID_DOCKER=$!
+# Install Docker (runs in background, don't wait - takes too long)
+nohup sh -c 'curl -fsSL https://get.docker.com | sh' > /tmp/docker-install.log 2>&1 &
+echo "Docker install started in background (PID: $!)"
 
-# Wait for all downloads
+# Wait for critical downloads
 echo "Waiting for downloads to complete..."
 wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
 echo "Repo cloned"
@@ -100,8 +100,6 @@ wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
 echo "Setup tarball extracted"
 wait $PID_PNPM || { echo "pnpm install failed"; exit 1; }
 echo "pnpm installed"
-wait $PID_DOCKER || echo "WARNING: Docker install failed (continuing anyway)"
-echo "Docker install attempted"
 
 # Add pnpm and opencode to PATH permanently (for current script)
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
@@ -165,7 +163,9 @@ chmod 600 /home/sprite/.local/share/opencode/auth.json
 # Install commands and skills
 cp /tmp/${opencodeSetupRepoName}-main/command/*.md /home/sprite/.config/opencode/command/ 2>/dev/null || true
 cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/skill/ 2>/dev/null || true
-[ -f /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh ] && cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop && chmod +x /usr/local/bin/task-loop
+if [ -f /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh ]; then
+    cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop && chmod +x /usr/local/bin/task-loop
+fi
 
 cd /home/sprite/repo
 

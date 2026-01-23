@@ -68,7 +68,7 @@ cd /home/sprite/repo
 # Verify opencode binary exists
 if [ ! -f /home/sprite/.opencode/bin/opencode ]; then
     echo "ERROR: opencode binary not found at /home/sprite/.opencode/bin/opencode"
-    ls -la /home/sprite/.opencode/bin/ 2>/dev/null || echo "Directory does not exist"
+    ls -la /home/sprite/.opencode/bin/ 2>/dev/null || true
     exit 1
 fi
 
@@ -77,7 +77,7 @@ HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprit
 SERVE_PID=$!
 sleep 2
 
-# Verify it started
+# Verify it started (use || true to prevent set -e from triggering on dead process)
 if kill -0 $SERVE_PID 2>/dev/null; then
     echo "opencode serve started successfully (PID: $SERVE_PID)"
 else
