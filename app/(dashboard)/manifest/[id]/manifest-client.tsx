@@ -18,6 +18,7 @@ import type { Manifest, Project } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
+import { useAlert } from '@/components/ui/gnostic-alert'
 
 function CopyButton({
   value,
@@ -72,14 +73,20 @@ function StatusIcon({ status }: { status: Manifest['status'] }) {
 
 export function ManifestPageClient({ manifest, project }: ManifestPageClientProps) {
   const router = useRouter()
+  const { confirm } = useAlert()
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Append cwd to opencode web URL
   const opencodeUrl = manifest.spriteUrl ? `${manifest.spriteUrl}?cwd=/home/sprite/repo` : null
 
-  const handleDelete = () => {
-    if (!confirm('Banish this manifest?')) return
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Banish manifest?',
+      message: 'This will permanently remove the manifest.',
+      variant: 'warning'
+    })
+    if (!confirmed) return
 
     startTransition(async () => {
       const result = await deleteManifestAction(manifest.id)

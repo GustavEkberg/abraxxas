@@ -18,6 +18,7 @@ import type { Task, Project, OpencodeSession } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
+import { useAlert } from '@/components/ui/gnostic-alert'
 
 function CopyButton({
   value,
@@ -77,14 +78,20 @@ function StatusIcon({ status }: { status: OpencodeSession['status'] }) {
 
 export function InvocationClient({ task, project, session }: InvocationClientProps) {
   const router = useRouter()
+  const { confirm } = useAlert()
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Append cwd to opencode web URL so it opens in the repo directory
   const opencodeUrl = session?.spriteUrl ? `${session.spriteUrl}?cwd=/home/sprite/repo` : null
 
-  const handleDelete = () => {
-    if (!confirm('Banish this invocation?')) return
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Banish invocation?',
+      message: 'This will permanently remove the invocation.',
+      variant: 'warning'
+    })
+    if (!confirmed) return
 
     startTransition(async () => {
       const result = await deleteTaskAction(task.id)
