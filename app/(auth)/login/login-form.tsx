@@ -77,7 +77,7 @@ export const LoginForm = () => {
 
       {/* Footer */}
       <p className="text-center text-xs text-white/40">
-        Summon the ancient powers of cosmic demon execution
+        Harness the powers that came before us to build what will come after.
       </p>
     </div>
   )

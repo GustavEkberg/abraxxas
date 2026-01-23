@@ -340,7 +340,7 @@ OPENCODE_EXIT_CODE=0
 
 touch "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE"
 
-opencode run --model "${model}" --format json "${escapedPrompt} !ALWAYS COMMIT YOUR WORK TO BRANCH ${branchName} AND PUSH WHEN YOU ARE DONE!" > >(tee "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE") 2>&1 &
+nohup opencode run --model "${model}" --format json "${escapedPrompt} !ALWAYS COMMIT YOUR WORK TO BRANCH ${branchName} AND PUSH WHEN YOU ARE DONE!" > >(tee "$OPENCODE_OUTPUT_FILE" "$OPENCODE_JSON_FILE") 2>&1 &
 OPENCODE_PID=$!
 
 monitor_progress "$OPENCODE_JSON_FILE" "$OPENCODE_OUTPUT_FILE" "$OPENCODE_PID" &
