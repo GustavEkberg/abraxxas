@@ -69,6 +69,40 @@ function CopyButton({
   )
 }
 
+function BranchCompareButton({
+  branchName,
+  compareUrl
+}: {
+  branchName: string
+  compareUrl: string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (e.shiftKey) {
+      e.preventDefault()
+      await navigator.clipboard.writeText(branchName)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      window.open(compareUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleClick}
+      className={`h-7 px-2 hover:text-white/90 ${copied ? 'text-green-400' : 'text-white/40'}`}
+      title={`Compare ${branchName} to main (Shift+click to copy)`}
+    >
+      <GitCompareArrows className="size-3.5" />
+    </Button>
+  )
+}
+
 const COLUMNS = [
   {
     id: 'abyss',
@@ -345,7 +379,11 @@ function DraggableCard({
       <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
 
       {/* Action buttons */}
-      {(stats?.spriteName || stats?.logs || stats?.branchName || onDeleteTask) && (
+      {(stats?.spriteName ||
+        stats?.logs ||
+        stats?.branchName ||
+        task.branchName ||
+        onDeleteTask) && (
         <div className="mt-2 flex items-center gap-1">
           {/* Sprite controls - only when sprite is active */}
           {stats?.spriteName && (
@@ -407,25 +445,16 @@ function DraggableCard({
               <Trash2 className="size-3.5" />
             </Button>
           )}
-          {/* Branch compare link */}
-          {stats?.branchName && repositoryUrl && (
-            <Button
-              variant="ghost"
-              size="sm"
-              render={
-                <a
-                  href={buildCompareUrl(repositoryUrl, stats.branchName)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
-              onClick={e => e.stopPropagation()}
-              className="h-7 px-2 text-white/40 hover:text-white/90"
-              title={`Compare ${stats.branchName} to main`}
-            >
-              <GitCompareArrows className="size-3.5" />
-            </Button>
-          )}
+          {/* Branch compare link - shift+click to copy branch name */}
+          {(() => {
+            const branchName = stats?.branchName ?? task.branchName
+            return branchName && repositoryUrl ? (
+              <BranchCompareButton
+                branchName={branchName}
+                compareUrl={buildCompareUrl(repositoryUrl, branchName)}
+              />
+            ) : null
+          })()}
         </div>
       )}
 

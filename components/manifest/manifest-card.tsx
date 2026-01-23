@@ -340,6 +340,38 @@ function buildCompareUrl(repositoryUrl: string, branchName: string): string {
   return `${cleanUrl}/compare/main...${encodeURIComponent(branchName)}`
 }
 
+function BranchCompareButton({
+  branchName,
+  compareUrl,
+  className
+}: {
+  branchName: string
+  compareUrl: string
+  className?: string
+}) {
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (e.shiftKey) {
+      e.preventDefault()
+      await navigator.clipboard.writeText(branchName)
+    } else {
+      window.open(compareUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleClick}
+      className={className}
+      title={`Compare ${branchName} to main (Shift+click to copy)`}
+    >
+      <GitCompareArrows className="size-3.5" />
+    </Button>
+  )
+}
+
 export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -533,21 +565,11 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
 
           {/* Branch compare link - show when completed with branch */}
           {isCompleted && manifest.branchName && (
-            <Button
-              variant="ghost"
-              size="sm"
-              render={
-                <a
-                  href={buildCompareUrl(repositoryUrl, manifest.branchName)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
+            <BranchCompareButton
+              branchName={manifest.branchName}
+              compareUrl={buildCompareUrl(repositoryUrl, manifest.branchName)}
               className="h-7 px-2 text-green-400 hover:text-green-300"
-              title={`Compare ${manifest.branchName} to main`}
-            >
-              <GitCompareArrows className="size-3.5" />
-            </Button>
+            />
           )}
 
           {/* Delete button */}

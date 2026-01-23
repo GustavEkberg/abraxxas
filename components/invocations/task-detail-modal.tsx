@@ -5,6 +5,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
 
+function BranchLink({ branchName, repositoryUrl }: { branchName: string; repositoryUrl: string }) {
+  const [copied, setCopied] = useState(false)
+  const compareUrl = `${repositoryUrl}/compare/main...${branchName}`
+
+  const handleClick = async (e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      e.preventDefault()
+      await navigator.clipboard.writeText(branchName)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      window.open(compareUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-white/60">Branch:</span>
+      <button
+        onClick={handleClick}
+        className={`w-fit truncate rounded bg-purple-500/20 px-3 py-1 text-sm hover:bg-purple-500/30 transition-colors duration-200 ${copied ? 'text-green-400' : 'text-purple-400'}`}
+        title="Click to compare, Shift+click to copy"
+      >
+        {branchName}
+      </button>
+    </div>
+  )
+}
+
 interface TaskWithSession {
   id: string
   title: string
@@ -103,19 +132,9 @@ export function TaskDetailModal({
             </div>
           )}
 
-          {/* Branch Link */}
+          {/* Branch Link - shift+click to copy branch name */}
           {task.branchName && repositoryUrl && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-white/60">Branch:</span>
-              <a
-                href={`${repositoryUrl}/compare/main...${task.branchName}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-fit truncate rounded bg-purple-500/20 px-3 py-1 text-purple-400 text-sm hover:bg-purple-500/30 transition-colors duration-200"
-              >
-                {task.branchName}
-              </a>
-            </div>
+            <BranchLink branchName={task.branchName} repositoryUrl={repositoryUrl} />
           )}
 
           {/* Initial Prompt (title + description) */}
