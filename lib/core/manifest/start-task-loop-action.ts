@@ -28,9 +28,6 @@ function generateTaskLoopWrapperScript(config: {
   return `#!/bin/bash
 set -euo pipefail
 
-# Source environment (not auto-sourced in detached sessions)
-source /etc/profile.d/opencode.sh
-
 # Add pnpm to PATH
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
 export PATH="$PNPM_HOME:$PATH"
