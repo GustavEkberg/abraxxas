@@ -30,6 +30,8 @@ import {
 } from '@/lib/core/task/get-task-details-action'
 
 import type { Task, Project, Manifest } from '@/lib/services/db/schema'
+import type { ManifestPrdDataMap } from '@/lib/core/manifest/get-manifest-prd-data'
+import type { PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
 
 function CopyButton({
   value,
@@ -231,19 +233,9 @@ function persistRunningTasks(ritualId: string, taskIds: string[]): void {
   }
 }
 
-function calcManifestProgress(prdJson: string | null): number {
+function calcManifestProgress(prdJson: PrdJson | null): number {
   if (!prdJson) return 0
-  try {
-    const prd: unknown = JSON.parse(prdJson)
-    if (typeof prd !== 'object' || prd === null) return 0
-    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : []
-    return tasks.filter(
-      (t): t is { passes: true } =>
-        typeof t === 'object' && t !== null && 'passes' in t && t.passes === true
-    ).length
-  } catch {
-    return 0
-  }
+  return prdJson.tasks.filter(t => t.passes).length
 }
 
 interface DroppableColumnProps {
@@ -459,13 +451,15 @@ interface RitualBoardClientProps {
   initialTasks: Task[]
   initialStats: Record<string, TaskStats>
   initialManifests: Manifest[]
+  initialManifestPrdData: ManifestPrdDataMap
 }
 
 export function RitualBoardClient({
   project,
   initialTasks,
   initialStats,
-  initialManifests
+  initialManifests,
+  initialManifestPrdData
 }: RitualBoardClientProps) {
   const router = useRouter()
   const { alert, confirm } = useAlert()
@@ -484,6 +478,7 @@ export function RitualBoardClient({
   )
   const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
   const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
+  const [manifestPrdData, setManifestPrdData] = useState<ManifestPrdDataMap>(initialManifestPrdData)
 
   // Task detail modal state - store ID only to avoid stale data issues
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -538,14 +533,21 @@ export function RitualBoardClient({
 
     // Add/update running manifests with their completed task count
     runningManifestList.forEach(m => {
-      const completedTasks = calcManifestProgress(m.prdJson)
+      const prdData = manifestPrdData[m.id]
+      const completedTasks = calcManifestProgress(prdData?.prdJson ?? null)
       addRunningManifest(m.id, completedTasks)
       updateManifestProgress(m.id, completedTasks)
     })
 
     // Remove non-running manifests
     manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
-  }, [manifests, addRunningManifest, updateManifestProgress, removeRunningManifest])
+  }, [
+    manifests,
+    manifestPrdData,
+    addRunningManifest,
+    updateManifestProgress,
+    removeRunningManifest
+  ])
 
   // Poll for running task/manifest status updates
   useEffect(() => {
@@ -581,6 +583,9 @@ export function RitualBoardClient({
   }
   if (manifests !== initialManifests) {
     setManifests(initialManifests)
+  }
+  if (manifestPrdData !== initialManifestPrdData) {
+    setManifestPrdData(initialManifestPrdData)
   }
 
   // Fetch task details when modal opens
@@ -754,6 +759,7 @@ export function RitualBoardClient({
                 key={manifest.id}
                 manifest={manifest}
                 repositoryUrl={project.repositoryUrl}
+                prdData={manifestPrdData[manifest.id] ?? null}
               />
             ))}
           </div>

@@ -211,7 +211,6 @@ export const manifests = pgTable('manifests', {
   spriteName: text('spriteName'),
   spriteUrl: text('spriteUrl'),
   webhookSecret: text('webhookSecret'),
-  prdJson: text('prdJson'),
   branchName: text('branchName'),
   errorMessage: text('errorMessage'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),

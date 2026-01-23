@@ -5,6 +5,7 @@ import { getProject } from '@/lib/core/project/get-project'
 import { getTasks } from '@/lib/core/task/get-tasks'
 import { getTaskSessions } from '@/lib/core/session/get-task-sessions'
 import { getManifests } from '@/lib/core/manifest/get-manifests'
+import { getManifestPrdData } from '@/lib/core/manifest/get-manifest-prd-data'
 import { AppLayer } from '@/lib/layers'
 import { redirect } from 'next/navigation'
 import { RitualBoardClient } from './board-client'
@@ -25,6 +26,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
       const taskIds = tasks.map(t => t.id)
       const sessions = yield* getTaskSessions(taskIds)
       const manifests = yield* getManifests(ritualId)
+      const manifestPrdData = yield* getManifestPrdData(ritualId)
 
       // Build stats map from latest session per task
       const statsByTask = new Map<
@@ -58,7 +60,13 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
         }
       })
 
-      return { project, tasks, statsByTask: Object.fromEntries(statsByTask), manifests }
+      return {
+        project,
+        tasks,
+        statsByTask: Object.fromEntries(statsByTask),
+        manifests,
+        manifestPrdData
+      }
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
@@ -87,6 +95,7 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
       initialTasks={result.tasks}
       initialStats={result.statsByTask}
       initialManifests={result.manifests}
+      initialManifestPrdData={result.manifestPrdData}
     />
   )
 }

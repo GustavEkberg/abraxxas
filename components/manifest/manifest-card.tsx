@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react'
 import type { Manifest } from '@/lib/services/db/schema'
+import type { ManifestPrdData, PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -102,24 +103,14 @@ function SparkBurst() {
   )
 }
 
-function calcProgress(prdJson: string | null): { passed: number; total: number } | null {
+function calcProgress(prdJson: PrdJson | null): { passed: number; total: number } | null {
   if (!prdJson) return null
-  try {
-    const prd: unknown = JSON.parse(prdJson)
-    if (typeof prd !== 'object' || prd === null) return null
-    const tasks = 'tasks' in prd && Array.isArray(prd.tasks) ? prd.tasks : []
-    const total = tasks.length
-    const passed = tasks.filter(
-      (t): t is { passes: true } =>
-        typeof t === 'object' && t !== null && 'passes' in t && t.passes === true
-    ).length
-    return total > 0 ? { passed, total } : null
-  } catch {
-    return null
-  }
+  const total = prdJson.tasks.length
+  const passed = prdJson.tasks.filter(t => t.passes).length
+  return total > 0 ? { passed, total } : null
 }
 
-function ManifestProgress({ prdJson, isRunning }: { prdJson: string | null; isRunning: boolean }) {
+function ManifestProgress({ prdJson, isRunning }: { prdJson: PrdJson | null; isRunning: boolean }) {
   const progress = calcProgress(prdJson)
   if (!progress) return null
   const { passed, total } = progress
@@ -332,6 +323,7 @@ function EditPrdNameDialog({
 interface ManifestCardProps {
   manifest: Manifest
   repositoryUrl: string
+  prdData: ManifestPrdData | null
 }
 
 function buildCompareUrl(repositoryUrl: string, branchName: string): string {
@@ -372,7 +364,7 @@ function BranchCompareButton({
   )
 }
 
-export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
+export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const { confirm } = useAlert()
@@ -583,7 +575,7 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
       )}
 
       {/* Progress bar based on prdJson tasks */}
-      {manifest.prdJson && <ManifestProgress prdJson={manifest.prdJson} isRunning={isRunning} />}
+      {prdData?.prdJson && <ManifestProgress prdJson={prdData.prdJson} isRunning={isRunning} />}
     </Card>
   )
 }

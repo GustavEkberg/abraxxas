@@ -19,20 +19,17 @@ const StartedPayloadSchema = Schema.Struct({
 })
 
 const TaskLoopStartedPayloadSchema = Schema.Struct({
-  type: Schema.Literal('task_loop_started'),
-  prdJson: Schema.String
+  type: Schema.Literal('task_loop_started')
 })
 
 const ProgressPayloadSchema = Schema.Struct({
   type: Schema.Literal('progress'),
-  prdJson: Schema.String,
   iteration: Schema.Number,
   maxIterations: Schema.Number
 })
 
 const CompletedPayloadSchema = Schema.Struct({
   type: Schema.Literal('completed'),
-  prdJson: Schema.String,
   branchName: Schema.optional(Schema.String)
 })
 
@@ -121,7 +118,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (payload.type === 'started') {
         yield* handleStarted(manifestId, manifest.projectId)
       } else if (payload.type === 'task_loop_started') {
-        yield* handleTaskLoopStarted(manifestId, manifest.projectId, payload)
+        yield* handleTaskLoopStarted(manifestId, manifest.projectId)
       } else if (payload.type === 'progress') {
         yield* handleProgress(manifestId, manifest.projectId, payload)
       } else if (payload.type === 'completed') {
@@ -166,12 +163,8 @@ const handleStarted = (manifestId: string, projectId: string) =>
     yield* Effect.logInfo('Started event handled', { manifestId })
   })
 
-// Handler for 'task_loop_started' event - updates status to running, stores prdJson
-const handleTaskLoopStarted = (
-  manifestId: string,
-  projectId: string,
-  payload: Schema.Schema.Type<typeof TaskLoopStartedPayloadSchema>
-) =>
+// Handler for 'task_loop_started' event - updates status to running
+const handleTaskLoopStarted = (manifestId: string, projectId: string) =>
   Effect.gen(function* () {
     const db = yield* Db
 
@@ -179,7 +172,6 @@ const handleTaskLoopStarted = (
       .update(schema.manifests)
       .set({
         status: 'running',
-        prdJson: payload.prdJson,
         updatedAt: new Date()
       })
       .where(eq(schema.manifests.id, manifestId))
@@ -188,23 +180,13 @@ const handleTaskLoopStarted = (
     yield* Effect.logInfo('Task loop started event handled', { manifestId })
   })
 
-// Handler for 'progress' event - updates prdJson during task loop execution
+// Handler for 'progress' event - just triggers revalidation, data fetched from GitHub
 const handleProgress = (
   manifestId: string,
   projectId: string,
   payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
 ) =>
   Effect.gen(function* () {
-    const db = yield* Db
-
-    yield* db
-      .update(schema.manifests)
-      .set({
-        prdJson: payload.prdJson,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.manifests.id, manifestId))
-
     revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Progress event handled', {
       manifestId,
@@ -213,9 +195,9 @@ const handleProgress = (
     })
   })
 
-// Handler for 'completed' event - updates status to completed, stores prdJson and branchName
+// Handler for 'completed' event - updates status to completed and stores branchName
 // Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
-// Note: prdJson reflects actual task status from repo - we don't override passes status
+// Note: PRD data now fetched from GitHub using branchName + prdName
 const handleCompleted = (
   manifestId: string,
   projectId: string,
@@ -228,7 +210,6 @@ const handleCompleted = (
       .update(schema.manifests)
       .set({
         status: 'completed',
-        prdJson: payload.prdJson,
         branchName: payload.branchName ?? null,
         updatedAt: new Date(),
         completedAt: new Date()
