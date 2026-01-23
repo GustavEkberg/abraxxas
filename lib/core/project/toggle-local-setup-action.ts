@@ -21,15 +21,8 @@ import { getProject } from './get-project'
 const DEFAULT_SETUP_SCRIPT = `#!/bin/bash
 set -e
 
-# Install Docker (task loop will start/stop daemon as needed)
-echo "Installing Docker..."
-curl -fsSL https://get.docker.com | sh > /dev/null 2>&1
-echo "Docker installed"
-
 cd /home/sprite/repo
 
-# Install dependencies
-pnpm install
 
 # Parse docker-compose.yml for postgres DATABASE_URL
 COMPOSE_FILE=""
