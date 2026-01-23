@@ -70,14 +70,27 @@ mkdir -p /home/sprite/.config/opencode/command
 mkdir -p /home/sprite/.config/opencode/skill
 mkdir -p /home/sprite/repo
 
-# Run downloads and installs in parallel
-echo "Starting parallel downloads and installs..."
-
-git clone --depth 1 "${authRepoUrl}" /home/sprite/repo &
-PID_REPO=$!
-
+# Install opencode and clone repo first (needed for serve)
+echo "Installing opencode and cloning repo..."
 curl -fsSL https://opencode.ai/install | bash &
 PID_OPENCODE=$!
+git clone --depth 1 "${authRepoUrl}" /home/sprite/repo &
+PID_REPO=$!
+wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
+echo "Opencode installed"
+wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
+echo "Repo cloned"
+
+# Start opencode serve immediately in repo folder
+export PATH="/home/sprite/.opencode/bin:$PATH"
+echo "Starting opencode serve..."
+cd /home/sprite/repo
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
+sleep 2
+echo "opencode serve started on port 8080"
+
+# Run remaining downloads and installs in parallel
+echo "Starting parallel downloads and installs..."
 
 curl -sL ${opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp &
 PID_SETUP=$!
@@ -92,10 +105,6 @@ echo "Docker install started in background (PID: $!)"
 
 # Wait for critical downloads
 echo "Waiting for downloads to complete..."
-wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
-echo "Repo cloned"
-wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
-echo "Opencode installed"
 wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
 echo "Setup tarball extracted"
 wait $PID_PNPM || { echo "pnpm install failed"; exit 1; }
@@ -231,12 +240,6 @@ echo "Local setup script finished"
 `
     : 'echo "No local setup script configured"'
 }
-
-# Start opencode serve in background for MCP access
-echo "Starting opencode serve..."
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
-sleep 2
-echo "opencode serve started on port 8080"
 
 echo "=== Base Setup Complete ==="
 `
