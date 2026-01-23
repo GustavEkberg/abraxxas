@@ -30,7 +30,7 @@ import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 import { useAlert } from '@/components/ui/gnostic-alert'
 import { updateTaskAction } from '@/lib/core/task/update-task-action'
 import { executeTaskAction } from '@/lib/core/task/execute-task-action'
-import { destroySpriteAction } from '@/lib/core/task/destroy-sprite-action'
+import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
 import {
   getTaskDetailsAction,
   type TaskDetailsResult
@@ -260,7 +260,7 @@ interface DraggableCardProps {
   task: Task
   onClick: (task: Task) => void
   stats?: TaskStats
-  onDestroySprite?: (sessionId: string) => void
+  onDeleteTask?: (taskId: string) => void
   repositoryUrl?: string
   onTailLog?: (spriteName: string) => void
 }
@@ -275,7 +275,7 @@ function DraggableCard({
   task,
   onClick,
   stats,
-  onDestroySprite,
+  onDeleteTask,
   repositoryUrl,
   onTailLog
 }: DraggableCardProps) {
@@ -386,13 +386,13 @@ function DraggableCard({
               <ScrollText className="size-3.5" />
             </Button>
           )}
-          {onDestroySprite && (
+          {onDeleteTask && (
             <Button
               variant="ghost"
               size="sm"
               onClick={e => {
                 e.stopPropagation()
-                onDestroySprite(stats.sessionId)
+                onDeleteTask(task.id)
               }}
               className="h-7 px-2 text-white/40 hover:text-red-400"
               title="Banish invocation"
@@ -597,22 +597,23 @@ export function RitualBoardClient({
     }
   }, [router, selectedTask, fetchTaskDetails])
 
-  const handleDestroySprite = useCallback(
-    async (sessionId: string) => {
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
       const confirmed = await confirm({
         title: 'Banish this Invocation?',
-        message: 'This will destroy the sprite and banish it to the void. This cannot be undone.',
+        message:
+          'This will destroy the sprite and delete the invocation permanently. This cannot be undone.',
         variant: 'warning',
         confirmText: 'Banish',
         cancelText: 'Spare'
       })
       if (!confirmed) return
 
-      const result = await destroySpriteAction(sessionId)
+      const result = await deleteTaskAction(taskId)
       if (result._tag === 'Success') {
         router.refresh()
       } else {
-        console.error('Failed to destroy sprite:', result.message)
+        console.error('Failed to delete task:', result.message)
       }
     },
     [confirm, router]
@@ -805,9 +806,7 @@ export function RitualBoardClient({
                         task={task}
                         onClick={handleTaskClick}
                         stats={taskStats[task.id]}
-                        onDestroySprite={
-                          taskStats[task.id]?.spriteName ? handleDestroySprite : undefined
-                        }
+                        onDeleteTask={taskStats[task.id]?.spriteName ? handleDeleteTask : undefined}
                         onTailLog={taskStats[task.id]?.spriteName ? handleTailLog : undefined}
                         repositoryUrl={project.repositoryUrl}
                       />
