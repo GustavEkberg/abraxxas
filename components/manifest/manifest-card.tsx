@@ -564,7 +564,7 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
           )}
 
           {/* Branch compare link - show when completed with branch */}
-          {isCompleted && manifest.branchName && (
+          {manifest.branchName && (
             <BranchCompareButton
               branchName={manifest.branchName}
               compareUrl={buildCompareUrl(repositoryUrl, manifest.branchName)}
