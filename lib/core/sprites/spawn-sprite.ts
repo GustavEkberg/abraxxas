@@ -1,11 +1,7 @@
 import { randomBytes } from 'crypto'
-import { Effect, Option } from 'effect'
+import { Effect } from 'effect'
 import { Sprites } from '@/lib/services/sprites/live-layer'
-import {
-  generateCallbackScript,
-  generateWebhookSecret,
-  DEFAULT_SETUP_SCRIPT
-} from './callback-script'
+import { generateInvocationScript, generateWebhookSecret } from './callback-script'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { ValidationError } from '@/lib/core/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
@@ -127,85 +123,26 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
 
     const spriteUrl = sprite.url
 
-    // Upload opencode auth.json if user has one configured
+    // Get opencode auth for the setup script to embed
     const opencodeAuth = yield* getOpencodeAuth(userId)
-    if (Option.isSome(opencodeAuth)) {
-      yield* Effect.log('Uploading opencode auth.json to sprite')
 
-      // Create directory structure using $HOME for portability
-      // Also create in /root in case opencode runs as root
-      yield* sprites
-        .execCommand(spriteName, [
-          'bash',
-          '-c',
-          'mkdir -p "$HOME/.local/share/opencode" /root/.local/share/opencode 2>/dev/null || true'
-        ])
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to create opencode directory: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          ),
-          Effect.catchAll(error => {
-            return sprites.destroySprite(spriteName).pipe(
-              Effect.catchAll(() => Effect.void),
-              Effect.flatMap(() => Effect.fail(error))
-            )
-          })
-        )
-
-      // Write auth.json to both locations to ensure opencode finds it
-      // Set restrictive permissions (600) since this contains secrets
-      yield* sprites
-        .execCommand(
-          spriteName,
-          [
-            'bash',
-            '-c',
-            'cat > "$HOME/.local/share/opencode/auth.json" && chmod 600 "$HOME/.local/share/opencode/auth.json" && cp "$HOME/.local/share/opencode/auth.json" /root/.local/share/opencode/auth.json 2>/dev/null && chmod 600 /root/.local/share/opencode/auth.json 2>/dev/null || true'
-          ],
-          { stdin: opencodeAuth.value }
-        )
-        .pipe(
-          Effect.mapError(
-            error =>
-              new SpriteExecutionError({
-                message: `Failed to write opencode auth.json: ${error.message}`,
-                spriteName,
-                cause: error
-              })
-          ),
-          Effect.catchAll(error => {
-            return sprites.destroySprite(spriteName).pipe(
-              Effect.catchAll(() => Effect.void),
-              Effect.flatMap(() => Effect.fail(error))
-            )
-          })
-        )
-
-      yield* Effect.log('Uploaded opencode auth.json to sprite')
-    } else {
-      yield* Effect.log('No opencode auth configured for user, skipping auth upload')
-    }
-
-    // Generate the execution script with setup phase
-    const setupScript = DEFAULT_SETUP_SCRIPT
-
-    const script = generateCallbackScript({
+    // Generate the execution script with base setup + invocation execution
+    const script = generateInvocationScript({
       sessionId: task.id,
       taskId: task.id,
       webhookUrl,
       webhookSecret,
       prompt,
-      repoUrl: project.repositoryUrl,
-      githubToken: decryptedGithubToken,
-      branchName,
       model: opencodeModel,
-      setupScript,
-      spritePassword
+      spritePassword,
+      branchName,
+      baseSetup: {
+        githubToken: decryptedGithubToken,
+        repoUrl: project.repositoryUrl,
+        opencodeAuth,
+        opencodeSetupRepoUrl: sprites.opencodeSetupRepoUrl,
+        branchName
+      }
     })
 
     yield* Effect.log('Created sprite, writing script')

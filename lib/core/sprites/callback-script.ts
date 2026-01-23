@@ -1,7 +1,28 @@
 import { createHmac, randomBytes } from 'crypto'
+import { Option } from 'effect'
+import { generateBaseSetupScript, type BaseSetupConfig } from './base-setup-script'
 
 /**
- * Configuration for generating callback scripts.
+ * Configuration for generating invocation callback scripts.
+ */
+export interface InvocationScriptConfig {
+  sessionId: string
+  taskId: string
+  webhookUrl: string
+  webhookSecret: string
+  prompt: string
+  /** Model in format provider/model (e.g., anthropic/claude-sonnet-4-5-20250929) */
+  model: string
+  /** Password for opencode serve authentication */
+  spritePassword: string
+  /** Branch name for pushing changes */
+  branchName: string
+  /** Base setup configuration */
+  baseSetup: BaseSetupConfig
+}
+
+/**
+ * @deprecated Use InvocationScriptConfig instead
  */
 export interface CallbackScriptConfig {
   sessionId: string
@@ -35,7 +56,8 @@ export function generateWebhookSecret(): string {
 }
 
 /**
- * Default setup script - installs opencode if not present.
+ * Default setup script - kept for backwards compatibility.
+ * @deprecated Use generateBaseSetupScript from base-setup-script.ts instead
  */
 export const DEFAULT_SETUP_SCRIPT = `
 # Add common binary paths
@@ -59,29 +81,28 @@ opencode --version || true
 `
 
 /**
- * Generate the callback script that runs inside the Sprite.
- *
- * This script:
- * 1. Runs setup script to install dependencies (if provided)
- * 2. Clones the repository using the GitHub token
- * 3. Creates and checks out a new branch
- * 4. Runs opencode with the prompt
- * 5. Captures the exit code and output
- * 6. Sends a webhook with the result
+ * Generate the invocation-specific execution script (webhook callbacks, opencode run, etc.)
+ * This is appended after the base setup script.
  */
-export function generateCallbackScript(config: CallbackScriptConfig): string {
+function generateInvocationExecutionScript(config: {
+  sessionId: string
+  taskId: string
+  webhookUrl: string
+  webhookSecret: string
+  prompt: string
+  model: string
+  spritePassword: string
+  branchName: string
+}): string {
   const {
     sessionId,
     taskId,
     webhookUrl,
     webhookSecret,
     prompt,
-    repoUrl,
-    githubToken,
-    branchName,
     model,
-    setupScript = DEFAULT_SETUP_SCRIPT,
-    spritePassword
+    spritePassword,
+    branchName
   } = config
 
   // Escape special characters in the prompt for bash
@@ -91,19 +112,10 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
     .replace(/\$/g, '\\$')
     .replace(/`/g, '\\`')
 
-  // Parse the repo URL to inject the token
-  // https://github.com/owner/repo -> https://{token}@github.com/owner/repo
-  const authRepoUrl = repoUrl.replace('https://github.com/', `https://${githubToken}@github.com/`)
-
-  // Git user config from environment
-  const gitUserEmail = process.env.GH_USER_EMAIL || 'abraxas@sprites.dev'
-  const gitUserName = process.env.GH_USER_NAME || 'abraxxxxas'
-
-  return `#!/bin/bash
-set -euo pipefail
-
-# Redirect all output to /tmp/abraxas.log for log viewing
-exec > >(tee /tmp/abraxas.log) 2>&1
+  return `
+# ===========================================
+# Invocation Execution Script
+# ===========================================
 
 WEBHOOK_URL="${webhookUrl}"
 WEBHOOK_SECRET="${webhookSecret}"
@@ -259,71 +271,6 @@ monitor_progress() {
     done
 }
 
-echo "=== Abraxas Sprite Execution ==="
-echo "Session: $SESSION_ID"
-echo "Task: $TASK_ID"
-echo ""
-
-# Run setup script
-echo "=== Setup Phase ==="
-${setupScript}
-echo "=== Setup Complete ==="
-echo ""
-
-# Clone repository
-echo "Cloning repository..."
-set +e
-if ! git clone "${authRepoUrl}" /home/sprite/repo 2>&1; then
-    echo "ERROR: Failed to clone repository"
-    send_webhook "error" "" "Failed to clone repository" "" ""
-    exit 1
-fi
-set -e
-
-cd /home/sprite/repo
-
-# Configure git
-git config user.email "${gitUserEmail}"
-git config user.name "${gitUserName}"
-
-# Create opencode config with permissions for .sprite/* files
-cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
-{
-  "$schema": "https://opencode.ai/config.json",
-  "agent": {
-    "build": {
-      "permission": {
-        "read": {
-          ".sprite/*": "allow"
-        }
-      }
-    }
-  }
-}
-CONFIGEOF
-
-# Fetch and checkout branch (or create if it doesn't exist)
-echo "Checking out branch: $BRANCH_NAME"
-set +e
-git fetch origin "$BRANCH_NAME" 2>/dev/null
-if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH_NAME"; then
-    echo "Branch exists on remote, checking out..."
-    if ! git checkout "$BRANCH_NAME" 2>&1; then
-        echo "ERROR: Failed to checkout branch: $BRANCH_NAME"
-        send_webhook "error" "" "Failed to checkout branch: $BRANCH_NAME" "" ""
-        exit 1
-    fi
-    git pull origin "$BRANCH_NAME" 2>&1 || true
-else
-    echo "Creating new branch: $BRANCH_NAME"
-    if ! git checkout -b "$BRANCH_NAME" 2>&1; then
-        echo "ERROR: Failed to create branch: $BRANCH_NAME"
-        send_webhook "error" "" "Failed to create branch: $BRANCH_NAME" "" ""
-        exit 1
-    fi
-fi
-set -e
-
 echo ""
 echo "Starting opencode serve..."
 HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
@@ -410,4 +357,91 @@ fi
 echo ""
 echo "=== Execution Complete ==="
 `
+}
+
+/**
+ * Generate the complete invocation script with base setup + execution.
+ */
+export function generateInvocationScript(config: InvocationScriptConfig): string {
+  const {
+    sessionId,
+    taskId,
+    webhookUrl,
+    webhookSecret,
+    prompt,
+    model,
+    spritePassword,
+    branchName
+  } = config
+
+  const baseSetupScript = generateBaseSetupScript(config.baseSetup)
+  const executionScript = generateInvocationExecutionScript({
+    sessionId,
+    taskId,
+    webhookUrl,
+    webhookSecret,
+    prompt,
+    model,
+    spritePassword,
+    branchName
+  })
+
+  return `#!/bin/bash
+set -euo pipefail
+
+# Redirect all output to /tmp/abraxas.log for log viewing
+exec > >(tee /tmp/abraxas.log) 2>&1
+
+echo "=== Abraxas Sprite Execution ==="
+echo "Session: ${sessionId}"
+echo "Task: ${taskId}"
+echo ""
+
+echo "=== Setup Phase ==="
+${baseSetupScript}
+echo ""
+
+${executionScript}
+`
+}
+
+/**
+ * Generate the callback script that runs inside the Sprite.
+ * @deprecated Use generateInvocationScript instead for new code.
+ *
+ * This function is kept for backwards compatibility.
+ */
+export function generateCallbackScript(config: CallbackScriptConfig): string {
+  const {
+    sessionId,
+    taskId,
+    webhookUrl,
+    webhookSecret,
+    prompt,
+    repoUrl,
+    githubToken,
+    branchName,
+    model,
+    spritePassword
+  } = config
+
+  // Convert old config format to new format
+  return generateInvocationScript({
+    sessionId,
+    taskId,
+    webhookUrl,
+    webhookSecret,
+    prompt,
+    model,
+    spritePassword,
+    branchName,
+    baseSetup: {
+      githubToken,
+      repoUrl,
+      opencodeAuth: Option.none(),
+      opencodeSetupRepoUrl:
+        process.env.OPENCODE_SETUP_REPO_URL || 'https://github.com/anomalyco/opencode-setup',
+      branchName
+    }
+  })
 }
