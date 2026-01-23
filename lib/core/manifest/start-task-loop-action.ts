@@ -208,27 +208,37 @@ monitor_log() {
     local task_loop_started=false
     local completed_sent=false
     
+    echo "[monitor] Starting monitor_log" >> /tmp/monitor-debug.log
+    
     # Wait for log file to exist
     while [ ! -f "$LOG_FILE" ]; do
         sleep 1
     done
     
+    echo "[monitor] Log file exists, starting tail" >> /tmp/monitor-debug.log
+    
     # Tail the log file and watch for iteration markers
     tail -f "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
+        echo "[monitor] Read line: $line" >> /tmp/monitor-debug.log
+        
         # Check for iteration marker: "=== Iteration N/M ==="
-        if [[ "$line" =~ ===\\ Iteration\\ ([0-9]+)/([0-9]+)\\ === ]]; then
+        if [[ "$line" =~ ===[[:space:]]Iteration[[:space:]]([0-9]+)/([0-9]+)[[:space:]]=== ]]; then
             local iteration="\${BASH_REMATCH[1]}"
             max_iterations="\${BASH_REMATCH[2]}"
+            
+            echo "[monitor] Matched iteration=$iteration max=$max_iterations" >> /tmp/monitor-debug.log
             
             # Send task_loop_started on first iteration
             if [ "$task_loop_started" = false ]; then
                 task_loop_started=true
+                echo "[monitor] Sending task_loop_started" >> /tmp/monitor-debug.log
                 send_task_loop_started
             fi
             
             # Only send progress if iteration changed
             if [ "$iteration" -ne "$last_iteration" ]; then
                 last_iteration="$iteration"
+                echo "[monitor] Sending progress for iteration $iteration" >> /tmp/monitor-debug.log
                 # Small delay to let prd.json be written
                 sleep 2
                 send_progress "$iteration" "$max_iterations"
@@ -240,21 +250,30 @@ monitor_log() {
         if [ "$task_loop_started" = true ] && [ "$completed_sent" = false ]; then
             if [[ "$line" == *"PRD complete"* ]] || [[ "$line" == *"Max iterations"* ]]; then
                 completed_sent=true
+                echo "[monitor] Sending completed" >> /tmp/monitor-debug.log
                 sleep 2
                 send_completed
                 break
             fi
         fi
     done
+    
+    echo "[monitor] Monitor loop exited" >> /tmp/monitor-debug.log
 }
 
 # Clean up any previous state files
 rm -f "$LOG_FILE"
 rm -f "/tmp/completed_sent"
+rm -f /tmp/monitor-debug.log
+
+echo "[main] Starting wrapper script" >> /tmp/monitor-debug.log
+echo "[main] PRD_NAME=$PRD_NAME" >> /tmp/monitor-debug.log
+echo "[main] WEBHOOK_URL=$WEBHOOK_URL" >> /tmp/monitor-debug.log
 
 # Start the monitor in background
 monitor_log &
 MONITOR_PID=$!
+echo "[main] Monitor started with PID=$MONITOR_PID" >> /tmp/monitor-debug.log
 
 # Run task-loop and capture output to log file
 cd /home/sprite/repo
