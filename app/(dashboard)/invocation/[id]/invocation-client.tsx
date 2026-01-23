@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Check,
@@ -13,11 +14,13 @@ import {
   Terminal,
   AlertCircle,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react'
 import type { Task, Project, OpencodeSession } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { deleteTaskAction } from '@/lib/core/task/delete-task-action'
 
 function CopyButton({
   value,
@@ -93,11 +96,24 @@ function StatusBadge({ status }: { status: OpencodeSession['status'] }) {
 }
 
 export function InvocationClient({ task, project, session }: InvocationClientProps) {
+  const router = useRouter()
   const [iframeLoaded, setIframeLoaded] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   // Build the opencode web URL - the server is started with --continue flag
   // which automatically attaches to the last active session
   const opencodeUrl = session?.spriteUrl ?? null
+
+  const handleDelete = () => {
+    if (!confirm('Delete this invocation? This will also destroy any active sprite.')) return
+
+    startTransition(async () => {
+      const result = await deleteTaskAction(task.id)
+      if (result._tag === 'Success') {
+        router.push(`/rituals/${project.id}`)
+      }
+    })
+  }
 
   // Stats from session
   const messageCount = session?.messageCount ? parseInt(session.messageCount, 10) : 0
@@ -144,6 +160,17 @@ export function InvocationClient({ task, project, session }: InvocationClientPro
               Open in new tab
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="gap-2 text-white/60 hover:text-red-400"
+          >
+            <Trash2 className="size-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
