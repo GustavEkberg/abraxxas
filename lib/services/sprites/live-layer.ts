@@ -326,11 +326,10 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
       )
 
     /**
-     * Execute a command via WebSocket with TTY mode enabled.
-     * TTY mode has max_run_after_disconnect=0 (forever) by default,
-     * so the command continues running after we disconnect.
+     * Execute a command in a detachable tmux session.
+     * The session persists after we disconnect, surviving HTTP timeouts.
      *
-     * Use this for long-running setup scripts that need to survive HTTP timeouts.
+     * Use this for long-running setup scripts.
      */
     const execDetached = (
       spriteName: string,
@@ -355,10 +354,8 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
             const client = new SpritesClient(Redacted.value(config.token))
             const sprite = client.sprite(spriteName)
 
-            // Use detachable TTY mode - creates tmux session that survives disconnect
-            const cmd = sprite.spawn(command, args, {
-              tty: true,
-              detachable: true,
+            // createSession() creates a detachable tmux session
+            const cmd = sprite.createSession(command, args, {
               env: options?.env,
               cwd: options?.cwd
             })
@@ -371,20 +368,18 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
               })
             }
 
-            // Wait for 'spawn' event (command started) then disconnect
+            // Wait for 'spawn' event (session created) then disconnect without killing
             await new Promise<void>((resolve, reject) => {
               const timeout = setTimeout(() => {
-                cmd.kill()
-                reject(new Error('Timeout waiting for command to start'))
+                reject(new Error('Timeout waiting for session to start'))
               }, options?.startTimeout ?? 5000)
 
               cmd.once('spawn', () => {
                 clearTimeout(timeout)
-                // Small delay to ensure command is fully initialized
-                setTimeout(() => {
-                  cmd.kill() // Disconnect (command keeps running due to TTY mode)
-                  resolve()
-                }, 100)
+                // Small delay to ensure command is fully initialized, then just resolve
+                // Don't call cmd.kill() - let the WebSocket close naturally when we return
+                // The tmux session persists independently
+                setTimeout(resolve, 100)
               })
 
               cmd.once('error', err => {
@@ -395,7 +390,7 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
           },
           catch: error => {
             return new SpriteExecutionError({
-              message: error instanceof Error ? error.message : 'Failed to start detached command',
+              message: error instanceof Error ? error.message : 'Failed to start detached session',
               spriteName,
               cause: error
             })
