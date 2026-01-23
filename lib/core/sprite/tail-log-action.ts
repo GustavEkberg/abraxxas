@@ -10,7 +10,7 @@ import { getSession } from '@/lib/services/auth/get-session'
 type TailLogResult = { _tag: 'Success'; output: string } | { _tag: 'Error'; message: string }
 
 const LOG_FILE = '/tmp/abraxas.log'
-const DEFAULT_LINES = 100
+const DEFAULT_LINES = 20
 
 export const tailLogAction = async (
   spriteName: string,
