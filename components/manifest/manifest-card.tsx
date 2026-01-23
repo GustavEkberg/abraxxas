@@ -13,7 +13,7 @@ import {
   Terminal,
   Trash2
 } from 'lucide-react'
-import type { Manifest } from '@/lib/services/db/schema'
+import { type Manifest, getManifestBranchName } from '@/lib/services/db/schema'
 import type { ManifestPrdData, PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -546,11 +546,11 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
             </Button>
           )}
 
-          {/* Branch compare link - show when completed with branch */}
-          {manifest.branchName && (
+          {/* Branch compare link - show when prdName set */}
+          {manifest.prdName && (
             <BranchCompareButton
-              branchName={manifest.branchName}
-              compareUrl={buildCompareUrl(repositoryUrl, manifest.branchName)}
+              branchName={getManifestBranchName(manifest.prdName)}
+              compareUrl={buildCompareUrl(repositoryUrl, getManifestBranchName(manifest.prdName))}
               className="h-7 px-2 text-green-400 hover:text-green-300"
             />
           )}

@@ -147,8 +147,9 @@ const handleStarted = (manifestId: string, projectId: string) =>
     yield* Effect.logInfo('Started event handled', { manifestId })
   })
 
-// Handler for 'branch_ready' event - updates status to running and stores branchName
+// Handler for 'branch_ready' event - updates status to running and extracts prdName from branchName
 // Sent by /prd-task-hook after creating and pushing the PRD branch
+// Branch format is 'prd-{prdName}', so we extract prdName by removing the 'prd-' prefix
 const handleBranchReady = (
   manifestId: string,
   projectId: string,
@@ -157,11 +158,16 @@ const handleBranchReady = (
   Effect.gen(function* () {
     const db = yield* Db
 
+    // Extract prdName from branchName (format: prd-{prdName})
+    const prdName = payload.branchName.startsWith('prd-')
+      ? payload.branchName.slice(4)
+      : payload.branchName
+
     yield* db
       .update(schema.manifests)
       .set({
         status: 'running',
-        branchName: payload.branchName,
+        prdName,
         updatedAt: new Date()
       })
       .where(eq(schema.manifests.id, manifestId))
@@ -169,6 +175,7 @@ const handleBranchReady = (
     revalidatePath(`/rituals/${projectId}`)
     yield* Effect.logInfo('Branch ready event handled', {
       manifestId,
+      prdName,
       branchName: payload.branchName
     })
   })

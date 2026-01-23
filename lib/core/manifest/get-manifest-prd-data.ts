@@ -7,7 +7,7 @@ import { fetchPrdFromGitHub, type ManifestPrdData } from './fetch-prd-from-githu
 export type ManifestPrdDataMap = Record<string, ManifestPrdData>
 
 /**
- * Fetch PRD data from GitHub for all manifests that have branchName and prdName set.
+ * Fetch PRD data from GitHub for all manifests that have prdName set.
  * Returns a map of manifestId -> ManifestPrdData
  *
  * Also detects completion: if a manifest is 'running' and all tasks pass,
@@ -31,21 +31,19 @@ export const getManifestPrdData = (projectId: string) =>
       return {}
     }
 
-    // Get all manifests with branchName and prdName (include status for completion detection)
+    // Get all manifests with prdName (include status for completion detection)
     const manifests = yield* db
       .select({
         id: schema.manifests.id,
-        branchName: schema.manifests.branchName,
         prdName: schema.manifests.prdName,
         status: schema.manifests.status
       })
       .from(schema.manifests)
       .where(eq(schema.manifests.projectId, projectId))
 
-    // Filter to only manifests that can fetch PRD data
+    // Filter to only manifests that have prdName set
     const fetchableManifests = manifests.filter(
-      (m): m is typeof m & { branchName: string; prdName: string } =>
-        m.branchName !== null && m.prdName !== null
+      (m): m is typeof m & { prdName: string } => m.prdName !== null
     )
 
     if (fetchableManifests.length === 0) {
@@ -58,7 +56,7 @@ export const getManifestPrdData = (projectId: string) =>
         fetchPrdFromGitHub(
           project.repositoryUrl,
           project.encryptedGithubToken,
-          manifest.branchName,
+          schema.getManifestBranchName(manifest.prdName),
           manifest.prdName
         ).pipe(
           Effect.map(data => ({ id: manifest.id, status: manifest.status, data })),

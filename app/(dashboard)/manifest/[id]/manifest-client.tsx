@@ -14,7 +14,7 @@ import {
   Loader2,
   Trash2
 } from 'lucide-react'
-import type { Manifest, Project } from '@/lib/services/db/schema'
+import { type Manifest, type Project, getManifestBranchName } from '@/lib/services/db/schema'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
@@ -195,19 +195,19 @@ export function ManifestPageClient({ manifest, project }: ManifestPageClientProp
               </Card>
             )}
 
-            {/* Branch */}
-            {manifest.branchName && (
+            {/* Branch - derived from prdName */}
+            {manifest.prdName && (
               <Card className="border-dashed border-white/10 bg-transparent p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 overflow-hidden">
                     <GitBranch className="size-3.5 shrink-0 text-white/30" />
                     <code className="truncate font-mono text-xs text-white/50">
-                      {manifest.branchName}
+                      {getManifestBranchName(manifest.prdName)}
                     </code>
                   </div>
                   {project.repositoryUrl && (
                     <a
-                      href={`${project.repositoryUrl.replace(/\.git$/, '')}/compare/main...${encodeURIComponent(manifest.branchName)}`}
+                      href={`${project.repositoryUrl.replace(/\.git$/, '')}/compare/main...${encodeURIComponent(getManifestBranchName(manifest.prdName))}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="shrink-0 text-white/30 hover:text-white/60"

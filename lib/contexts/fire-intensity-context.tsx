@@ -58,7 +58,7 @@ function calculateIntensity(tasks: RunningTask[], manifests: RunningManifest[]):
 
   const manifestIntensity = manifests.reduce((sum, manifest) => {
     // +3 intensity per completed task in manifest
-    return sum + baseIntensity + manifest.completedTasks * 3
+    return sum + baseIntensity + manifest.completedTasks * 1.5
   }, 0)
 
   return taskIntensity + manifestIntensity

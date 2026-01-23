@@ -46,15 +46,12 @@ export function CreateManifestDialog({
 
     setState({ _tag: 'loading' })
 
-    // If prdName provided, this is a continuation - branchName is prd-{prdName}
     const trimmedPrdName = prdName.trim() || undefined
-    const branchName = trimmedPrdName ? `prd-${trimmedPrdName}` : undefined
 
     const result = await createManifestAction({
       projectId,
       name,
-      prdName: trimmedPrdName,
-      branchName
+      prdName: trimmedPrdName
     })
 
     if (result._tag === 'Error') {

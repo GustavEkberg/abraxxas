@@ -14,10 +14,8 @@ import { spawnManifestSprite } from './spawn-manifest-sprite'
 type CreateManifestInput = {
   projectId: string
   name: string
-  /** PRD name (for continuing a manifest) */
+  /** PRD name (for continuing a manifest - branch will be prd-{prdName}) */
   prdName?: string
-  /** Branch to checkout (for continuing a manifest in a new sprite) */
-  branchName?: string
 }
 
 type CreateManifestSuccess = {
@@ -60,12 +58,14 @@ export const createManifestAction = async (
           name: input.name,
           status: 'pending',
           webhookSecret,
-          prdName: input.prdName,
-          branchName: input.branchName
+          prdName: input.prdName
         })
         .returning()
 
       yield* Effect.log(`Created manifest ${manifest.id} with status=pending`)
+
+      // Derive branchName from prdName if provided
+      const branchName = input.prdName ? schema.getManifestBranchName(input.prdName) : undefined
 
       // Spawn the sprite
       const spriteResult = yield* spawnManifestSprite({
@@ -73,7 +73,7 @@ export const createManifestAction = async (
         webhookSecret,
         project,
         userId: project.userId,
-        branchName: input.branchName
+        branchName
       }).pipe(
         Effect.catchAll(error => {
           // Cleanup: mark manifest as error on failure

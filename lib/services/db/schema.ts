@@ -211,7 +211,6 @@ export const manifests = pgTable('manifests', {
   spriteName: text('spriteName'),
   spriteUrl: text('spriteUrl'),
   webhookSecret: text('webhookSecret'),
-  branchName: text('branchName'),
   errorMessage: text('errorMessage'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt')
@@ -220,6 +219,9 @@ export const manifests = pgTable('manifests', {
     .$onUpdate(() => new Date()),
   completedAt: timestamp('completedAt')
 })
+
+/** Derive branch name from prdName */
+export const getManifestBranchName = (prdName: string) => `prd-${prdName}`
 
 export type Manifest = typeof manifests.$inferSelect
 export type InsertManifest = typeof manifests.$inferInsert
