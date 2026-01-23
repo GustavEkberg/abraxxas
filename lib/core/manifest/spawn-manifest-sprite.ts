@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect'
+import { Effect } from 'effect'
 import { randomBytes } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { Sprites } from '@/lib/services/sprites/live-layer'
@@ -6,6 +6,7 @@ import { Db } from '@/lib/services/db/live-layer'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
+import { generateBaseSetupScript } from '@/lib/core/sprites/base-setup-script'
 import type { Project } from '@/lib/services/db/schema'
 import * as schema from '@/lib/services/db/schema'
 
@@ -51,11 +52,50 @@ export function generateSpritePassword(): string {
 }
 
 /**
+ * Generate manifest-specific script (opencode serve startup).
+ * Appended after base setup.
+ */
+function generateManifestExecutionScript(spritePassword: string): string {
+  return `
+# ===========================================
+# Manifest Execution - Start opencode serve
+# ===========================================
+
+# Start opencode serve (must succeed)
+echo "Starting opencode serve..."
+cd /home/sprite/repo
+
+# Verify opencode binary exists
+if [ ! -f /home/sprite/.opencode/bin/opencode ]; then
+    echo "ERROR: opencode binary not found at /home/sprite/.opencode/bin/opencode"
+    ls -la /home/sprite/.opencode/bin/ 2>/dev/null || echo "Directory does not exist"
+    exit 1
+fi
+
+echo "opencode binary found, starting serve..."
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
+SERVE_PID=$!
+sleep 2
+
+# Verify it started
+if kill -0 $SERVE_PID 2>/dev/null; then
+    echo "opencode serve started successfully (PID: $SERVE_PID)"
+else
+    echo "ERROR: opencode serve failed to start"
+    cat /tmp/opencode.log 2>/dev/null || true
+    exit 1
+fi
+
+echo "=== Manifest Setup Complete ==="
+`
+}
+
+/**
  * Spawn a sprite for manifest execution (long-running opencode session).
  *
  * Creates a new sprite with public URL, clones the repo,
  * sets up opencode auth and abraxas-opencode-setup files,
- * then sends a 'started' webhook.
+ * then starts opencode serve.
  */
 export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
   Effect.gen(function* () {
@@ -110,134 +150,31 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     // Get opencode auth for the setup script
     const opencodeAuth = yield* getOpencodeAuth(userId)
 
-    // Build the setup script that runs in background
-    const authRepoUrl = project.repositoryUrl.replace(
-      'https://github.com/',
-      `https://${githubToken}@github.com/`
-    )
+    // Generate base setup + manifest execution script
+    const baseSetup = generateBaseSetupScript({
+      githubToken,
+      repoUrl: project.repositoryUrl,
+      opencodeAuth,
+      opencodeSetupRepoUrl: sprites.opencodeSetupRepoUrl,
+      localSetupScript: project.localSetupScript ?? undefined
+    })
 
-    // Extract repo name from URL for tarball folder (e.g. "abraxas-opencode-setup" from URL)
-    const opencodeSetupRepoName = sprites.opencodeSetupRepoUrl.split('/').pop() || 'opencode-setup'
+    const manifestExecution = generateManifestExecutionScript(spritePassword)
 
     const setupScript = `#!/bin/bash
-set -e
+set -euo pipefail
 
-echo "=== Manifest Sprite Setup ===" > /tmp/abraxas.log
-exec >> /tmp/abraxas.log 2>&1
+# Redirect all output to /tmp/abraxas.log for log viewing
+exec > >(tee /tmp/abraxas.log) 2>&1
 
-# Create directories upfront
-mkdir -p /home/sprite/.local/share/opencode
-mkdir -p /home/sprite/.config/opencode/command
-mkdir -p /home/sprite/.config/opencode/skill
+echo "=== Manifest Sprite Setup ==="
 
-# Run downloads in parallel
-echo "Starting parallel downloads..."
+# Keep sprite alive during setup
+nohup ping google.com -c 60 > /dev/null 2>&1 &
 
-git clone --depth 1 "${authRepoUrl}" /home/sprite/repo &
-PID_REPO=$!
+${baseSetup}
 
-curl -fsSL https://opencode.ai/install | bash &
-PID_OPENCODE=$!
-
-curl -sL ${sprites.opencodeSetupRepoUrl}/archive/refs/heads/main.tar.gz | tar -xzf - -C /tmp &
-PID_SETUP=$!
-
-export SHELL=/bin/bash
-curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh - &
-PID_PNPM=$!
-
-# Wait for all downloads
-echo "Waiting for downloads to complete..."
-wait $PID_REPO || { echo "Repo clone failed"; exit 1; }
-echo "Repo cloned"
-wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
-echo "Opencode installed"
-wait $PID_SETUP || { echo "Setup tarball failed"; exit 1; }
-echo "Setup tarball extracted"
-wait $PID_PNPM || { echo "pnpm install failed"; exit 1; }
-echo "pnpm installed"
-
-# Add pnpm to PATH permanently
-export PNPM_HOME="/home/sprite/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-
-# Add to shell configs for future sessions
-echo 'export PNPM_HOME="/home/sprite/.local/share/pnpm"' >> /home/sprite/.bashrc
-echo 'export PATH="$PNPM_HOME:$PATH"' >> /home/sprite/.bashrc
-mkdir -p /home/sprite/.config/fish
-echo 'set -gx PNPM_HOME "/home/sprite/.local/share/pnpm"' >> /home/sprite/.config/fish/config.fish
-echo 'fish_add_path $PNPM_HOME' >> /home/sprite/.config/fish/config.fish
-
-# Setup opencode auth
-${
-  Option.isSome(opencodeAuth)
-    ? `
-echo "Setting up opencode auth..."
-cat > /home/sprite/.local/share/opencode/auth.json << 'AUTHEOF'
-${opencodeAuth.value}
-AUTHEOF
-chmod 600 /home/sprite/.local/share/opencode/auth.json
-`
-    : 'echo "No opencode auth configured"'
-}
-
-# Install commands and skills (fast local copies)
-cp /tmp/${opencodeSetupRepoName}-main/command/*.md /home/sprite/.config/opencode/command/
-cp -r /tmp/${opencodeSetupRepoName}-main/skill/* /home/sprite/.config/opencode/skill/
-cp /tmp/${opencodeSetupRepoName}-main/bin/task-loop.sh /usr/local/bin/task-loop
-chmod +x /usr/local/bin/task-loop
-
-# Add opencode to PATH globally
-echo 'export PATH="/home/sprite/.opencode/bin:$PATH"' >> /etc/profile.d/opencode.sh
-echo 'export HOME=/home/sprite' >> /etc/profile.d/opencode.sh
-echo 'export XDG_CONFIG_HOME=/home/sprite/.config' >> /etc/profile.d/opencode.sh
-echo 'export XDG_DATA_HOME=/home/sprite/.local/share' >> /etc/profile.d/opencode.sh
-
-# Also add to bashrc for non-login shells
-echo 'export PATH="/home/sprite/.opencode/bin:$PATH"' >> /home/sprite/.bashrc
-echo 'export HOME=/home/sprite' >> /home/sprite/.bashrc
-echo 'export XDG_CONFIG_HOME=/home/sprite/.config' >> /home/sprite/.bashrc
-echo 'export XDG_DATA_HOME=/home/sprite/.local/share' >> /home/sprite/.bashrc
-
-# Create opencode config with default model and permissions
-cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
-{
-  "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-opus-4-5-20251101",
-  "agent": {
-    "build": {
-      "permission": {
-        "read": {
-          ".sprite/*": "allow"
-        }
-      }
-    }
-  }
-}
-CONFIGEOF
-
-# Run local setup script if configured (non-blocking on failure)
-${
-  project.localSetupScript
-    ? `
-echo "Running local setup script..."
-cat > /tmp/local-setup.sh << 'LOCALSETUPEOF'
-${project.localSetupScript}
-LOCALSETUPEOF
-chmod +x /tmp/local-setup.sh
-cd /home/sprite/repo
-/tmp/local-setup.sh >> /tmp/abraxas.log 2>&1 || echo "WARNING: Local setup script failed (continuing anyway)"
-echo "Local setup script finished"
-`
-    : 'echo "No local setup script configured"'
-}
-
-# Start opencode serve
-echo "Starting opencode serve..."
-cd /home/sprite/repo
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
-
-echo "=== Setup Complete ==="
+${manifestExecution}
 `
 
     // Write setup script to sprite (quick HTTP operation)
