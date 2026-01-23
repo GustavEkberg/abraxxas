@@ -31,6 +31,7 @@ export function CreateManifestDialog({
 }: CreateManifestDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [name, setName] = useState('')
+  const [prdName, setPrdName] = useState('')
   const [state, setState] = useState<DialogState>({ _tag: 'form' })
 
   // Support both controlled and uncontrolled modes
@@ -45,7 +46,16 @@ export function CreateManifestDialog({
 
     setState({ _tag: 'loading' })
 
-    const result = await createManifestAction({ projectId, name })
+    // If prdName provided, this is a continuation - branchName is prd-{prdName}
+    const trimmedPrdName = prdName.trim() || undefined
+    const branchName = trimmedPrdName ? `prd-${trimmedPrdName}` : undefined
+
+    const result = await createManifestAction({
+      projectId,
+      name,
+      prdName: trimmedPrdName,
+      branchName
+    })
 
     if (result._tag === 'Error') {
       setState({ _tag: 'error', message: result.message })
@@ -61,6 +71,7 @@ export function CreateManifestDialog({
     if (!nextOpen) {
       // Reset state when closing
       setName('')
+      setPrdName('')
       setState({ _tag: 'form' })
     }
   }
@@ -95,6 +106,22 @@ export function CreateManifestDialog({
               onChange={e => setName(e.target.value)}
               disabled={state._tag === 'loading'}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="prdName">
+              Continue PRD <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="prdName"
+              placeholder="feature-name"
+              value={prdName}
+              onChange={e => setPrdName(e.target.value)}
+              disabled={state._tag === 'loading'}
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter PRD name to continue on branch prd-{prdName || '{name}'}
+            </p>
           </div>
 
           {state._tag === 'error' && (

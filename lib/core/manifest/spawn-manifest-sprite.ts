@@ -20,6 +20,8 @@ export interface SpawnManifestSpriteConfig {
   project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>
   /** User ID to fetch opencode auth for model access */
   userId: string
+  /** Branch to checkout (optional - will use default branch if not specified) */
+  branchName?: string
 }
 
 /**
@@ -197,7 +199,8 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       repoUrl: project.repositoryUrl,
       opencodeAuth,
       opencodeSetupRepoUrl: sprites.opencodeSetupRepoUrl,
-      localSetupScript: project.localSetupScript ?? undefined
+      localSetupScript: project.localSetupScript ?? undefined,
+      branchName: config.branchName
     })
 
     const manifestExecution = generateManifestExecutionScript(webhookUrl, webhookSecret)
