@@ -1,0 +1,149 @@
+{
+  "prdName": "global-polling-context",
+  "tasks": [
+    {
+      "id": "api-1",
+      "category": "api",
+      "description": "Create lightweight polling API endpoint for task and manifest status",
+      "steps": [
+        "GET /api/polling/status?ritualId={id} returns 200 with tasks array",
+        "Response includes task id, executionState, messageCount, totalTokens, updatedAt",
+        "Response includes manifest id, status, tasksTotal, tasksCompleted, updatedAt",
+        "Response includes auth.isAuthenticated and auth.sessionExpiresAt from Auth.js session",
+        "Response includes timestamp (ISO 8601)",
+        "Returns 401 when session expired",
+        "Returns 404 when ritual not found",
+        "Response time < 100ms for 10 tasks, 5 manifests"
+      ],
+      "passes": false
+    },
+    {
+      "id": "context-1",
+      "category": "context",
+      "description": "Create PollingContext provider with core state management",
+      "steps": [
+        "PollingContext exists at lib/contexts/polling-context.tsx",
+        "Context provides tasks, manifests, authStatus state",
+        "Context provides isPolling, lastUpdated, error metadata",
+        "Context exposes startPolling(ritualId), stopPolling(), refreshNow() methods",
+        "usePolling() hook returns context value",
+        "Calling startPolling() begins fetching from /api/polling/status",
+        "Calling stopPolling() clears the polling interval",
+        "refreshNow() triggers an immediate fetch and returns a promise"
+      ],
+      "passes": false
+    },
+    {
+      "id": "context-2",
+      "category": "context",
+      "description": "Implement automatic polling start/stop based on active tasks and manifests",
+      "steps": [
+        "Polling starts automatically when tasks with executionState 'in_progress' exist",
+        "Polling starts automatically when manifests with status 'pending', 'active', or 'running' exist",
+        "Polling stops automatically when no running tasks or manifests exist",
+        "Polling interval is 2s when manifests are active",
+        "Polling interval is 5s when only tasks are running (no active manifests)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "context-3",
+      "category": "context",
+      "description": "Implement exponential backoff error handling",
+      "steps": [
+        "On network error, polling interval increases to 4s",
+        "On consecutive errors, interval doubles: 4s → 8s → 16s → 30s (max)",
+        "On successful response after errors, interval resets to base (2s or 5s)",
+        "error state is populated with the Error object on failure",
+        "error state is cleared on successful response",
+        "Polling continues despite errors (does not stop)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "integration-1",
+      "category": "integration",
+      "description": "Add PollingContext provider to app layout",
+      "steps": [
+        "PollingProvider wraps children in app/layout.tsx",
+        "PollingProvider is inside existing providers (AlertProvider, FireIntensityProvider)",
+        "No console errors on app load"
+      ],
+      "passes": false
+    },
+    {
+      "id": "integration-2",
+      "category": "integration",
+      "description": "Integrate FireIntensityContext with PollingContext",
+      "steps": [
+        "FireIntensityContext reads running tasks from PollingContext",
+        "FireIntensityContext reads running manifests from PollingContext",
+        "FireIntensityContext no longer maintains its own running task/manifest state",
+        "Fire intensity animation still works correctly based on polled data"
+      ],
+      "passes": false
+    },
+    {
+      "id": "migration-1",
+      "category": "migration",
+      "description": "Migrate board-client.tsx to use PollingContext",
+      "steps": [
+        "board-client.tsx imports and uses usePolling() hook",
+        "board-client.tsx calls startPolling(ritualId) on mount",
+        "board-client.tsx calls stopPolling() on unmount",
+        "All setInterval/polling logic removed from board-client.tsx",
+        "Task and manifest data from context is used for display",
+        "Local storage persistence for running task IDs integrated with context or removed"
+      ],
+      "passes": false
+    },
+    {
+      "id": "migration-2",
+      "category": "migration",
+      "description": "Ensure webhook updates coexist with polling",
+      "steps": [
+        "Webhook-triggered revalidatePath still works",
+        "Polling does not overwrite fresher data from webhooks (timestamp comparison)",
+        "No duplicate or flickering UI updates",
+        "Data from both sources merges correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "testing-1",
+      "category": "testing",
+      "description": "Add tests for PollingContext behavior",
+      "steps": [
+        "Test: startPolling begins interval, stopPolling clears it",
+        "Test: refreshNow triggers immediate fetch",
+        "Test: exponential backoff increases interval on errors",
+        "Test: interval resets on success after errors",
+        "Test: auto-start when running tasks/manifests detected",
+        "Test: auto-stop when no running tasks/manifests",
+        "All tests pass"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Context pattern: lib/contexts/fire-intensity-context.tsx",
+      "API routes: app/api/webhooks/manifest/[manifestId]/route.ts",
+      "Effect-TS services: lib/services/",
+      "Server components with client hydration: app/(dashboard)/rituals/[id]/page.tsx"
+    ],
+    "keyFiles": [
+      "app/(dashboard)/rituals/[id]/board-client.tsx",
+      "lib/contexts/fire-intensity-context.tsx",
+      "app/layout.tsx",
+      "app/api/webhooks/manifest/[manifestId]/route.ts"
+    ],
+    "nonGoals": [
+      "WebSocket/SSE transport",
+      "Cross-tab synchronization",
+      "Offline support",
+      "Granular subscriptions",
+      "Polling for other data types beyond tasks, manifests, auth"
+    ]
+  }
+}
