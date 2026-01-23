@@ -103,7 +103,7 @@ echo "pnpm installed"
 
 # Add pnpm and opencode to PATH permanently (for current script)
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
-export PATH="$PNPM_HOME:/home/sprite/.opencode/bin:/usr/bin:$PATH"
+export PATH="/usr/local/bin:$PNPM_HOME:/home/sprite/.opencode/bin:$PATH"
 
 # Setup Docker environment
 export DOCKER_HOST="unix:///var/run/docker.sock"
@@ -115,7 +115,7 @@ ls -la "$PNPM_HOME" 2>/dev/null || true
 # Add to shell configs for future sessions (bash)
 cat >> /home/sprite/.bashrc << 'BASHRCEOF'
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
-export PATH="$PNPM_HOME:/home/sprite/.opencode/bin:/usr/bin:$PATH"
+export PATH="/usr/local/bin:$PNPM_HOME:/home/sprite/.opencode/bin:$PATH"
 export HOME=/home/sprite
 export XDG_CONFIG_HOME=/home/sprite/.config
 export XDG_DATA_HOME=/home/sprite/.local/share
@@ -133,19 +133,14 @@ FISHEOF
 # Add to /etc/profile.d for all shells
 cat > /etc/profile.d/sprite-env.sh << 'PROFILEEOF'
 export PNPM_HOME="/home/sprite/.local/share/pnpm"
-export PATH="$PNPM_HOME:/home/sprite/.opencode/bin:/usr/bin:$PATH"
+export PATH="/usr/local/bin:$PNPM_HOME:/home/sprite/.opencode/bin:$PATH"
 export HOME=/home/sprite
 export XDG_CONFIG_HOME=/home/sprite/.config
 export XDG_DATA_HOME=/home/sprite/.local/share
 export DOCKER_HOST="unix:///var/run/docker.sock"
 PROFILEEOF
 
-# Start Docker daemon if installed
-if command -v dockerd &> /dev/null; then
-    echo "Starting Docker daemon..."
-    dockerd &> /tmp/docker.log &
-    sleep 2
-fi
+# Docker daemon will be started by task-loop wrapper (install runs in background)
 
 # Setup opencode auth
 ${
@@ -191,10 +186,11 @@ fi
     : '# No branch specified, using default'
 }
 
-# Create opencode config with permissions for .sprite/* files
+# Create opencode config with permissions and default model
 cat > /home/sprite/repo/opencode.json << 'CONFIGEOF'
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-opus-4-5-20251101",
   "agent": {
     "build": {
       "permission": {
