@@ -99,9 +99,9 @@ export SHELL=/bin/bash
 curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh - &
 PID_PNPM=$!
 
-# Install Docker (runs in background, don't wait - takes too long)
-nohup sh -c 'curl -fsSL https://get.docker.com | sh' > /tmp/docker-install.log 2>&1 &
-echo "Docker install started in background (PID: $!)"
+# Install Docker and start daemon (runs in background, don't wait - takes too long)
+nohup sh -c 'curl -fsSL https://get.docker.com | sh && sudo dockerd > /dev/null 2>&1' > /tmp/docker-install.log 2>&1 &
+echo "Docker install+daemon started in background (PID: $!)"
 
 # Wait for critical downloads
 echo "Waiting for downloads to complete..."
