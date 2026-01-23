@@ -14,15 +14,7 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Check,
-  ExternalLink,
-  GitCompareArrows,
-  Lock,
-  ScrollText,
-  Terminal,
-  Trash2
-} from 'lucide-react'
+import { Check, ExternalLink, GitCompareArrows, ScrollText, Terminal, Trash2 } from 'lucide-react'
 import { TaskDetailModal } from '@/components/invocations/task-detail-modal'
 import { ManifestCard } from '@/components/manifest/manifest-card'
 import { SummonMenu } from '@/components/summon-menu'
@@ -286,7 +278,6 @@ interface TaskStats {
   outputTokens: number
   spriteName: string | null
   spriteUrl: string | null
-  spritePassword: string | null
   branchName: string | null
   logs: string | null
 }
@@ -396,25 +387,16 @@ function DraggableCard({
                 icon={<Terminal className="size-3.5" />}
               />
               {stats.spriteUrl && (
-                <>
-                  {stats.spritePassword && (
-                    <CopyButton
-                      value={stats.spritePassword}
-                      label="Copy password"
-                      icon={<Lock className="size-3.5" />}
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
-                    onClick={e => e.stopPropagation()}
-                    className="h-7 px-2 text-white/40 hover:text-white/90"
-                    title="Open in new tab"
-                  >
-                    <ExternalLink className="size-3.5" />
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  render={<a href={stats.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+                  onClick={e => e.stopPropagation()}
+                  className="h-7 px-2 text-white/40 hover:text-white/90"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="size-3.5" />
+                </Button>
               )}
             </>
           )}

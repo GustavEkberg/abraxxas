@@ -43,6 +43,8 @@ class SpritesConfig extends Context.Tag('@app/SpritesConfig')<
     readonly webhookBaseUrl: string | undefined
     readonly timeoutMs: number
     readonly opencodeSetupRepoUrl: string
+    /** Domain to whitelist for sprite network policy (iframe access) */
+    readonly whitelistDomain: string | undefined
   }
 >() {}
 
@@ -66,8 +68,20 @@ const SpritesConfigLive = Layer.effect(
         () => new SpritesConfigError({ message: 'OPENCODE_SETUP_REPO_URL not found' })
       )
     )
+    // Domain to whitelist for sprite network policy (iframe access)
+    // e.g., "abraxas.dev" - allows only this domain to connect to sprites
+    const whitelistDomain = yield* Config.string('WHITELIST_DOMAIN').pipe(
+      Effect.option,
+      Effect.map(opt => (opt._tag === 'Some' ? opt.value : undefined))
+    )
 
-    return { token, webhookBaseUrl: vercelBranchUrl, timeoutMs, opencodeSetupRepoUrl }
+    return {
+      token,
+      webhookBaseUrl: vercelBranchUrl,
+      timeoutMs,
+      opencodeSetupRepoUrl,
+      whitelistDomain
+    }
   })
 )
 
@@ -392,6 +406,35 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
         Effect.tapError(error => Effect.logError('Exec detached failed', { spriteName, error }))
       )
 
+    /**
+     * Set network policy for a sprite (DNS-based allow/deny rules).
+     * Used for iframe security - whitelist only trusted domains.
+     */
+    const setNetworkPolicy = (
+      spriteName: string,
+      rules: Array<{ domain: string; action: 'allow' | 'deny' }>
+    ) =>
+      Effect.gen(function* () {
+        yield* Effect.annotateCurrentSpan({
+          'sprites.name': spriteName,
+          'sprites.policyRules': rules.length
+        })
+
+        yield* makeRequest<{ rules: Array<{ domain: string; action: string }> }>(
+          'POST',
+          `/sprites/${spriteName}/policy/network`,
+          Redacted.value(config.token),
+          { rules }
+        )
+
+        yield* Effect.log(`Network policy set for sprite ${spriteName}`, { rules })
+      }).pipe(
+        Effect.withSpan('Sprites.setNetworkPolicy'),
+        Effect.tapError(error =>
+          Effect.logError('Set network policy failed', { spriteName, error })
+        )
+      )
+
     return {
       createSprite,
       getSprite,
@@ -400,9 +443,12 @@ export class Sprites extends Effect.Service<Sprites>()('@app/Sprites', {
       execDetached,
       listSprites,
       updateUrlSettings,
+      setNetworkPolicy,
       opencodeSetupRepoUrl: config.opencodeSetupRepoUrl,
       /** Webhook base URL (from VERCEL_BRANCH_URL). undefined locally. */
-      webhookBaseUrl: config.webhookBaseUrl
+      webhookBaseUrl: config.webhookBaseUrl,
+      /** Domain to whitelist for sprite network policy (iframe access). */
+      whitelistDomain: config.whitelistDomain
     } as const
   })
 }) {

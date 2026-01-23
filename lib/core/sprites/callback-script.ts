@@ -4,6 +4,7 @@ import { generateBaseSetupScript, type BaseSetupConfig } from './base-setup-scri
 
 /**
  * Configuration for generating invocation callback scripts.
+ * Note: Auth is handled via Sprites network policy (DNS whitelist), not password.
  */
 export interface InvocationScriptConfig {
   sessionId: string
@@ -13,8 +14,6 @@ export interface InvocationScriptConfig {
   prompt: string
   /** Model in format provider/model (e.g., anthropic/claude-sonnet-4-5-20250929) */
   model: string
-  /** Password for opencode serve authentication */
-  spritePassword: string
   /** Branch name for pushing changes */
   branchName: string
   /** Base setup configuration */
@@ -37,8 +36,6 @@ export interface CallbackScriptConfig {
   model: string
   /** Optional setup script to run before cloning (e.g., install opencode) */
   setupScript?: string
-  /** Password for opencode serve authentication */
-  spritePassword: string
 }
 
 /**
@@ -91,19 +88,9 @@ function generateInvocationExecutionScript(config: {
   webhookSecret: string
   prompt: string
   model: string
-  spritePassword: string
   branchName: string
 }): string {
-  const {
-    sessionId,
-    taskId,
-    webhookUrl,
-    webhookSecret,
-    prompt,
-    model,
-    spritePassword,
-    branchName
-  } = config
+  const { sessionId, taskId, webhookUrl, webhookSecret, prompt, model, branchName } = config
 
   // Escape special characters in the prompt for bash
   const escapedPrompt = prompt
@@ -273,7 +260,7 @@ monitor_progress() {
 
 echo ""
 echo "Starting opencode serve..."
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode-serve.log 2>&1 &
 sleep 2
 echo "opencode serve started on port 8080"
 
@@ -363,16 +350,7 @@ echo "=== Execution Complete ==="
  * Generate the complete invocation script with base setup + execution.
  */
 export function generateInvocationScript(config: InvocationScriptConfig): string {
-  const {
-    sessionId,
-    taskId,
-    webhookUrl,
-    webhookSecret,
-    prompt,
-    model,
-    spritePassword,
-    branchName
-  } = config
+  const { sessionId, taskId, webhookUrl, webhookSecret, prompt, model, branchName } = config
 
   const baseSetupScript = generateBaseSetupScript(config.baseSetup)
   const executionScript = generateInvocationExecutionScript({
@@ -382,7 +360,6 @@ export function generateInvocationScript(config: InvocationScriptConfig): string
     webhookSecret,
     prompt,
     model,
-    spritePassword,
     branchName
   })
 
@@ -421,8 +398,7 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
     repoUrl,
     githubToken,
     branchName,
-    model,
-    spritePassword
+    model
   } = config
 
   // Convert old config format to new format
@@ -433,7 +409,6 @@ export function generateCallbackScript(config: CallbackScriptConfig): string {
     webhookSecret,
     prompt,
     model,
-    spritePassword,
     branchName,
     baseSetup: {
       githubToken,

@@ -80,26 +80,25 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
       const decryptedToken = yield* decryptToken(project.encryptedGithubToken)
 
       // Spawn sprite
-      const { spriteName, spriteUrl, spritePassword, webhookSecret, branchName } =
-        yield* spawnSpriteForTask({
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            branchName: task.branchName,
-            model: task.model
-          },
-          project: {
-            id: project.id,
-            name: project.name,
-            repositoryUrl: project.repositoryUrl,
-            encryptedGithubToken: project.encryptedGithubToken
-          },
-          prompt,
-          decryptedGithubToken: decryptedToken,
-          userId: user.id,
-          opencodeModel: getOpencodeModel(task.model)
-        })
+      const { spriteName, spriteUrl, webhookSecret, branchName } = yield* spawnSpriteForTask({
+        task: {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          branchName: task.branchName,
+          model: task.model
+        },
+        project: {
+          id: project.id,
+          name: project.name,
+          repositoryUrl: project.repositoryUrl,
+          encryptedGithubToken: project.encryptedGithubToken
+        },
+        prompt,
+        decryptedGithubToken: decryptedToken,
+        userId: user.id,
+        opencodeModel: getOpencodeModel(task.model)
+      })
 
       yield* Effect.log(`Spawned sprite ${spriteName} for task ${task.id}`)
 
@@ -113,7 +112,6 @@ export const executeTaskAction = async (input: ExecuteTaskInput) => {
         executionMode: 'sprite',
         spriteName,
         spriteUrl,
-        spritePassword,
         webhookSecret,
         branchName
       })

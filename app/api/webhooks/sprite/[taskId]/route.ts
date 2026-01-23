@@ -261,8 +261,7 @@ const handleCompleted = (
       yield* updateSession({
         sessionId,
         spriteName: null,
-        spriteUrl: null,
-        spritePassword: null
+        spriteUrl: null
       })
       yield* Effect.logInfo('Sprite destroyed on completion', { spriteName })
     }
@@ -320,8 +319,7 @@ const handleError = (
       yield* updateSession({
         sessionId,
         spriteName: null,
-        spriteUrl: null,
-        spritePassword: null
+        spriteUrl: null
       })
       yield* Effect.logInfo('Sprite destroyed on error', { spriteName })
     }

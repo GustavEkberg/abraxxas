@@ -16,7 +16,6 @@ type UpdateSessionInput = {
   completedAt?: Date | null
   spriteName?: string | null
   spriteUrl?: string | null
-  spritePassword?: string | null
 }
 
 export const updateSession = (input: UpdateSessionInput) =>
@@ -73,10 +72,6 @@ export const updateSession = (input: UpdateSessionInput) =>
 
     if (input.spriteUrl !== undefined) {
       updateData.spriteUrl = input.spriteUrl
-    }
-
-    if (input.spritePassword !== undefined) {
-      updateData.spritePassword = input.spritePassword
     }
 
     const [session] = yield* db

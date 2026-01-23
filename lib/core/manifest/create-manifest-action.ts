@@ -1,36 +1,35 @@
-'use server';
+'use server'
 
-import { Effect, Match } from 'effect';
-import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
-import { AppLayer } from '@/lib/layers';
-import { NextEffect } from '@/lib/next-effect';
-import { Db } from '@/lib/services/db/live-layer';
-import * as schema from '@/lib/services/db/schema';
-import { getProject } from '@/lib/core/project/get-project';
-import { generateWebhookSecret } from '@/lib/core/sprites/callback-script';
-import { spawnManifestSprite } from './spawn-manifest-sprite';
+import { Effect, Match } from 'effect'
+import { eq } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
+import { AppLayer } from '@/lib/layers'
+import { NextEffect } from '@/lib/next-effect'
+import { Db } from '@/lib/services/db/live-layer'
+import * as schema from '@/lib/services/db/schema'
+import { getProject } from '@/lib/core/project/get-project'
+import { generateWebhookSecret } from '@/lib/core/sprites/callback-script'
+import { spawnManifestSprite } from './spawn-manifest-sprite'
 
 type CreateManifestInput = {
-  projectId: string;
-  name: string;
-};
+  projectId: string
+  name: string
+}
 
 type CreateManifestSuccess = {
-  _tag: 'Success';
+  _tag: 'Success'
   data: {
-    manifest: schema.Manifest;
-    spriteUrl: string;
-    spritePassword: string;
-  };
-};
+    manifest: schema.Manifest
+    spriteUrl: string
+  }
+}
 
 type CreateManifestError = {
-  _tag: 'Error';
-  message: string;
-};
+  _tag: 'Error'
+  message: string
+}
 
-type CreateManifestResult = CreateManifestSuccess | CreateManifestError;
+type CreateManifestResult = CreateManifestSuccess | CreateManifestError
 
 export const createManifestAction = async (
   input: CreateManifestInput
@@ -38,16 +37,16 @@ export const createManifestAction = async (
   return await NextEffect.runPromise(
     Effect.gen(function* () {
       // Verify user owns the project
-      const project = yield* getProject(input.projectId);
-      const db = yield* Db;
+      const project = yield* getProject(input.projectId)
+      const db = yield* Db
 
       yield* Effect.annotateCurrentSpan({
         'project.id': project.id,
         'manifest.name': input.name
-      });
+      })
 
       // Generate webhook secret upfront so it's in DB before sprite sends webhook
-      const webhookSecret = generateWebhookSecret();
+      const webhookSecret = generateWebhookSecret()
 
       // Create manifest record with status='pending' and webhook secret
       const [manifest] = yield* db
@@ -58,9 +57,9 @@ export const createManifestAction = async (
           status: 'pending',
           webhookSecret
         })
-        .returning();
+        .returning()
 
-      yield* Effect.log(`Created manifest ${manifest.id} with status=pending`);
+      yield* Effect.log(`Created manifest ${manifest.id} with status=pending`)
 
       // Spawn the sprite
       const spriteResult = yield* spawnManifestSprite({
@@ -80,11 +79,11 @@ export const createManifestAction = async (
             .pipe(
               Effect.catchAll(() => Effect.void),
               Effect.flatMap(() => Effect.fail(error))
-            );
+            )
         })
-      );
+      )
 
-      yield* Effect.log(`Sprite spawned: ${spriteResult.spriteName}`);
+      yield* Effect.log(`Sprite spawned: ${spriteResult.spriteName}`)
 
       // Sprite details already saved in spawnManifestSprite
       // Fetch updated manifest for return value
@@ -92,13 +91,12 @@ export const createManifestAction = async (
         .select()
         .from(schema.manifests)
         .where(eq(schema.manifests.id, manifest.id))
-        .limit(1);
+        .limit(1)
 
       return {
         manifest: updatedManifest,
-        spriteUrl: spriteResult.spriteUrl,
-        spritePassword: spriteResult.spritePassword
-      };
+        spriteUrl: spriteResult.spriteUrl
+      }
     }).pipe(
       Effect.withSpan('action.manifest.create'),
       Effect.provide(AppLayer),
@@ -128,13 +126,13 @@ export const createManifestAction = async (
           ),
         onSuccess: result =>
           Effect.sync(() => {
-            revalidatePath(`/rituals/${result.manifest.projectId}`);
+            revalidatePath(`/rituals/${result.manifest.projectId}`)
             return {
               _tag: 'Success' as const,
               data: result
-            };
+            }
           })
       })
     )
-  );
+  )
 }

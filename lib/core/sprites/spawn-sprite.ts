@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto'
 import { Effect } from 'effect'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import { generateInvocationScript, generateWebhookSecret } from './callback-script'
@@ -23,24 +22,13 @@ export interface SpawnSpriteConfig {
 
 /**
  * Result of spawning a sprite.
+ * Note: Auth is handled via Sprites network policy (DNS whitelist), not password.
  */
 export interface SpawnSpriteResult {
   spriteName: string
   spriteUrl: string
-  spritePassword: string
   webhookSecret: string
   branchName: string
-}
-
-/**
- * Generate a random 32-character alphanumeric password for sprite access.
- */
-export function generateSpritePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  const bytes = randomBytes(32)
-  return Array.from(bytes)
-    .map(b => chars[b % chars.length])
-    .join('')
 }
 
 /**
@@ -90,7 +78,6 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     }
 
     const spriteName = generateSpriteName(task.id)
-    const spritePassword = generateSpritePassword()
     const webhookSecret = generateWebhookSecret()
     // Reuse existing branch if task already has one, otherwise generate new
     const branchName = task.branchName || generateBranchName(task.id, task.title)
@@ -126,6 +113,27 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     // Get opencode auth for the setup script to embed
     const opencodeAuth = yield* getOpencodeAuth(userId)
 
+    // Set network policy to whitelist only the configured domain (for iframe security)
+    if (sprites.whitelistDomain) {
+      yield* sprites
+        .setNetworkPolicy(spriteName, [
+          { domain: `*.${sprites.whitelistDomain}`, action: 'allow' },
+          { domain: sprites.whitelistDomain, action: 'allow' },
+          { domain: '*', action: 'deny' }
+        ])
+        .pipe(
+          Effect.mapError(
+            error =>
+              new SpriteExecutionError({
+                message: `Failed to set network policy: ${error.message}`,
+                spriteName,
+                cause: error
+              })
+          )
+        )
+      yield* Effect.log(`Network policy set for ${spriteName}: allow ${sprites.whitelistDomain}`)
+    }
+
     // Generate the execution script with base setup + invocation execution
     const script = generateInvocationScript({
       sessionId: task.id,
@@ -134,7 +142,6 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
       webhookSecret,
       prompt,
       model: opencodeModel,
-      spritePassword,
       branchName,
       baseSetup: {
         githubToken: decryptedGithubToken,
@@ -199,7 +206,6 @@ export const spawnSpriteForTask = (config: SpawnSpriteConfig) =>
     return {
       spriteName,
       spriteUrl,
-      spritePassword,
       webhookSecret,
       branchName
     } satisfies SpawnSpriteResult

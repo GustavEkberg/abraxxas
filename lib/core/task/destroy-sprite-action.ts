@@ -106,8 +106,7 @@ export const destroySpriteAction = async (sessionId: string): Promise<DestroySpr
         .update(schema.opencodeSessions)
         .set({
           spriteName: null,
-          spriteUrl: null,
-          spritePassword: null
+          spriteUrl: null
         })
         .where(eq(schema.opencodeSessions.id, sessionId))
 

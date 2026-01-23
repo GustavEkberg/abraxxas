@@ -36,7 +36,6 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
           outputTokens: number
           spriteName: string | null
           spriteUrl: string | null
-          spritePassword: string | null
           branchName: string | null
           logs: string | null
         }
@@ -53,7 +52,6 @@ async function RitualBoardContent({ ritualId }: RitualBoardContentProps) {
             outputTokens,
             spriteName: session.spriteName,
             spriteUrl: session.spriteUrl,
-            spritePassword: session.spritePassword,
             branchName: session.branchName,
             logs: session.logs
           })

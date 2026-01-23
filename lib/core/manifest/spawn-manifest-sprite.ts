@@ -1,5 +1,4 @@
 import { Effect } from 'effect'
-import { randomBytes } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import { Db } from '@/lib/services/db/live-layer'
@@ -27,7 +26,6 @@ export interface SpawnManifestSpriteConfig {
 export interface SpawnManifestSpriteResult {
   spriteName: string
   spriteUrl: string
-  spritePassword: string
 }
 
 /**
@@ -41,21 +39,11 @@ export function generateManifestSpriteName(projectId: string): string {
 }
 
 /**
- * Generate a random 32-character alphanumeric password.
- */
-export function generateSpritePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  const bytes = randomBytes(32)
-  return Array.from(bytes)
-    .map(b => chars[b % chars.length])
-    .join('')
-}
-
-/**
  * Generate manifest-specific script (opencode serve startup).
  * Appended after base setup.
+ * Note: Auth is handled via Sprites network policy (DNS whitelist), not password.
  */
-function generateManifestExecutionScript(spritePassword: string): string {
+function generateManifestExecutionScript(): string {
   return `
 # ===========================================
 # Manifest Execution - Start opencode serve
@@ -73,7 +61,7 @@ if [ ! -f /home/sprite/.opencode/bin/opencode ]; then
 fi
 
 echo "opencode binary found, starting serve..."
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share OPENCODE_SERVER_PASSWORD="${spritePassword}" nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
+HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 > /tmp/opencode.log 2>&1 &
 SERVE_PID=$!
 sleep 2
 
@@ -105,7 +93,6 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     const { manifestId, project, userId } = config
 
     const spriteName = generateManifestSpriteName(project.id)
-    const spritePassword = generateSpritePassword()
 
     // Decrypt GitHub token for repo cloning
     const githubToken = yield* decryptToken(project.encryptedGithubToken)
@@ -134,14 +121,34 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
 
     yield* Effect.log(`Sprite created: ${spriteUrl}`)
 
+    // Set network policy to whitelist only the configured domain (for iframe security)
+    if (sprites.whitelistDomain) {
+      yield* sprites
+        .setNetworkPolicy(spriteName, [
+          { domain: `*.${sprites.whitelistDomain}`, action: 'allow' },
+          { domain: sprites.whitelistDomain, action: 'allow' },
+          { domain: '*', action: 'deny' }
+        ])
+        .pipe(
+          Effect.mapError(
+            error =>
+              new SpriteExecutionError({
+                message: `Failed to set network policy: ${error.message}`,
+                spriteName,
+                cause: error
+              })
+          )
+        )
+      yield* Effect.log(`Network policy set for ${spriteName}: allow ${sprites.whitelistDomain}`)
+    }
+
     // Save sprite details to DB immediately so we don't lose them on timeout
     yield* db
       .update(schema.manifests)
       .set({
         status: 'active',
         spriteName,
-        spriteUrl,
-        spritePassword
+        spriteUrl
       })
       .where(eq(schema.manifests.id, manifestId))
 
@@ -159,7 +166,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       localSetupScript: project.localSetupScript ?? undefined
     })
 
-    const manifestExecution = generateManifestExecutionScript(spritePassword)
+    const manifestExecution = generateManifestExecutionScript()
 
     const setupScript = `#!/bin/bash
 set -euo pipefail
@@ -209,7 +216,6 @@ ${manifestExecution}
 
     return {
       spriteName,
-      spriteUrl,
-      spritePassword
+      spriteUrl
     } satisfies SpawnManifestSpriteResult
   }).pipe(Effect.withSpan('Manifest.spawnManifestSprite'))

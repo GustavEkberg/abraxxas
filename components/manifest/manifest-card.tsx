@@ -5,7 +5,6 @@ import {
   Check,
   ExternalLink,
   GitCompareArrows,
-  Lock,
   Pencil,
   Play,
   ScrollText,
@@ -517,24 +516,15 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
             />
           )}
           {hasSprite && manifest.spriteUrl && (
-            <>
-              {manifest.spritePassword && (
-                <CopyButton
-                  value={manifest.spritePassword}
-                  label="Copy password"
-                  icon={<Lock className="size-3.5" />}
-                />
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<a href={manifest.spriteUrl} target="_blank" rel="noopener noreferrer" />}
-                className="h-7 px-2 text-white/40 hover:text-white/90"
-                title="Open in new tab"
-              >
-                <ExternalLink className="size-3.5" />
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              size="sm"
+              render={<a href={manifest.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+              className="h-7 px-2 text-white/40 hover:text-white/90"
+              title="Open in new tab"
+            >
+              <ExternalLink className="size-3.5" />
+            </Button>
           )}
           {hasSprite && manifest.spriteName && <TailLogButton spriteName={manifest.spriteName} />}
 
