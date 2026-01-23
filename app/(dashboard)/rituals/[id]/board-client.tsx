@@ -376,7 +376,9 @@ function DraggableCard({
         {isError && <span className="flex-shrink-0 text-xs text-red-400">Error</span>}
         {isCompleted && <span className="flex-shrink-0 text-xs text-green-400">✓</span>}
       </div>
-      <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
+      {task.description && (
+        <p className="line-clamp-2 text-xs text-white/60 md:text-sm">{task.description}</p>
+      )}
 
       {/* Action buttons */}
       {(stats?.spriteName ||
@@ -458,15 +460,13 @@ function DraggableCard({
         </div>
       )}
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/40 md:mt-2 md:gap-2">
-        <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">{task.type}</span>
-        <span className="rounded bg-white/5 px-1.5 py-0.5">{task.model}</span>
-        {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
+      {stats && (stats.messageCount > 0 || stats.inputTokens + stats.outputTokens > 0) && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/40 md:gap-2">
           <span className="rounded bg-white/5 px-1.5 py-0.5 text-white/40">
             {stats.messageCount}m · {Math.round((stats.inputTokens + stats.outputTokens) / 1000)}k
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </Card>
   )
 }
