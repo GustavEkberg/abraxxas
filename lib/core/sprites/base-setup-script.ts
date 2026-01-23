@@ -74,7 +74,7 @@ mkdir -p /home/sprite/repo
 echo "Installing opencode and cloning repo..."
 curl -fsSL https://opencode.ai/install | bash &
 PID_OPENCODE=$!
-git clone --depth 1 "${authRepoUrl}" /home/sprite/repo &
+git clone ${branchName ? `--branch "${branchName}"` : ''} "${authRepoUrl}" /home/sprite/repo || git clone "${authRepoUrl}" /home/sprite/repo &
 PID_REPO=$!
 wait $PID_OPENCODE || { echo "Opencode install failed"; exit 1; }
 echo "Opencode installed"
@@ -180,17 +180,13 @@ git config user.name "${gitUserName}"
 ${
   branchName
     ? `
-# Checkout branch (fetch + checkout if exists, create if not)
-echo "Checking out branch: ${branchName}"
-git fetch origin "${branchName}" 2>/dev/null || true
-if git show-ref --verify --quiet "refs/remotes/origin/${branchName}"; then
-    echo "Branch exists on remote, checking out..."
-    git checkout "${branchName}" || { echo "ERROR: Failed to checkout branch"; exit 1; }
-    git pull origin "${branchName}" 2>&1 || true
-else
+# Create branch if clone fell back to default (branch didn't exist on remote)
+currentBranch=$(git branch --show-current)
+if [ "$currentBranch" != "${branchName}" ]; then
     echo "Creating new branch: ${branchName}"
-    git checkout -b "${branchName}" || { echo "ERROR: Failed to create branch"; exit 1; }
+    git checkout -b ${branchName} || { echo "ERROR: Failed to create branch"; exit 1; }
 fi
+echo "On branch: $(git branch --show-current)"
 `
     : '# No branch specified, using default'
 }

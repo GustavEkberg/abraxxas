@@ -35,32 +35,38 @@ source /etc/profile.d/sprite-env.sh
 DOCKERD_PID=""
 DOCKER_READY=false
 
-# Wait for Docker to be installed (up to 60s)
-echo "Waiting for Docker installation..."
-for i in {1..60}; do
-  if command -v dockerd &> /dev/null; then
-    echo "Docker installed after \${i}s"
-    break
-  fi
-  sleep 1
-done
-
-if command -v dockerd &> /dev/null; then
-  echo "Starting Docker daemon..."
-  sudo dockerd > /dev/null 2>&1 &
-  DOCKERD_PID=$!
-
-  echo "Waiting for Docker to be ready..."
-  for i in {1..30}; do
-    if sudo docker info > /dev/null 2>&1; then
-      echo "Docker is ready"
-      DOCKER_READY=true
+# Check if Docker is already running
+if sudo docker info > /dev/null 2>&1; then
+  echo "Docker already running"
+  DOCKER_READY=true
+else
+  # Wait for Docker to be installed (up to 60s)
+  echo "Waiting for Docker installation..."
+  for i in {1..60}; do
+    if command -v dockerd &> /dev/null; then
+      echo "Docker installed after \${i}s"
       break
     fi
     sleep 1
   done
-else
-  echo "Docker not installed, skipping"
+
+  if command -v dockerd &> /dev/null; then
+    echo "Starting Docker daemon..."
+    sudo dockerd > /dev/null 2>&1 &
+    DOCKERD_PID=$!
+
+    echo "Waiting for Docker to be ready..."
+    for i in {1..30}; do
+      if sudo docker info > /dev/null 2>&1; then
+        echo "Docker is ready"
+        DOCKER_READY=true
+        break
+      fi
+      sleep 1
+    done
+  else
+    echo "Docker not installed, skipping"
+  fi
 fi
 
 ${
@@ -70,10 +76,16 @@ ${
 if [ "$DOCKER_READY" = true ]; then
   cd /home/sprite/repo
   if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
-    echo "Starting docker compose services..."
-    sudo docker compose up -d
-    sleep 5
-    echo "Docker services started"
+    # Check if services are already running
+    RUNNING_CONTAINERS=$(sudo docker compose ps -q 2>/dev/null | wc -l)
+    if [ "$RUNNING_CONTAINERS" -gt 0 ]; then
+      echo "Docker compose services already running ($RUNNING_CONTAINERS containers)"
+    else
+      echo "Starting docker compose services..."
+      sudo docker compose up -d
+      sleep 5
+      echo "Docker services started"
+    fi
   fi
 else
   echo "WARNING: Docker not ready, skipping docker compose"

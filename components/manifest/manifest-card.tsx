@@ -526,7 +526,7 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
             <BranchCompareButton
               branchName={getManifestBranchName(manifest.prdName)}
               compareUrl={buildCompareUrl(repositoryUrl, getManifestBranchName(manifest.prdName))}
-              className="h-7 px-2"
+              className="h-7 px-2 text-white/40"
             />
           )}
 
