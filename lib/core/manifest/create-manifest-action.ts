@@ -64,6 +64,7 @@ export const createManifestAction = async (
       // Spawn the sprite
       const spriteResult = yield* spawnManifestSprite({
         manifestId: manifest.id,
+        webhookSecret,
         project,
         userId: project.userId
       }).pipe(

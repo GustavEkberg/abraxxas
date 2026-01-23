@@ -9,6 +9,9 @@ export type ManifestPrdDataMap = Record<string, ManifestPrdData>
 /**
  * Fetch PRD data from GitHub for all manifests that have branchName and prdName set.
  * Returns a map of manifestId -> ManifestPrdData
+ *
+ * Also detects completion: if a manifest is 'running' and all tasks pass,
+ * updates status to 'completed'.
  */
 export const getManifestPrdData = (projectId: string) =>
   Effect.gen(function* () {
@@ -28,12 +31,13 @@ export const getManifestPrdData = (projectId: string) =>
       return {}
     }
 
-    // Get all manifests with branchName and prdName
+    // Get all manifests with branchName and prdName (include status for completion detection)
     const manifests = yield* db
       .select({
         id: schema.manifests.id,
         branchName: schema.manifests.branchName,
-        prdName: schema.manifests.prdName
+        prdName: schema.manifests.prdName,
+        status: schema.manifests.status
       })
       .from(schema.manifests)
       .where(eq(schema.manifests.projectId, projectId))
@@ -57,19 +61,53 @@ export const getManifestPrdData = (projectId: string) =>
           manifest.branchName,
           manifest.prdName
         ).pipe(
-          Effect.map(data => ({ id: manifest.id, data })),
+          Effect.map(data => ({ id: manifest.id, status: manifest.status, data })),
           Effect.catchAll(() =>
-            Effect.succeed({ id: manifest.id, data: { prdJson: null, progress: null } })
+            Effect.succeed({
+              id: manifest.id,
+              status: manifest.status,
+              data: { prdJson: null, progress: null }
+            })
           )
         )
       ),
       { concurrency: 5 }
     )
 
-    // Build map
+    // Build map and detect completion
     const prdDataMap: ManifestPrdDataMap = {}
-    for (const { id, data } of results) {
+    const completedManifestIds: string[] = []
+
+    for (const { id, status, data } of results) {
       prdDataMap[id] = data
+
+      // Check for completion: running + all tasks pass
+      if (status === 'running' && data.prdJson) {
+        const allTasksPass = data.prdJson.tasks.every(t => t.passes)
+        if (allTasksPass) {
+          completedManifestIds.push(id)
+        }
+      }
+    }
+
+    // Update completed manifests
+    if (completedManifestIds.length > 0) {
+      yield* Effect.forEach(
+        completedManifestIds,
+        manifestId =>
+          db
+            .update(schema.manifests)
+            .set({
+              status: 'completed',
+              updatedAt: new Date(),
+              completedAt: new Date()
+            })
+            .where(eq(schema.manifests.id, manifestId)),
+        { concurrency: 'unbounded' }
+      )
+      yield* Effect.logInfo('Manifests completed via PRD check', {
+        manifestIds: completedManifestIds
+      })
     }
 
     return prdDataMap

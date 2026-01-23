@@ -15,6 +15,8 @@ import * as schema from '@/lib/services/db/schema'
 export interface SpawnManifestSpriteConfig {
   /** Manifest ID for logging/tracing */
   manifestId: string
+  /** Webhook secret for HMAC signing */
+  webhookSecret: string
   project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>
   /** User ID to fetch opencode auth for model access */
   userId: string
@@ -39,41 +41,70 @@ export function generateManifestSpriteName(projectId: string): string {
 }
 
 /**
- * Generate manifest-specific script (opencode serve startup).
- * Appended after base setup.
- * Note: Auth is handled via Sprites network policy (DNS whitelist), not password.
+ * Generate manifest-specific script.
+ * Installs send-prd-webhook command and persists webhook env vars.
+ * Note: opencode serve is already started by base setup.
  */
-function generateManifestExecutionScript(): string {
+function generateManifestExecutionScript(webhookUrl: string, webhookSecret: string): string {
   return `
 # ===========================================
-# Manifest Execution - Start opencode serve
+# Manifest Execution - Install webhook command
 # ===========================================
 
-# Start opencode serve (must succeed)
-echo "Starting opencode serve..."
-cd /home/sprite/repo
+# Install send-prd-webhook command
+cat > /usr/local/bin/send-prd-webhook << 'WEBHOOKEOF'
+#!/bin/bash
+set -euo pipefail
 
-# Verify opencode binary exists
-if [ ! -f /home/sprite/.opencode/bin/opencode ]; then
-    echo "ERROR: opencode binary not found at /home/sprite/.opencode/bin/opencode"
-    ls -la /home/sprite/.opencode/bin/ 2>/dev/null || true
+if [ -z "\${MANIFEST_WEBHOOK_URL:-}" ] || [ -z "\${MANIFEST_WEBHOOK_SECRET:-}" ]; then
+    echo "ERROR: MANIFEST_WEBHOOK_URL and MANIFEST_WEBHOOK_SECRET must be set"
     exit 1
 fi
 
-echo "opencode binary found, starting serve..."
-HOME=/home/sprite XDG_CONFIG_HOME=/home/sprite/.config XDG_DATA_HOME=/home/sprite/.local/share nohup /home/sprite/.opencode/bin/opencode serve --hostname 0.0.0.0 --port 8080 /home/sprite/repo > /tmp/opencode.log 2>&1 &
-SERVE_PID=$!
-sleep 2
+BRANCH_NAME=\$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 
-# Verify it started (use || true to prevent set -e from triggering on dead process)
-if kill -0 $SERVE_PID 2>/dev/null; then
-    echo "opencode serve started successfully (PID: $SERVE_PID)"
+if [ -z "\$BRANCH_NAME" ] || [ "\$BRANCH_NAME" = "HEAD" ]; then
+    echo "ERROR: Could not determine branch name"
+    exit 1
+fi
+
+echo "Sending webhook for branch: \$BRANCH_NAME"
+
+PAYLOAD=\$(jq -n --arg type "branch_ready" --arg branchName "\$BRANCH_NAME" '{type: \$type, branchName: \$branchName}')
+SIGNATURE=\$(echo -n "\$PAYLOAD" | openssl dgst -sha256 -hmac "\$MANIFEST_WEBHOOK_SECRET" | awk '{print \$2}')
+
+RESPONSE=\$(curl -s -w "\\n%{http_code}" -X POST "\$MANIFEST_WEBHOOK_URL" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Webhook-Signature: sha256=\$SIGNATURE" \\
+  -d "\$PAYLOAD")
+
+HTTP_CODE=\$(echo "\$RESPONSE" | tail -n1)
+BODY=\$(echo "\$RESPONSE" | sed '\$d')
+
+if [ "\$HTTP_CODE" = "200" ]; then
+    echo "Webhook sent successfully!"
+    echo "  Type: branch_ready"
+    echo "  Branch: \$BRANCH_NAME"
 else
-    echo "ERROR: opencode serve failed to start"
-    cat /tmp/opencode.log 2>/dev/null || true
+    echo "ERROR: Webhook failed with status \$HTTP_CODE"
+    echo "Response: \$BODY"
     exit 1
 fi
+WEBHOOKEOF
+chmod +x /usr/local/bin/send-prd-webhook
 
+# Persist webhook env vars for all shells
+cat >> /home/sprite/.bashrc << 'BASHRCEOF'
+export MANIFEST_WEBHOOK_URL="${webhookUrl}"
+export MANIFEST_WEBHOOK_SECRET="${webhookSecret}"
+BASHRCEOF
+
+cat >> /etc/profile.d/sprite-env.sh << 'PROFILEEOF'
+export MANIFEST_WEBHOOK_URL="${webhookUrl}"
+export MANIFEST_WEBHOOK_SECRET="${webhookSecret}"
+PROFILEEOF
+
+echo "send-prd-webhook command installed"
 echo "=== Manifest Setup Complete ==="
 `
 }
@@ -90,7 +121,10 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     const sprites = yield* Sprites
     const db = yield* Db
 
-    const { manifestId, project, userId } = config
+    const { manifestId, webhookSecret, project, userId } = config
+
+    // Build webhook URL for this manifest
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/manifest/${manifestId}`
 
     const spriteName = generateManifestSpriteName(project.id)
 
@@ -166,7 +200,7 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       localSetupScript: project.localSetupScript ?? undefined
     })
 
-    const manifestExecution = generateManifestExecutionScript()
+    const manifestExecution = generateManifestExecutionScript(webhookUrl, webhookSecret)
 
     const setupScript = `#!/bin/bash
 set -euo pipefail
@@ -175,6 +209,10 @@ set -euo pipefail
 exec > >(tee /tmp/abraxas.log) 2>&1
 
 echo "=== Manifest Sprite Setup ==="
+
+# Webhook environment variables for /prd-task-hook skill
+export MANIFEST_WEBHOOK_URL="${webhookUrl}"
+export MANIFEST_WEBHOOK_SECRET="${webhookSecret}"
 
 # Keep sprite alive during setup
 nohup ping google.com -c 60 > /dev/null 2>&1 &

@@ -18,19 +18,9 @@ const StartedPayloadSchema = Schema.Struct({
   message: Schema.optional(Schema.String)
 })
 
-const TaskLoopStartedPayloadSchema = Schema.Struct({
-  type: Schema.Literal('task_loop_started')
-})
-
-const ProgressPayloadSchema = Schema.Struct({
-  type: Schema.Literal('progress'),
-  iteration: Schema.Number,
-  maxIterations: Schema.Number
-})
-
-const CompletedPayloadSchema = Schema.Struct({
-  type: Schema.Literal('completed'),
-  branchName: Schema.optional(Schema.String)
+const BranchReadyPayloadSchema = Schema.Struct({
+  type: Schema.Literal('branch_ready'),
+  branchName: Schema.String
 })
 
 const ErrorPayloadSchema = Schema.Struct({
@@ -40,9 +30,7 @@ const ErrorPayloadSchema = Schema.Struct({
 
 const WebhookPayloadSchema = Schema.Union(
   StartedPayloadSchema,
-  TaskLoopStartedPayloadSchema,
-  ProgressPayloadSchema,
-  CompletedPayloadSchema,
+  BranchReadyPayloadSchema,
   ErrorPayloadSchema
 )
 
@@ -117,12 +105,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // Handle different payload types based on discriminator
       if (payload.type === 'started') {
         yield* handleStarted(manifestId, manifest.projectId)
-      } else if (payload.type === 'task_loop_started') {
-        yield* handleTaskLoopStarted(manifestId, manifest.projectId)
-      } else if (payload.type === 'progress') {
-        yield* handleProgress(manifestId, manifest.projectId, payload)
-      } else if (payload.type === 'completed') {
-        yield* handleCompleted(manifestId, manifest.projectId, payload)
+      } else if (payload.type === 'branch_ready') {
+        yield* handleBranchReady(manifestId, manifest.projectId, payload)
       } else if (payload.type === 'error') {
         yield* handleError(manifestId, manifest.projectId, payload)
       }
@@ -163,8 +147,13 @@ const handleStarted = (manifestId: string, projectId: string) =>
     yield* Effect.logInfo('Started event handled', { manifestId })
   })
 
-// Handler for 'task_loop_started' event - updates status to running
-const handleTaskLoopStarted = (manifestId: string, projectId: string) =>
+// Handler for 'branch_ready' event - updates status to running and stores branchName
+// Sent by /prd-task-hook after creating and pushing the PRD branch
+const handleBranchReady = (
+  manifestId: string,
+  projectId: string,
+  payload: Schema.Schema.Type<typeof BranchReadyPayloadSchema>
+) =>
   Effect.gen(function* () {
     const db = yield* Db
 
@@ -172,52 +161,16 @@ const handleTaskLoopStarted = (manifestId: string, projectId: string) =>
       .update(schema.manifests)
       .set({
         status: 'running',
+        branchName: payload.branchName,
         updatedAt: new Date()
       })
       .where(eq(schema.manifests.id, manifestId))
 
     revalidatePath(`/rituals/${projectId}`)
-    yield* Effect.logInfo('Task loop started event handled', { manifestId })
-  })
-
-// Handler for 'progress' event - just triggers revalidation, data fetched from GitHub
-const handleProgress = (
-  manifestId: string,
-  projectId: string,
-  payload: Schema.Schema.Type<typeof ProgressPayloadSchema>
-) =>
-  Effect.gen(function* () {
-    revalidatePath(`/rituals/${projectId}`)
-    yield* Effect.logInfo('Progress event handled', {
+    yield* Effect.logInfo('Branch ready event handled', {
       manifestId,
-      iteration: payload.iteration,
-      maxIterations: payload.maxIterations
+      branchName: payload.branchName
     })
-  })
-
-// Handler for 'completed' event - updates status to completed and stores branchName
-// Note: Sprite is NOT destroyed here - user must explicitly delete the manifest
-// Note: PRD data now fetched from GitHub using branchName + prdName
-const handleCompleted = (
-  manifestId: string,
-  projectId: string,
-  payload: Schema.Schema.Type<typeof CompletedPayloadSchema>
-) =>
-  Effect.gen(function* () {
-    const db = yield* Db
-
-    yield* db
-      .update(schema.manifests)
-      .set({
-        status: 'completed',
-        branchName: payload.branchName ?? null,
-        updatedAt: new Date(),
-        completedAt: new Date()
-      })
-      .where(eq(schema.manifests.id, manifestId))
-
-    revalidatePath(`/rituals/${projectId}`)
-    yield* Effect.logInfo('Completed event handled', { manifestId, branchName: payload.branchName })
   })
 
 // Handler for 'error' event - updates status to error with errorMessage

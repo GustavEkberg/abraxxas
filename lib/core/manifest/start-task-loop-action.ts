@@ -14,8 +14,8 @@ import { getProject } from '@/lib/core/project/get-project'
 type StartTaskLoopResult = { _tag: 'Success' } | { _tag: 'Error'; message: string }
 
 /**
- * Generate a bash script that wraps task-loop and monitors its output for iteration markers.
- * When a new iteration is detected, it reads prd.json and sends a progress webhook.
+ * Generate a bash script that runs task-loop.
+ * Progress/completion is detected by polling GitHub, not webhooks.
  */
 function generateTaskLoopWrapperScript(config: {
   prdName: string
@@ -85,8 +85,6 @@ fi
 PRD_NAME="${prdName}"
 WEBHOOK_URL="${webhookUrl}"
 WEBHOOK_SECRET="${webhookSecret}"
-LOG_FILE="/tmp/task-loop.log"
-PRD_JSON_PATH="/home/sprite/repo/.opencode/state/\${PRD_NAME}/prd.json"
 
 # Function to send webhook with HMAC signature
 send_webhook() {
@@ -100,99 +98,6 @@ send_webhook() {
         -d "$payload" > /dev/null 2>&1 || true
 }
 
-# Function to send progress webhook with current prd.json
-send_progress() {
-    local iteration="$1"
-    local max_iterations="$2"
-    
-    if [ -f "$PRD_JSON_PATH" ]; then
-        # Read and escape prd.json content for JSON embedding
-        local prd_content
-        prd_content=$(cat "$PRD_JSON_PATH" | jq -c '.')
-        
-        # Build payload with proper JSON escaping
-        local payload
-        payload=$(jq -n \\
-            --arg type "progress" \\
-            --argjson prdJson "$prd_content" \\
-            --argjson iteration "$iteration" \\
-            --argjson maxIterations "$max_iterations" \\
-            '{type: $type, prdJson: ($prdJson | tostring), iteration: $iteration, maxIterations: $maxIterations}')
-        
-        send_webhook "$payload"
-    fi
-}
-
-# Function to send task_loop_started webhook
-send_task_loop_started() {
-    if [ -f "$PRD_JSON_PATH" ]; then
-        local prd_content
-        prd_content=$(cat "$PRD_JSON_PATH" | jq -c '.')
-        
-        local payload
-        payload=$(jq -n \\
-            --arg type "task_loop_started" \\
-            --argjson prdJson "$prd_content" \\
-            '{type: $type, prdJson: ($prdJson | tostring)}')
-        
-        send_webhook "$payload"
-    fi
-}
-
-# Function to push code and get branch name
-push_and_get_branch() {
-    cd /home/sprite/repo
-    
-    # Get current branch name first (before any push output)
-    local branch_name
-    branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    
-    if [ -z "$branch_name" ] || [ "$branch_name" = "HEAD" ]; then
-        echo ""
-        return
-    fi
-    
-    # Check if there are any changes to commit
-    if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
-        # Stage and commit any remaining changes
-        git add -A
-        git commit -m "chore: final manifest changes" >/dev/null 2>&1 || true
-    fi
-    
-    # Push the branch (redirect all output to avoid capturing it)
-    git push -u origin "$branch_name" >/dev/null 2>&1 || git push origin "$branch_name" >/dev/null 2>&1 || true
-    
-    # Return only the branch name
-    echo "$branch_name"
-}
-
-# Function to send completed webhook (idempotent - uses flag file)
-send_completed() {
-    # Prevent duplicate completed webhooks
-    if [ -f "/tmp/completed_sent" ]; then
-        return
-    fi
-    touch "/tmp/completed_sent"
-    
-    # Push code and capture branch name
-    local branch_name
-    branch_name=$(push_and_get_branch)
-    
-    if [ -f "$PRD_JSON_PATH" ]; then
-        local prd_content
-        prd_content=$(cat "$PRD_JSON_PATH" | jq -c '.')
-        
-        local payload
-        payload=$(jq -n \\
-            --arg type "completed" \\
-            --argjson prdJson "$prd_content" \\
-            --arg branchName "$branch_name" \\
-            '{type: $type, prdJson: ($prdJson | tostring), branchName: $branchName}')
-        
-        send_webhook "$payload"
-    fi
-}
-
 # Function to send error webhook
 send_error() {
     local error_msg="$1"
@@ -201,98 +106,14 @@ send_error() {
     send_webhook "$payload"
 }
 
-# Monitor function that watches the log file
-monitor_log() {
-    local last_iteration=0
-    local max_iterations=25
-    local task_loop_started=false
-    local completed_sent=false
-    
-    echo "[monitor] Starting monitor_log" >> /tmp/monitor-debug.log
-    
-    # Wait for log file to exist
-    while [ ! -f "$LOG_FILE" ]; do
-        sleep 1
-    done
-    
-    echo "[monitor] Log file exists, starting tail" >> /tmp/monitor-debug.log
-    
-    # Tail the log file and watch for iteration markers
-    tail -f "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
-        echo "[monitor] Read line: $line" >> /tmp/monitor-debug.log
-        
-        # Check for iteration marker: "=== Iteration N/M ==="
-        if [[ "$line" =~ ===[[:space:]]Iteration[[:space:]]([0-9]+)/([0-9]+)[[:space:]]=== ]]; then
-            local iteration="\${BASH_REMATCH[1]}"
-            max_iterations="\${BASH_REMATCH[2]}"
-            
-            echo "[monitor] Matched iteration=$iteration max=$max_iterations" >> /tmp/monitor-debug.log
-            
-            # Send task_loop_started on first iteration
-            if [ "$task_loop_started" = false ]; then
-                task_loop_started=true
-                echo "[monitor] Sending task_loop_started" >> /tmp/monitor-debug.log
-                send_task_loop_started
-            fi
-            
-            # Only send progress if iteration changed
-            if [ "$iteration" -ne "$last_iteration" ]; then
-                last_iteration="$iteration"
-                echo "[monitor] Sending progress for iteration $iteration" >> /tmp/monitor-debug.log
-                # Small delay to let prd.json be written
-                sleep 2
-                send_progress "$iteration" "$max_iterations"
-            fi
-        fi
-        
-        # Check for completion - must have seen task_loop_started first
-        # task-loop outputs "✅ PRD complete!" or "⚠️ Max iterations reached"
-        if [ "$task_loop_started" = true ] && [ "$completed_sent" = false ]; then
-            if [[ "$line" == *"PRD complete"* ]] || [[ "$line" == *"Max iterations"* ]]; then
-                completed_sent=true
-                echo "[monitor] Sending completed" >> /tmp/monitor-debug.log
-                sleep 2
-                send_completed
-                break
-            fi
-        fi
-    done
-    
-    echo "[monitor] Monitor loop exited" >> /tmp/monitor-debug.log
-}
-
-# Clean up any previous state files
-rm -f "$LOG_FILE"
-rm -f "/tmp/completed_sent"
-rm -f /tmp/monitor-debug.log
-
-echo "[main] Starting wrapper script" >> /tmp/monitor-debug.log
-echo "[main] PRD_NAME=$PRD_NAME" >> /tmp/monitor-debug.log
-echo "[main] WEBHOOK_URL=$WEBHOOK_URL" >> /tmp/monitor-debug.log
-
-# Start the monitor in background
-monitor_log &
-MONITOR_PID=$!
-echo "[main] Monitor started with PID=$MONITOR_PID" >> /tmp/monitor-debug.log
-
-# Run task-loop and capture output to log file
+# Run task-loop
 cd /home/sprite/repo
-task-loop "$PRD_NAME" 2>&1 | tee "$LOG_FILE"
+task-loop "$PRD_NAME" 2>&1 | tee /tmp/task-loop.log
 TASK_EXIT_CODE=\${PIPESTATUS[0]}
 
-# Give monitor time to process final output
-sleep 3
-
-# Kill the monitor
-kill "$MONITOR_PID" 2>/dev/null || true
-
-# Send final webhook based on exit code
+# Send error webhook if task-loop failed
 if [ "$TASK_EXIT_CODE" -ne 0 ]; then
     send_error "task-loop exited with code $TASK_EXIT_CODE"
-else
-    # Ensure completed webhook is sent if task-loop succeeded
-    # This is a fallback in case the monitor missed the completion marker
-    send_completed
 fi
 
 # Stop Docker to allow sprite to sleep
