@@ -821,23 +821,17 @@ export function RitualBoardClient({
 
                 {/* Tasks */}
                 <div className="flex-1 space-y-1.5 md:space-y-2">
-                  {columnTasks.length === 0 ? (
-                    <div className="border border-dashed border-white/20 p-4 text-center text-xs text-white/30 font-mono md:p-8 md:text-sm">
-                      Empty
-                    </div>
-                  ) : (
-                    columnTasks.map(task => (
-                      <DraggableCard
-                        key={task.id}
-                        task={task}
-                        onClick={handleTaskClick}
-                        stats={taskStats[task.id]}
-                        onDeleteTask={handleDeleteTask}
-                        onViewLogs={taskStats[task.id]?.logs ? handleViewLogs : undefined}
-                        repositoryUrl={project.repositoryUrl}
-                      />
-                    ))
-                  )}
+                  {columnTasks.map(task => (
+                    <DraggableCard
+                      key={task.id}
+                      task={task}
+                      onClick={handleTaskClick}
+                      stats={taskStats[task.id]}
+                      onDeleteTask={handleDeleteTask}
+                      onViewLogs={taskStats[task.id]?.logs ? handleViewLogs : undefined}
+                      repositoryUrl={project.repositoryUrl}
+                    />
+                  ))}
                 </div>
               </DroppableColumn>
             )
