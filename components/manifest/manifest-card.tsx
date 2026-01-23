@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect } from 'react'
+import Link from 'next/link'
 import {
   Check,
   ExternalLink,
@@ -519,9 +520,9 @@ export function ManifestCard({ manifest, repositoryUrl }: ManifestCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              render={<a href={manifest.spriteUrl} target="_blank" rel="noopener noreferrer" />}
+              render={<Link href={`/manifest/${manifest.id}`} />}
               className="h-7 px-2 text-white/40 hover:text-white/90"
-              title="Open in new tab"
+              title="Open manifest"
             >
               <ExternalLink className="size-3.5" />
             </Button>
