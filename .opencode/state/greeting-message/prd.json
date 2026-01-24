@@ -1,0 +1,31 @@
+{
+  "prdName": "greeting-message",
+  "tasks": [
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Create a reusable greeting component that displays welcome text",
+      "steps": [
+        "Component exists at components/greeting.tsx",
+        "Displays 'Welcome to the app!' text",
+        "Uses Tailwind CSS for styling"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Add greeting component to the home page",
+      "steps": [
+        "Greeting component is imported in the home page",
+        "Greeting appears above the main content"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": ["UI components: components/ui/"],
+    "keyFiles": ["app/page.tsx"],
+    "nonGoals": ["Personalized greetings based on user name", "Internationalization"]
+  }
+}
