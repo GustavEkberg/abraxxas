@@ -22,6 +22,8 @@ export interface SpawnManifestSpriteConfig {
   userId: string
   /** Branch to checkout (optional - will use default branch if not specified) */
   branchName?: string
+  /** PRD name for auto-starting task-loop (if prd.json exists) */
+  prdName?: string
 }
 
 /**
@@ -45,9 +47,17 @@ export function generateManifestSpriteName(projectId: string): string {
 /**
  * Generate manifest-specific script.
  * Installs send-prd-webhook command and persists webhook env vars.
+ * If prdName provided and prd.json exists, runs task-loop at end of setup.
  * Note: opencode serve is already started by base setup.
  */
-function generateManifestExecutionScript(webhookUrl: string, webhookSecret: string): string {
+function generateManifestExecutionScript(config: {
+  webhookUrl: string
+  webhookSecret: string
+  prdName?: string
+  hasLocalSetup: boolean
+}): string {
+  const { webhookUrl, webhookSecret, prdName, hasLocalSetup } = config
+
   return `
 # ===========================================
 # Manifest Execution - Install webhook command
@@ -108,6 +118,130 @@ PROFILEEOF
 
 echo "send-prd-webhook command installed"
 echo "=== Manifest Setup Complete ==="
+
+${
+  prdName
+    ? `
+# ===========================================
+# Auto-start task-loop (prdName: ${prdName})
+# ===========================================
+
+# Check if prd.json exists for this PRD
+PRD_FILE="/home/sprite/repo/.opencode/state/${prdName}/prd.json"
+echo "Checking for PRD file: $PRD_FILE"
+if [ -f "$PRD_FILE" ]; then
+    echo "Found $PRD_FILE - starting task-loop..."
+    
+    # Wait for Docker to be installed and start it
+    DOCKERD_PID=""
+    DOCKER_READY=false
+    
+    if sudo docker info > /dev/null 2>&1; then
+      echo "Docker already running"
+      DOCKER_READY=true
+    else
+      echo "Waiting for Docker installation..."
+      for i in {1..60}; do
+        if command -v dockerd &> /dev/null; then
+          echo "Docker installed after \${i}s"
+          break
+        fi
+        sleep 1
+      done
+    
+      if command -v dockerd &> /dev/null; then
+        echo "Starting Docker daemon..."
+        sudo dockerd > /dev/null 2>&1 &
+        DOCKERD_PID=$!
+    
+        echo "Waiting for Docker to be ready..."
+        for i in {1..30}; do
+          if sudo docker info > /dev/null 2>&1; then
+            echo "Docker is ready"
+            DOCKER_READY=true
+            break
+          fi
+          sleep 1
+        done
+      else
+        echo "Docker not installed, skipping"
+      fi
+    fi
+    
+    ${
+      hasLocalSetup
+        ? `
+    # Start docker compose services (local setup enabled)
+    if [ "$DOCKER_READY" = true ]; then
+      cd /home/sprite/repo
+      if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
+        RUNNING_CONTAINERS=$(sudo docker compose ps -q 2>/dev/null | wc -l)
+        if [ "$RUNNING_CONTAINERS" -gt 0 ]; then
+          echo "Docker compose services already running"
+        else
+          echo "Starting docker compose services..."
+          sudo docker compose up -d
+          sleep 5
+        fi
+      fi
+    fi
+    `
+        : '# No local setup - skipping docker compose'
+    }
+    
+    # Keep sprite alive with periodic network activity
+    (
+      while true; do
+        curl -s https://example.com > /dev/null 2>&1 || true
+        sleep 30
+      done
+    ) &
+    KEEPALIVE_PID=$!
+    
+    # Cleanup function
+    cleanup() {
+      kill $KEEPALIVE_PID 2>/dev/null || true
+      if [ -n "\${DOCKERD_PID:-}" ]; then
+        cd /home/sprite/repo
+        if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
+          sudo docker compose down > /dev/null 2>&1 || true
+        fi
+        sudo kill $DOCKERD_PID 2>/dev/null || true
+      fi
+    }
+    trap cleanup EXIT
+    
+    # Function to send error webhook
+    send_error() {
+        local error_msg="$1"
+        local payload
+        payload=$(jq -n --arg type "error" --arg error "$error_msg" '{type: $type, error: $error}')
+        local signature
+        signature="sha256=$(echo -n "$payload" | openssl dgst -sha256 -hmac "${webhookSecret}" | awk '{print $2}')"
+        curl -s -X POST "${webhookUrl}" \\
+            -H "Content-Type: application/json" \\
+            -H "X-Webhook-Signature: $signature" \\
+            -d "$payload" > /dev/null 2>&1 || true
+    }
+    
+    # Run task-loop (output already goes to abraxas.log via exec redirect)
+    cd /home/sprite/repo
+    echo "=== Starting task-loop for ${prdName} ==="
+    task-loop "${prdName}" 2>&1 | while IFS= read -r line; do echo "[$(date '+%Y-%m-%d %H:%M:%S')] $line"; done
+    TASK_EXIT_CODE=\${PIPESTATUS[0]}
+    
+    if [ "$TASK_EXIT_CODE" -ne 0 ]; then
+        send_error "task-loop exited with code $TASK_EXIT_CODE"
+    fi
+    
+    echo "=== task-loop finished with exit code $TASK_EXIT_CODE ==="
+else
+    echo "No prd.json found at $PRD_FILE - skipping auto-start"
+    echo "Use 'Start task-loop' button after creating PRD"
+fi
+`
+    : '# No prdName provided - manual task-loop start required'
+}
 `
 }
 
@@ -179,10 +313,11 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     }
 
     // Save sprite details to DB immediately so we don't lose them on timeout
+    // If prdName provided, task-loop will auto-start so set status to 'running'
     yield* db
       .update(schema.manifests)
       .set({
-        status: 'active',
+        status: config.prdName ? 'running' : 'active',
         spriteName,
         spriteUrl
       })
@@ -203,7 +338,13 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       branchName: config.branchName
     })
 
-    const manifestExecution = generateManifestExecutionScript(webhookUrl, webhookSecret)
+    const hasLocalSetup = project.localSetupScript !== null
+    const manifestExecution = generateManifestExecutionScript({
+      webhookUrl,
+      webhookSecret,
+      prdName: config.prdName,
+      hasLocalSetup
+    })
 
     const setupScript = `#!/bin/bash
 set -euo pipefail

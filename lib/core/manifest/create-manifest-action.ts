@@ -73,7 +73,8 @@ export const createManifestAction = async (
         webhookSecret,
         project,
         userId: project.userId,
-        branchName
+        branchName,
+        prdName: input.prdName
       }).pipe(
         Effect.catchAll(error => {
           // Cleanup: mark manifest as error on failure
