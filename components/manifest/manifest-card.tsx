@@ -13,7 +13,8 @@ import {
   Terminal,
   Trash2
 } from 'lucide-react'
-import { type Manifest, getManifestBranchName } from '@/lib/services/db/schema'
+import { type Manifest } from '@/lib/services/db/schema'
+import { getManifestBranchName } from '@/lib/core/manifest/branch-name'
 import type { ManifestPrdData, PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

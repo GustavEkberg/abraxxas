@@ -15,7 +15,8 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react'
-import { type Manifest, type Project, getManifestBranchName } from '@/lib/services/db/schema'
+import { type Manifest, type Project } from '@/lib/services/db/schema'
+import { getManifestBranchName } from '@/lib/core/manifest/branch-name'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

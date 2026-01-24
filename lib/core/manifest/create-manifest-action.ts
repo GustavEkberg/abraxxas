@@ -10,6 +10,7 @@ import * as schema from '@/lib/services/db/schema'
 import { getProject } from '@/lib/core/project/get-project'
 import { generateWebhookSecret } from '@/lib/core/sprites/callback-script'
 import { spawnManifestSprite } from './spawn-manifest-sprite'
+import { getManifestBranchName } from './branch-name'
 
 type CreateManifestInput = {
   projectId: string
@@ -65,7 +66,7 @@ export const createManifestAction = async (
       yield* Effect.log(`Created manifest ${manifest.id} with status=pending`)
 
       // Derive branchName from prdName if provided
-      const branchName = input.prdName ? schema.getManifestBranchName(input.prdName) : undefined
+      const branchName = input.prdName ? getManifestBranchName(input.prdName) : undefined
 
       // Spawn the sprite
       const spriteResult = yield* spawnManifestSprite({

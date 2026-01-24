@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { Db } from '@/lib/services/db/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { fetchPrdFromGitHub, type ManifestPrdData } from './fetch-prd-from-github'
+import { getManifestBranchName } from './branch-name'
 
 export type ManifestPrdDataMap = Record<string, ManifestPrdData>
 
@@ -56,7 +57,7 @@ export const getManifestPrdData = (projectId: string) =>
         fetchPrdFromGitHub(
           project.repositoryUrl,
           project.encryptedGithubToken,
-          schema.getManifestBranchName(manifest.prdName),
+          getManifestBranchName(manifest.prdName),
           manifest.prdName
         ).pipe(
           Effect.map(data => ({ id: manifest.id, status: manifest.status, data })),

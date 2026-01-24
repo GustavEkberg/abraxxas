@@ -220,9 +220,6 @@ export const manifests = pgTable('manifests', {
   completedAt: timestamp('completedAt')
 })
 
-/** Derive branch name from prdName */
-export const getManifestBranchName = (prdName: string) => `prd-${prdName}`
-
 export type Manifest = typeof manifests.$inferSelect
 export type InsertManifest = typeof manifests.$inferInsert
 
