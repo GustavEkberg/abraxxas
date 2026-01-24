@@ -116,9 +116,6 @@ export function CreateManifestDialog({
               onChange={e => setPrdName(e.target.value)}
               disabled={state._tag === 'loading'}
             />
-            <p className="text-xs text-muted-foreground">
-              Enter PRD name to continue on branch prd-{prdName || '{name}'}
-            </p>
           </div>
 
           {state._tag === 'error' && (

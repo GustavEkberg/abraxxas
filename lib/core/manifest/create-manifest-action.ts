@@ -15,7 +15,7 @@ import { getManifestBranchName } from './branch-name'
 type CreateManifestInput = {
   projectId: string
   name: string
-  /** PRD name (for continuing a manifest - branch will be prd-{prdName}) */
+  /** PRD name (for continuing a manifest - branch will be manifest-{prdName}) */
   prdName?: string
 }
 

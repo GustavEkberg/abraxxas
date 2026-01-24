@@ -114,6 +114,12 @@ export const startTaskLoopAction = async (manifestId: string): Promise<StartTask
         'setsid /tmp/task-loop-wrapper.sh > /tmp/abraxas.log 2>&1 < /dev/null &'
       ])
 
+      // Update manifest status to running
+      yield* db
+        .update(schema.manifests)
+        .set({ status: 'running' })
+        .where(eq(schema.manifests.id, manifestId))
+
       yield* Effect.log(
         `Started task loop with progress monitoring on sprite ${manifest.spriteName}`
       )

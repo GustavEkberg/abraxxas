@@ -315,7 +315,6 @@ export function ManifestPageClient({ manifest, project }: ManifestPageClientProp
             <Card className="border-dashed border-white/10 bg-transparent p-3">
               <div className="flex items-center justify-between font-mono text-xs">
                 <div>
-                  <span className="text-white/40">prd: </span>
                   <span className="text-white/70">{manifest.prdName ?? '—'}</span>
                 </div>
                 {(manifest.status === 'pending' || manifest.status === 'active') && (
