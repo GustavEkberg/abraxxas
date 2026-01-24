@@ -101,6 +101,17 @@ PRD_NAME="${prdName}"
 WEBHOOK_URL="${webhookUrl}"
 WEBHOOK_SECRET="${webhookSecret}"
 
+# Keep sprite alive with periodic network activity
+# Sprites go to sleep without outbound connections
+(
+  while true; do
+    curl -s https://example.com > /dev/null 2>&1 || true
+    sleep 30
+  done
+) &
+KEEPALIVE_PID=$!
+trap "kill $KEEPALIVE_PID 2>/dev/null || true" EXIT
+
 # Function to send webhook with HMAC signature
 send_webhook() {
     local payload="$1"
