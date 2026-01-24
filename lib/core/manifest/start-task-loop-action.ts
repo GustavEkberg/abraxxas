@@ -111,7 +111,7 @@ export const startTaskLoopAction = async (manifestId: string): Promise<StartTask
       yield* sprites.execCommand(manifest.spriteName, [
         'bash',
         '-c',
-        'setsid /tmp/task-loop-wrapper.sh > /tmp/wrapper.log 2>&1 < /dev/null &'
+        'setsid /tmp/task-loop-wrapper.sh > /tmp/abraxas.log 2>&1 < /dev/null &'
       ])
 
       yield* Effect.log(
