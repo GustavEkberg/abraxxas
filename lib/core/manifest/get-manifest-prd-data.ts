@@ -1,6 +1,7 @@
 import { Effect } from 'effect'
 import { eq } from 'drizzle-orm'
 import { Db } from '@/lib/services/db/live-layer'
+import { Sprites } from '@/lib/services/sprites/live-layer'
 import * as schema from '@/lib/services/db/schema'
 import { fetchPrdFromGitHub, type ManifestPrdData } from './fetch-prd-from-github'
 import { getManifestBranchName } from './branch-name'
@@ -32,12 +33,13 @@ export const getManifestPrdData = (projectId: string) =>
       return {}
     }
 
-    // Get all manifests with prdName (include status for completion detection)
+    // Get all manifests with prdName (include status and spriteName for completion detection)
     const manifests = yield* db
       .select({
         id: schema.manifests.id,
         prdName: schema.manifests.prdName,
-        status: schema.manifests.status
+        status: schema.manifests.status,
+        spriteName: schema.manifests.spriteName
       })
       .from(schema.manifests)
       .where(eq(schema.manifests.projectId, projectId))
@@ -60,11 +62,17 @@ export const getManifestPrdData = (projectId: string) =>
           getManifestBranchName(manifest.prdName),
           manifest.prdName
         ).pipe(
-          Effect.map(data => ({ id: manifest.id, status: manifest.status, data })),
+          Effect.map(data => ({
+            id: manifest.id,
+            status: manifest.status,
+            spriteName: manifest.spriteName,
+            data
+          })),
           Effect.catchAll(() =>
             Effect.succeed({
               id: manifest.id,
               status: manifest.status,
+              spriteName: manifest.spriteName,
               data: { prdJson: null, progress: null }
             })
           )
@@ -75,37 +83,62 @@ export const getManifestPrdData = (projectId: string) =>
 
     // Build map and detect completion
     const prdDataMap: ManifestPrdDataMap = {}
-    const completedManifestIds: string[] = []
+    const completedManifests: Array<{ id: string; spriteName: string | null }> = []
 
-    for (const { id, status, data } of results) {
+    for (const { id, status, spriteName, data } of results) {
       prdDataMap[id] = data
 
       // Check for completion: running + all tasks pass
       if (status === 'running' && data.prdJson) {
         const allTasksPass = data.prdJson.tasks.every(t => t.passes)
         if (allTasksPass) {
-          completedManifestIds.push(id)
+          completedManifests.push({ id, spriteName })
         }
       }
     }
 
-    // Update completed manifests
-    if (completedManifestIds.length > 0) {
+    // Update completed manifests and destroy their sprites
+    if (completedManifests.length > 0) {
+      const sprites = yield* Sprites
+
       yield* Effect.forEach(
-        completedManifestIds,
-        manifestId =>
-          db
-            .update(schema.manifests)
-            .set({
-              status: 'completed',
-              updatedAt: new Date(),
-              completedAt: new Date()
-            })
-            .where(eq(schema.manifests.id, manifestId)),
+        completedManifests,
+        ({ id, spriteName }) =>
+          Effect.gen(function* () {
+            // Update manifest status
+            yield* db
+              .update(schema.manifests)
+              .set({
+                status: 'completed',
+                updatedAt: new Date(),
+                completedAt: new Date(),
+                spriteName: null,
+                spriteUrl: null
+              })
+              .where(eq(schema.manifests.id, id))
+
+            // Destroy sprite if it exists
+            if (spriteName) {
+              yield* sprites.destroySprite(spriteName).pipe(
+                Effect.tapError(error =>
+                  Effect.logWarning('Failed to destroy sprite on completion', {
+                    spriteName,
+                    manifestId: id,
+                    error
+                  })
+                ),
+                Effect.catchAll(() => Effect.void)
+              )
+              yield* Effect.logInfo('Sprite destroyed on manifest completion', {
+                spriteName,
+                manifestId: id
+              })
+            }
+          }),
         { concurrency: 'unbounded' }
       )
       yield* Effect.logInfo('Manifests completed via PRD check', {
-        manifestIds: completedManifestIds
+        manifestIds: completedManifests.map(m => m.id)
       })
     }
 
