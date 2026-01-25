@@ -10,9 +10,10 @@ import {
   DropdownMenuCheckboxItem
 } from '@/components/ui/dropdown-menu'
 import { CreateInvocationDialog } from '@/components/invocations/create-invocation-dialog'
-import { CreateManifestDialog } from '@/components/manifest/create-manifest-dialog'
 import { Button } from '@/components/ui/button'
 import { toggleLocalSetupAction } from '@/lib/core/project/toggle-local-setup-action'
+import { spawnPrdCreatorAction } from '@/lib/core/manifest/spawn-prd-creator-action'
+import { useAlert } from '@/components/ui/gnostic-alert'
 
 interface SummonMenuProps {
   ritualId: string
@@ -55,9 +56,9 @@ function SigilIcon({ className }: { className?: string }) {
  */
 export function SummonMenu({ ritualId, localSetupEnabled }: SummonMenuProps) {
   const [invocationOpen, setInvocationOpen] = useState(false)
-  const [manifestOpen, setManifestOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [optimisticEnabled, setOptimisticEnabled] = useState(localSetupEnabled)
+  const { alert } = useAlert()
 
   const handleToggleLocalSetup = () => {
     // Optimistic update
@@ -67,6 +68,27 @@ export function SummonMenu({ ritualId, localSetupEnabled }: SummonMenuProps) {
       if (result._tag === 'Error') {
         // Revert on error
         setOptimisticEnabled(optimisticEnabled)
+      }
+    })
+  }
+
+  const handleConjureManifest = () => {
+    startTransition(async () => {
+      const result = await spawnPrdCreatorAction({ projectId: ritualId })
+      if (result._tag === 'Success') {
+        await alert({
+          title: 'Manifest Conjured',
+          message: `Sprite ready. Push to a manifest- branch when done, then stop the sprite.`,
+          variant: 'info',
+          confirmText: 'Got it'
+        })
+      } else {
+        await alert({
+          title: 'Conjuration Failed',
+          message: result.message,
+          variant: 'error',
+          confirmText: 'Dismiss'
+        })
       }
     })
   }
@@ -94,10 +116,14 @@ export function SummonMenu({ ritualId, localSetupEnabled }: SummonMenuProps) {
             </span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setManifestOpen(true)} className="cursor-pointer">
+          <DropdownMenuItem
+            onClick={handleConjureManifest}
+            disabled={isPending}
+            className="cursor-pointer"
+          >
             <span className="flex items-center gap-2">
               <span className="text-purple-400">&#x29BE;</span>
-              Conjure Manifest
+              {isPending ? 'Conjuring...' : 'Conjure Manifest'}
             </span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -120,11 +146,6 @@ export function SummonMenu({ ritualId, localSetupEnabled }: SummonMenuProps) {
         ritualId={ritualId}
         open={invocationOpen}
         onOpenChange={setInvocationOpen}
-      />
-      <CreateManifestDialog
-        projectId={ritualId}
-        open={manifestOpen}
-        onOpenChange={setManifestOpen}
       />
     </>
   )

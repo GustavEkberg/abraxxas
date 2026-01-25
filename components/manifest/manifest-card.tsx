@@ -6,36 +6,19 @@ import {
   Check,
   ExternalLink,
   GitCompareArrows,
-  Pencil,
   Play,
   ScrollText,
   Square,
-  Terminal,
-  Trash2
+  Terminal
 } from 'lucide-react'
-import { type Manifest } from '@/lib/services/db/schema'
-import { getManifestBranchName } from '@/lib/core/manifest/branch-name'
+import type { Sprite } from '@/lib/services/db/schema'
 import type { ManifestPrdData, PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog'
 import { useAlert } from '@/components/ui/gnostic-alert'
-import { startTaskLoopAction } from '@/lib/core/manifest/start-task-loop-action'
-import { stopTaskLoopAction } from '@/lib/core/manifest/stop-task-loop-action'
-import { deleteManifestAction } from '@/lib/core/manifest/delete-manifest-action'
-import { updatePrdNameAction } from '@/lib/core/manifest/update-prd-name-action'
+import { spawnSpriteAction } from '@/lib/core/manifest/spawn-sprite-action'
+import { stopSpriteAction } from '@/lib/core/manifest/stop-sprite-action'
 import { tailLogAction } from '@/lib/core/sprite/tail-log-action'
-
-const KEBAB_CASE_REGEX = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
 interface Spark {
   id: number
@@ -208,127 +191,16 @@ function TailLogButton({ spriteName }: { spriteName: string }) {
   )
 }
 
-function EditPrdNameDialog({
-  manifestId,
-  currentPrdName,
-  disabled,
-  highlight
-}: {
-  manifestId: string
-  currentPrdName: string | null
-  disabled?: boolean
-  highlight?: boolean
-}) {
-  const [open, setOpen] = useState(false)
-  const [prdName, setPrdName] = useState(currentPrdName ?? '')
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
-  const validationError =
-    prdName.length > 0 && !KEBAB_CASE_REGEX.test(prdName)
-      ? 'Must be kebab-case (e.g., my-feature)'
-      : null
-
-  const canSubmit = prdName.length > 0 && !validationError && prdName !== (currentPrdName ?? '')
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canSubmit) return
-
-    setError(null)
-    startTransition(async () => {
-      const result = await updatePrdNameAction(manifestId, prdName)
-      if (result._tag === 'Error') {
-        setError(result.message)
-      } else {
-        setOpen(false)
-      }
-    })
-  }
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
-    if (!nextOpen) {
-      setPrdName(currentPrdName ?? '')
-      setError(null)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-7 px-2 ${highlight ? 'text-yellow-400 hover:text-yellow-300' : 'text-white/40 hover:text-white/90'}`}
-            title={highlight ? 'Inscribe the path' : 'Edit path'}
-            disabled={disabled}
-          >
-            <Pencil className="size-3.5" />
-          </Button>
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit PRD Name</DialogTitle>
-          <DialogDescription>
-            Change the PRD name for this manifest. This determines which prd.json file will be
-            executed.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="prdName">PRD Name</Label>
-            <Input
-              id="prdName"
-              placeholder="my-feature"
-              value={prdName}
-              onChange={e => setPrdName(e.target.value)}
-              disabled={isPending}
-              aria-invalid={!!validationError}
-              className="font-mono"
-            />
-            {validationError && <p className="text-destructive text-xs">{validationError}</p>}
-            <p className="text-muted-foreground text-xs">
-              Path: .opencode/state/{prdName || '<name>'}/prd.json
-            </p>
-          </div>
-
-          {error && (
-            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit || isPending}>
-              {isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface ManifestCardProps {
-  manifest: Manifest
+  projectId: string
+  branchName: string
+  prdName: string
   repositoryUrl: string
   prdData: ManifestPrdData | null
+  sprite: Sprite | null
 }
 
 function buildCompareUrl(repositoryUrl: string, branchName: string): string {
-  // repositoryUrl is https://github.com/owner/repo or https://github.com/owner/repo.git
   const cleanUrl = repositoryUrl.replace(/\.git$/, '')
   return `${cleanUrl}/compare/main...${encodeURIComponent(branchName)}`
 }
@@ -365,17 +237,29 @@ function BranchCompareButton({
   )
 }
 
-export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardProps) {
+export function ManifestCard({
+  projectId,
+  branchName,
+  prdName,
+  repositoryUrl,
+  prdData,
+  sprite
+}: ManifestCardProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const { confirm } = useAlert()
 
-  const isPendingStatus = manifest.status === 'pending'
-  const isActive = manifest.status === 'active'
-  const isRunning = manifest.status === 'running'
-  const isCompleted = manifest.status === 'completed'
-  const isError = manifest.status === 'error'
-  const hasSprite = !!manifest.spriteName
+  const isRunning = sprite?.status === 'running'
+  const isPendingStatus = sprite?.status === 'pending'
+  const isActive = sprite?.status === 'active'
+  const isError = sprite?.status === 'error'
+  const hasSprite = !!sprite?.spriteName
+
+  // Check if all tasks pass (completed)
+  const isCompleted =
+    prdData?.prdJson && prdData.prdJson.tasks.length > 0
+      ? prdData.prdJson.tasks.every(t => t.passes)
+      : false
 
   const borderColor = isRunning
     ? 'border-red-500/40 border-dashed'
@@ -395,39 +279,28 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
         ? 'bg-red-950/20'
         : 'bg-zinc-900'
 
-  const handleStart = () => {
+  const handleSpawn = () => {
     setError(null)
     startTransition(async () => {
-      const result = await startTaskLoopAction(manifest.id)
-      if (result._tag === 'Error') {
-        setError(result.message)
-      }
-      // Polling handled by board-client when manifest status changes
-    })
-  }
-
-  const handleStop = () => {
-    setError(null)
-    startTransition(async () => {
-      const result = await stopTaskLoopAction(manifest.id)
+      const result = await spawnSpriteAction({ projectId, branchName, prdName })
       if (result._tag === 'Error') {
         setError(result.message)
       }
     })
   }
 
-  const handleDelete = async () => {
+  const handleStop = async () => {
     const confirmed = await confirm({
-      title: 'Banish this Manifest?',
-      message: 'This will destroy the sprite and banish it to the void. This cannot be undone.',
+      title: 'Stop this Sprite?',
+      message: 'This will destroy the sprite and stop execution. You can spawn a new one later.',
       variant: 'warning',
-      confirmText: 'Banish',
-      cancelText: 'Spare'
+      confirmText: 'Stop',
+      cancelText: 'Cancel'
     })
     if (!confirmed) return
     setError(null)
     startTransition(async () => {
-      const result = await deleteManifestAction(manifest.id)
+      const result = await stopSpriteAction(projectId, branchName)
       if (result._tag === 'Error') {
         setError(result.message)
       }
@@ -468,101 +341,74 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
               <span className="text-xs text-yellow-400">Conjuring</span>
             </div>
           )}
-          {isActive && manifest.prdName && (
+          {!sprite && !isCompleted && (
+            <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-xs text-white/40">
+              Dormant
+            </span>
+          )}
+          {isActive && (
             <span className="shrink-0 rounded bg-green-500/10 px-1.5 py-0.5 text-xs text-green-400">
-              Awakened
+              Active
             </span>
           )}
-          {isActive && !manifest.prdName && (
-            <span className="shrink-0 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-400">
-              Unsealed
-            </span>
-          )}
-          {isCompleted && <span className="shrink-0 text-xs text-green-400">✓ Fulfilled</span>}
-          {isError && <span className="shrink-0 text-xs text-red-400">✗ Shattered</span>}
+          {isCompleted && <span className="shrink-0 text-xs text-green-400">Fulfilled</span>}
+          {isError && <span className="shrink-0 text-xs text-red-400">Shattered</span>}
 
-          {/* Manifest name */}
-          <span className="truncate text-sm font-medium text-white/90">{manifest.name}</span>
-
-          {/* PRD name indicator */}
-          {manifest.prdName && (
-            <span className="hidden text-xs text-white/40 md:inline">({manifest.prdName})</span>
-          )}
-
-          {/* Edit PRD name - only when editable, highlighted if not set */}
-          {(isPendingStatus || isActive) && (
-            <EditPrdNameDialog
-              manifestId={manifest.id}
-              currentPrdName={manifest.prdName}
-              disabled={isPending}
-              highlight={!manifest.prdName}
-            />
-          )}
+          {/* PRD name (read-only from GitHub branch) */}
+          <span className="truncate text-sm font-medium text-white/90">{prdName}</span>
         </div>
 
         {/* Action buttons */}
         <div className="flex shrink-0 flex-wrap items-center gap-1">
-          {hasSprite && manifest.spriteName && (
+          {hasSprite && sprite.spriteName && (
             <CopyButton
-              value={manifest.spriteName}
+              value={sprite.spriteName}
               label="Copy sprite name"
               icon={<Terminal className="size-3.5" />}
             />
           )}
-          {hasSprite && manifest.spriteUrl && (
+          {hasSprite && sprite.spriteUrl && (
             <Button
               variant="ghost"
               size="sm"
-              render={<Link href={`/manifest/${manifest.id}`} />}
+              render={<Link href={`/manifest/${encodeURIComponent(branchName)}`} />}
               className="h-7 px-2 text-white/40 hover:text-white/90"
               title="Open manifest"
             >
               <ExternalLink className="size-3.5" />
             </Button>
           )}
-          {hasSprite && manifest.spriteName && <TailLogButton spriteName={manifest.spriteName} />}
+          {hasSprite && sprite.spriteName && <TailLogButton spriteName={sprite.spriteName} />}
 
-          {/* Branch compare link - show when prdName set */}
-          {manifest.prdName && (
-            <BranchCompareButton
-              branchName={getManifestBranchName(manifest.prdName)}
-              compareUrl={buildCompareUrl(repositoryUrl, getManifestBranchName(manifest.prdName))}
-              className="h-7 px-2 text-white/40"
-            />
-          )}
+          {/* Branch compare link */}
+          <BranchCompareButton
+            branchName={branchName}
+            compareUrl={buildCompareUrl(repositoryUrl, branchName)}
+            className="h-7 px-2 text-white/40"
+          />
 
-          {/* Delete button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isPending}
-            className="h-7 px-2 text-white/40 hover:text-red-400"
-            title="Delete manifest"
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-          {/* Start/Stop controls - only show when prdName is set */}
-          {isActive && manifest.prdName && (
+          {/* Spawn button - show when no sprite is running */}
+          {!hasSprite && !isCompleted && (
             <Button
-              onClick={handleStart}
+              onClick={handleSpawn}
               disabled={isPending}
               size="sm"
               className="h-7 bg-red-600 px-2 hover:bg-red-700"
-              title="Start task loop"
+              title="Spawn sprite and start task loop"
             >
               <Play className="size-3.5" />
             </Button>
           )}
 
-          {isRunning && (
+          {/* Stop button - show when sprite is running */}
+          {hasSprite && (
             <Button
               onClick={handleStop}
               disabled={isPending}
               variant="destructive"
               size="sm"
               className="h-7 px-2"
-              title="Stop task loop"
+              title="Stop sprite"
             >
               <Square className="size-3.5" />
             </Button>
@@ -571,8 +417,8 @@ export function ManifestCard({ manifest, repositoryUrl, prdData }: ManifestCardP
       </div>
 
       {/* Error message */}
-      {(error || manifest.errorMessage) && (
-        <p className="mt-2 text-xs text-red-400">{error || manifest.errorMessage}</p>
+      {(error || sprite?.errorMessage) && (
+        <p className="mt-2 text-xs text-red-400">{error || sprite?.errorMessage}</p>
       )}
 
       {/* Progress bar based on prdJson tasks */}

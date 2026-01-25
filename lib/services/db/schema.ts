@@ -48,6 +48,8 @@ export const manifestStatusEnum = pgEnum('manifest_status', [
   'error'
 ])
 
+export const spriteStatusEnum = pgEnum('sprite_status', ['pending', 'active', 'running', 'error'])
+
 ////////////////////////////////////////////////////////////////////////
 // AUTH - Better-auth expects singular model names
 ////////////////////////////////////////////////////////////////////////
@@ -223,6 +225,36 @@ export const manifests = pgTable('manifests', {
 export type Manifest = typeof manifests.$inferSelect
 export type InsertManifest = typeof manifests.$inferInsert
 
+////////////////////////////////////////////////////////////////////////
+// SPRITES - Active sprites for manifests and invocations
+////////////////////////////////////////////////////////////////////////
+export const spriteTypeEnum = pgEnum('sprite_type', ['manifest', 'invocation'])
+
+export const sprites = pgTable('sprites', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  projectId: text('projectId')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  /** Branch name for both manifests and invocations */
+  branchName: text('branchName').notNull(),
+  type: spriteTypeEnum('type').notNull(),
+  status: spriteStatusEnum('status').notNull().default('pending'),
+  spriteName: text('spriteName'),
+  spriteUrl: text('spriteUrl'),
+  webhookSecret: text('webhookSecret'),
+  errorMessage: text('errorMessage'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date())
+})
+
+export type Sprite = typeof sprites.$inferSelect
+export type InsertSprite = typeof sprites.$inferInsert
+
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt').notNull(),
@@ -285,7 +317,8 @@ export const relations = defineRelations(
     tasks,
     comments,
     opencodeSessions,
-    manifests
+    manifests,
+    sprites
   },
   r => ({
     user: {
@@ -307,6 +340,10 @@ export const relations = defineRelations(
       manifests: r.many.manifests({
         from: r.projects.id,
         to: r.manifests.projectId
+      }),
+      sprites: r.many.sprites({
+        from: r.projects.id,
+        to: r.sprites.projectId
       })
     },
     tasks: {
@@ -346,6 +383,13 @@ export const relations = defineRelations(
     manifests: {
       project: r.one.projects({
         from: r.manifests.projectId,
+        to: r.projects.id,
+        optional: false
+      })
+    },
+    sprites: {
+      project: r.one.projects({
+        from: r.sprites.projectId,
         to: r.projects.id,
         optional: false
       })

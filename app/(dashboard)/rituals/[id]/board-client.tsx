@@ -29,9 +29,8 @@ import {
   type TaskDetailsResult
 } from '@/lib/core/task/get-task-details-action'
 
-import type { Task, Project, Manifest } from '@/lib/services/db/schema'
-import type { ManifestPrdDataMap } from '@/lib/core/manifest/get-manifest-prd-data'
-import type { PrdJson } from '@/lib/core/manifest/fetch-prd-from-github'
+import type { Task, Project } from '@/lib/services/db/schema'
+import type { ManifestWithData } from '@/lib/core/manifest/get-manifest-branches'
 
 function CopyButton({
   value,
@@ -233,9 +232,9 @@ function persistRunningTasks(ritualId: string, taskIds: string[]): void {
   }
 }
 
-function calcManifestProgress(prdJson: PrdJson | null): number {
-  if (!prdJson) return 0
-  return prdJson.tasks.filter(t => t.passes).length
+function calcManifestProgress(manifest: ManifestWithData): number {
+  if (!manifest.prdData?.prdJson) return 0
+  return manifest.prdData.prdJson.tasks.filter(t => t.passes).length
 }
 
 interface DroppableColumnProps {
@@ -450,16 +449,14 @@ interface RitualBoardClientProps {
   project: Project
   initialTasks: Task[]
   initialStats: Record<string, TaskStats>
-  initialManifests: Manifest[]
-  initialManifestPrdData: ManifestPrdDataMap
+  initialManifests: ManifestWithData[]
 }
 
 export function RitualBoardClient({
   project,
   initialTasks,
   initialStats,
-  initialManifests,
-  initialManifestPrdData
+  initialManifests
 }: RitualBoardClientProps) {
   const router = useRouter()
   const { alert, confirm } = useAlert()
@@ -477,8 +474,7 @@ export function RitualBoardClient({
     getPersistedRunningTasks(project.id)
   )
   const [taskStats, setTaskStats] = useState<Record<string, TaskStats>>(initialStats)
-  const [manifests, setManifests] = useState<Manifest[]>(initialManifests)
-  const [manifestPrdData, setManifestPrdData] = useState<ManifestPrdDataMap>(initialManifestPrdData)
+  const [manifests, setManifests] = useState<ManifestWithData[]>(initialManifests)
 
   // Task detail modal state - store ID only to avoid stale data issues
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -529,25 +525,20 @@ export function RitualBoardClient({
 
   // Sync running manifests with fire intensity context (only 'running' status)
   useEffect(() => {
-    const runningManifestList = manifests.filter(m => m.status === 'running')
+    const runningManifestList = manifests.filter(m => m.sprite?.status === 'running')
 
     // Add/update running manifests with their completed task count
     runningManifestList.forEach(m => {
-      const prdData = manifestPrdData[m.id]
-      const completedTasks = calcManifestProgress(prdData?.prdJson ?? null)
-      addRunningManifest(m.id, completedTasks)
-      updateManifestProgress(m.id, completedTasks)
+      const completedTasks = calcManifestProgress(m)
+      addRunningManifest(m.branchName, completedTasks)
+      updateManifestProgress(m.branchName, completedTasks)
     })
 
     // Remove non-running manifests
-    manifests.filter(m => m.status !== 'running').forEach(m => removeRunningManifest(m.id))
-  }, [
-    manifests,
-    manifestPrdData,
-    addRunningManifest,
-    updateManifestProgress,
-    removeRunningManifest
-  ])
+    manifests
+      .filter(m => m.sprite?.status !== 'running')
+      .forEach(m => removeRunningManifest(m.branchName))
+  }, [manifests, addRunningManifest, updateManifestProgress, removeRunningManifest])
 
   // Poll for running task/manifest status updates
   useEffect(() => {
@@ -557,7 +548,10 @@ export function RitualBoardClient({
       ...persistedRunningTasks
     ])
     const hasRunningManifests = manifests.some(
-      m => m.status === 'pending' || m.status === 'active' || m.status === 'running'
+      m =>
+        m.sprite?.status === 'pending' ||
+        m.sprite?.status === 'active' ||
+        m.sprite?.status === 'running'
     )
 
     // Poll if any tasks running OR any manifests in progress states
@@ -583,9 +577,6 @@ export function RitualBoardClient({
   }
   if (manifests !== initialManifests) {
     setManifests(initialManifests)
-  }
-  if (manifestPrdData !== initialManifestPrdData) {
-    setManifestPrdData(initialManifestPrdData)
   }
 
   // Fetch task details when modal opens
@@ -756,10 +747,13 @@ export function RitualBoardClient({
           <div className="space-y-3">
             {manifests.map(manifest => (
               <ManifestCard
-                key={manifest.id}
-                manifest={manifest}
+                key={manifest.branchName}
+                projectId={project.id}
+                branchName={manifest.branchName}
+                prdName={manifest.prdName}
                 repositoryUrl={project.repositoryUrl}
-                prdData={manifestPrdData[manifest.id] ?? null}
+                prdData={manifest.prdData}
+                sprite={manifest.sprite}
               />
             ))}
           </div>

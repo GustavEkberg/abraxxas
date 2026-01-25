@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
-import { eq } from 'drizzle-orm'
 import { Sprites } from '@/lib/services/sprites/live-layer'
 import { Db } from '@/lib/services/db/live-layer'
 import { SpriteExecutionError } from '@/lib/services/sprites/errors'
 import { getOpencodeAuth } from '@/lib/core/opencode-auth/get-opencode-auth'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
 import { generateBaseSetupScript } from '@/lib/core/sprites/base-setup-script'
+import { generateWebhookSecret } from '@/lib/core/sprites/callback-script'
 import type { Project } from '@/lib/services/db/schema'
 import * as schema from '@/lib/services/db/schema'
 
@@ -13,17 +13,13 @@ import * as schema from '@/lib/services/db/schema'
  * Configuration for spawning a manifest sprite.
  */
 export interface SpawnManifestSpriteConfig {
-  /** Manifest ID for logging/tracing */
-  manifestId: string
-  /** Webhook secret for HMAC signing */
-  webhookSecret: string
   project: Pick<Project, 'id' | 'repositoryUrl' | 'encryptedGithubToken' | 'localSetupScript'>
   /** User ID to fetch opencode auth for model access */
   userId: string
-  /** Branch to checkout (optional - will use default branch if not specified) */
-  branchName?: string
-  /** PRD name for auto-starting task-loop (if prd.json exists) */
-  prdName?: string
+  /** Branch name to checkout (e.g., manifest-my-feature) */
+  branchName: string
+  /** PRD name derived from branch (e.g., my-feature) */
+  prdName: string
 }
 
 /**
@@ -250,17 +246,20 @@ fi
  *
  * Creates a new sprite with public URL, clones the repo,
  * sets up opencode auth and abraxas-opencode-setup files,
- * then starts opencode serve.
+ * then starts opencode serve and task-loop.
  */
 export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
   Effect.gen(function* () {
     const sprites = yield* Sprites
     const db = yield* Db
 
-    const { manifestId, webhookSecret, project, userId } = config
+    const { project, userId, branchName, prdName } = config
 
-    // Build webhook URL for this manifest
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/manifest/${manifestId}`
+    // Generate webhook secret for this sprite
+    const webhookSecret = generateWebhookSecret()
+
+    // Build webhook URL for this sprite (using branchName as identifier)
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/manifest/${encodeURIComponent(branchName)}`
 
     const spriteName = generateManifestSpriteName(project.id)
 
@@ -270,10 +269,11 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
     yield* Effect.annotateCurrentSpan({
       'sprite.name': spriteName,
       'project.id': project.id,
-      'manifest.id': manifestId
+      'branch.name': branchName,
+      'prd.name': prdName
     })
 
-    yield* Effect.log(`Creating manifest sprite: ${spriteName}`)
+    yield* Effect.log(`Creating manifest sprite: ${spriteName} for branch ${branchName}`)
 
     // Create the sprite with public auth
     const sprite = yield* sprites.createSprite(spriteName, 'public').pipe(
@@ -312,18 +312,18 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       yield* Effect.log(`Network policy set for ${spriteName}: allow ${sprites.whitelistDomain}`)
     }
 
-    // Save sprite details to DB immediately so we don't lose them on timeout
-    // If prdName provided, task-loop will auto-start so set status to 'running'
-    yield* db
-      .update(schema.manifests)
-      .set({
-        status: config.prdName ? 'running' : 'active',
-        spriteName,
-        spriteUrl
-      })
-      .where(eq(schema.manifests.id, manifestId))
+    // Insert sprite record into DB
+    yield* db.insert(schema.sprites).values({
+      projectId: project.id,
+      branchName,
+      type: 'manifest',
+      status: 'running',
+      spriteName,
+      spriteUrl,
+      webhookSecret
+    })
 
-    yield* Effect.log(`Saved sprite details to manifest ${manifestId}`)
+    yield* Effect.log(`Saved sprite details to DB for branch ${branchName}`)
 
     // Get opencode auth for the setup script
     const opencodeAuth = yield* getOpencodeAuth(userId)
@@ -335,14 +335,14 @@ export const spawnManifestSprite = (config: SpawnManifestSpriteConfig) =>
       opencodeAuth,
       opencodeSetupRepoUrl: sprites.opencodeSetupRepoUrl,
       localSetupScript: project.localSetupScript ?? undefined,
-      branchName: config.branchName
+      branchName
     })
 
     const hasLocalSetup = project.localSetupScript !== null
     const manifestExecution = generateManifestExecutionScript({
       webhookUrl,
       webhookSecret,
-      prdName: config.prdName,
+      prdName,
       hasLocalSetup
     })
 

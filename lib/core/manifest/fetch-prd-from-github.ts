@@ -1,6 +1,8 @@
 import { Data, Effect, Schema } from 'effect'
 import { decryptToken } from '@/lib/core/crypto/encrypt'
 
+const MANIFEST_BRANCH_PREFIX = 'manifest-'
+
 /**
  * PRD Task - represents a single task in the PRD
  * @example
@@ -175,3 +177,69 @@ export const fetchPrdFromGitHub = (
 
     return { prdJson, progress }
   }).pipe(Effect.withSpan('manifest.fetchPrdFromGitHub'))
+
+/**
+ * Manifest branch info from GitHub
+ */
+export interface ManifestBranch {
+  /** Full branch name (e.g., manifest-my-feature) */
+  branchName: string
+  /** PRD name derived from branch (e.g., my-feature) */
+  prdName: string
+}
+
+/**
+ * List all manifest branches from GitHub (branches with manifest- prefix)
+ */
+export const listManifestBranches = (
+  repositoryUrl: string,
+  encryptedGithubToken: string
+): Effect.Effect<ManifestBranch[], GitHubFetchError> =>
+  Effect.gen(function* () {
+    const { owner, repo } = yield* parseRepoFromUrl(repositoryUrl)
+
+    const token = yield* decryptToken(encryptedGithubToken).pipe(
+      Effect.mapError(
+        e => new GitHubFetchError({ message: `Failed to decrypt GitHub token: ${e.message}` })
+      )
+    )
+
+    // Fetch branches with manifest- prefix using GitHub API
+    const url = `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`
+
+    const response = yield* Effect.tryPromise({
+      try: () =>
+        fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          }
+        }),
+      catch: error =>
+        new GitHubFetchError({ message: `Failed to fetch branches: ${String(error)}` })
+    })
+
+    if (!response.ok) {
+      return yield* Effect.fail(
+        new GitHubFetchError({
+          message: `GitHub API error: ${response.status} ${response.statusText}`,
+          statusCode: response.status
+        })
+      )
+    }
+
+    const branches: Array<{ name: string }> = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: error =>
+        new GitHubFetchError({ message: `Failed to parse branches response: ${String(error)}` })
+    })
+
+    // Filter to manifest branches and extract prdName
+    return branches
+      .filter(b => b.name.startsWith(MANIFEST_BRANCH_PREFIX))
+      .map(b => ({
+        branchName: b.name,
+        prdName: b.name.slice(MANIFEST_BRANCH_PREFIX.length)
+      }))
+  }).pipe(Effect.withSpan('manifest.listManifestBranches'))
