@@ -10,7 +10,7 @@
         "Displays 'Welcome to the app!' text",
         "Uses Tailwind CSS for styling"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",

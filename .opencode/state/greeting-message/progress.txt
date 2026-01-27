@@ -1,0 +1,23 @@
+# Progress Log
+
+PRD: greeting-message
+Started: 2026-01-27
+
+## Codebase Patterns
+
+- **Component location**: Components go in `components/` (not `components/ui/` which is for Base UI primitives)
+- **Styling**: Use Tailwind CSS with `cn()` helper from `@/lib/utils` for conditional classes
+- **Props pattern**: Accept optional `className` prop for customization
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - ui-1
+
+- Created reusable `Greeting` component at `components/greeting.tsx`
+- Displays "Welcome to the app!" text
+- Styled with Tailwind CSS (centered, white/80 text, medium font weight)
+- Accepts optional `className` prop for customization
+- **Files changed:** `components/greeting.tsx` (new)
+- **Learnings:** Simple UI components in this codebase are Server Components by default (no 'use client'). Only add 'use client' when interactivity is needed.
