@@ -43,10 +43,12 @@ const FireIntensityContext = createContext<FireIntensityContextValue | null>(nul
  * Intensity can exceed 35, triggering color changes above threshold.
  */
 function calculateIntensity(tasks: RunningTask[], manifests: RunningManifest[]): number {
+  // Idle baseline
   if (tasks.length === 0 && manifests.length === 0) return 5
 
   const now = Date.now()
-  const baseIntensity = 5
+  // Per-task/manifest base contribution (must be > idle baseline to trigger fire)
+  const baseIntensity = 6
   const messageBonus = (messageCount: number) => Math.min(messageCount, 10)
   const timeBonus = (elapsed: number) => Math.min(Math.floor(elapsed / 30000), 15)
 
@@ -57,7 +59,7 @@ function calculateIntensity(tasks: RunningTask[], manifests: RunningManifest[]):
   }, 0)
 
   const manifestIntensity = manifests.reduce((sum, manifest) => {
-    // +3 intensity per completed task in manifest
+    // +1.5 intensity per completed task in manifest
     return sum + baseIntensity + manifest.completedTasks * 1.5
   }, 0)
 

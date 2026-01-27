@@ -3,14 +3,15 @@
 import { useEffect, useRef } from 'react'
 import { useFireIntensity } from '@/lib/contexts/fire-intensity-context'
 
-const BASE_INTENSITY = 5
 const BASE_TITLE = 'ἀβραξάς'
 // Skip space char - fire should always be visible when active
 const fireChars = '.:-=+*#%@'
+// Base intensity when no tasks running
+const IDLE_INTENSITY = 5
 
 /**
  * Animated ASCII fire in browser tab title.
- * Only animates when fire intensity exceeds base value (5).
+ * Animates when intensity exceeds idle value (i.e., when tasks are running).
  */
 export function AnimatedTitle() {
   const { intensity } = useFireIntensity()
@@ -18,7 +19,8 @@ export function AnimatedTitle() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    const isActive = intensity > BASE_INTENSITY
+    // Fire shows when any task/manifest is running (intensity > idle baseline)
+    const isActive = intensity > IDLE_INTENSITY
 
     if (!isActive) {
       if (intervalRef.current) {

@@ -387,30 +387,20 @@ export function ManifestCard({
             className="h-7 px-2 text-white/40"
           />
 
-          {/* Spawn button - show when no sprite is running */}
-          {!hasSprite && !isCompleted && (
+          {/* Spawn/Stop toggle button */}
+          {!isCompleted && (
             <Button
-              onClick={handleSpawn}
+              onClick={hasSprite ? handleStop : handleSpawn}
               disabled={isPending}
               size="sm"
-              className="h-7 bg-red-600 px-2 hover:bg-red-700"
-              title="Spawn sprite and start task loop"
+              className={
+                hasSprite
+                  ? 'h-7 bg-red-600 px-2 hover:bg-red-700'
+                  : 'h-7 bg-red-600 px-2 hover:bg-red-700'
+              }
+              title={hasSprite ? 'Stop sprite' : 'Spawn sprite'}
             >
-              <Play className="size-3.5" />
-            </Button>
-          )}
-
-          {/* Stop button - show when sprite is running */}
-          {hasSprite && (
-            <Button
-              onClick={handleStop}
-              disabled={isPending}
-              variant="destructive"
-              size="sm"
-              className="h-7 px-2"
-              title="Stop sprite"
-            >
-              <Square className="size-3.5" />
+              {hasSprite ? <Square className="size-3.5" /> : <Play className="size-3.5" />}
             </Button>
           )}
         </div>
