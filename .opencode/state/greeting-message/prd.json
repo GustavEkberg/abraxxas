@@ -20,7 +20,7 @@
         "Greeting component is imported in the home page",
         "Greeting appears above the main content"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

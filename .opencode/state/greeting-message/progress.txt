@@ -21,3 +21,10 @@ Started: 2026-01-27
 - Accepts optional `className` prop for customization
 - **Files changed:** `components/greeting.tsx` (new)
 - **Learnings:** Simple UI components in this codebase are Server Components by default (no 'use client'). Only add 'use client' when interactivity is needed.
+
+## Task - ui-2
+
+- Imported and added `Greeting` component to the dashboard home page
+- Placed greeting above the page header with `mb-6` spacing
+- **Files changed:** `app/(dashboard)/page.tsx`
+- **Learnings:** The actual home page is at `app/(dashboard)/page.tsx` due to the route group structure, not `app/page.tsx` as indicated in the PRD context. Always check actual file locations rather than assuming based on docs.

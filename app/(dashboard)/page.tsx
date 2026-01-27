@@ -8,6 +8,7 @@ import { getSession } from '@/lib/services/auth/get-session'
 import { getProjects } from '@/lib/core/project/get-projects'
 import { CreateRitualDialog } from '@/components/rituals/create-ritual-dialog'
 import { Card } from '@/components/ui/card'
+import { Greeting } from '@/components/greeting'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,9 @@ async function Content() {
       return (
         <div className="min-h-screen p-8">
           <div className="mx-auto max-w-[1600px]">
+            {/* Greeting */}
+            <Greeting className="mb-6" />
+
             {/* Page Header */}
             <div className="mb-8 flex items-center justify-between">
               <div>
