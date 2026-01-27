@@ -28,6 +28,9 @@ const buildPrompt = (task: schema.Task): string => {
   if (task.description) {
     prompt += `Description:\n${task.description}\n\n`
   }
+  if (task.type) {
+    prompt += `Type: ${task.type}\n\n`
+  }
 
   return prompt
 }

@@ -1,5 +1,4 @@
 import { createHmac, randomBytes } from 'crypto'
-import { Option } from 'effect'
 import { generateBaseSetupScript, type BaseSetupConfig } from './base-setup-script'
 
 /**
@@ -21,24 +20,6 @@ export interface InvocationScriptConfig {
 }
 
 /**
- * @deprecated Use InvocationScriptConfig instead
- */
-export interface CallbackScriptConfig {
-  sessionId: string
-  taskId: string
-  webhookUrl: string
-  webhookSecret: string
-  prompt: string
-  repoUrl: string
-  githubToken: string
-  branchName: string
-  /** Model in format provider/model (e.g., anthropic/claude-sonnet-4-5-20250929) */
-  model: string
-  /** Optional setup script to run before cloning (e.g., install opencode) */
-  setupScript?: string
-}
-
-/**
  * Generate HMAC signature for webhook payload.
  */
 export function generateSignature(payload: string, secret: string): string {
@@ -51,31 +32,6 @@ export function generateSignature(payload: string, secret: string): string {
 export function generateWebhookSecret(): string {
   return randomBytes(32).toString('hex')
 }
-
-/**
- * Default setup script - kept for backwards compatibility.
- * @deprecated Use generateBaseSetupScript from base-setup-script.ts instead
- */
-export const DEFAULT_SETUP_SCRIPT = `
-# Add common binary paths
-export PATH="$HOME/.local/bin:$HOME/bin:$HOME/.opencode/bin:/usr/local/bin:$PATH"
-
-echo "Checking for opencode..."
-if ! command -v opencode &> /dev/null; then
-    echo "Installing opencode..."
-    curl -fsSL https://opencode.ai/install | bash
-    
-    # Re-source bashrc to pick up PATH changes
-    [ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
-    
-    # Also try common install locations explicitly
-    export PATH="$HOME/.local/bin:$HOME/bin:$HOME/.opencode/bin:$PATH"
-fi
-
-
-echo "opencode ready"
-opencode --version || true
-`
 
 /**
  * Generate the invocation-specific execution script (webhook callbacks, opencode run, etc.)
@@ -374,43 +330,4 @@ echo ""
 
 ${executionScript}
 `
-}
-
-/**
- * Generate the callback script that runs inside the Sprite.
- * @deprecated Use generateInvocationScript instead for new code.
- *
- * This function is kept for backwards compatibility.
- */
-export function generateCallbackScript(config: CallbackScriptConfig): string {
-  const {
-    sessionId,
-    taskId,
-    webhookUrl,
-    webhookSecret,
-    prompt,
-    repoUrl,
-    githubToken,
-    branchName,
-    model
-  } = config
-
-  // Convert old config format to new format
-  return generateInvocationScript({
-    sessionId,
-    taskId,
-    webhookUrl,
-    webhookSecret,
-    prompt,
-    model,
-    branchName,
-    baseSetup: {
-      githubToken,
-      repoUrl,
-      opencodeAuth: Option.none(),
-      opencodeSetupRepoUrl:
-        process.env.OPENCODE_SETUP_REPO_URL || 'https://github.com/anomalyco/opencode-setup',
-      branchName
-    }
-  })
 }
