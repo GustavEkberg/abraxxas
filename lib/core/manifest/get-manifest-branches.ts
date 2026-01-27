@@ -9,6 +9,7 @@ import {
   type ManifestBranch,
   type ManifestPrdData
 } from './fetch-prd-from-github'
+import { completeManifestSprite } from './complete-manifest-sprite'
 
 /**
  * Combined manifest data for UI display
@@ -85,6 +86,35 @@ export const getManifestBranches = (projectId: string) =>
       ),
       { concurrency: 5 }
     )
+
+    // Check for completed manifests with active sprites and auto-destroy them
+    const completedWithSprites = results.filter(m => {
+      if (!m.sprite || !m.prdData?.prdJson) return false
+      const tasks = m.prdData.prdJson.tasks
+      return tasks.length > 0 && tasks.every(t => t.passes)
+    })
+
+    // Destroy completed sprites in parallel (fire-and-forget, errors logged but not thrown)
+    if (completedWithSprites.length > 0) {
+      yield* Effect.all(
+        completedWithSprites.map(m =>
+          completeManifestSprite(m.sprite!).pipe(
+            Effect.catchAll(error =>
+              Effect.logWarning('Failed to auto-complete manifest sprite', {
+                branchName: m.branchName,
+                error
+              })
+            )
+          )
+        ),
+        { concurrency: 5 }
+      )
+
+      // Clear sprite references from results since they're now destroyed
+      for (const m of completedWithSprites) {
+        m.sprite = null
+      }
+    }
 
     return results
   }).pipe(Effect.withSpan('Manifest.getManifestBranches'))
