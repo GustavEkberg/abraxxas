@@ -43,7 +43,6 @@ export const LoginForm = () => {
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-white/90">ἈΒΡΑΞΑΣ</h1>
-        <p className="text-white/60">Enter the realm</p>
       </div>
 
       {/* Form */}
